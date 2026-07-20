@@ -1,0 +1,65 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: ets-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - backend
+      - admin
+      - ets
+    restart: always
+
+  backend:
+    build:
+      context: ./Backend/Backend
+      dockerfile: Dockerfile
+    container_name: ets-backend
+    env_file:
+      - ./Backend/Backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      HOST: 0.0.0.0
+      MONGO_URI: mongodb://mongo:27017/ets
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - mongo
+      - redis
+    restart: always
+
+  admin:
+    build:
+      context: ./admin/admin
+      dockerfile: Dockerfile
+    container_name: ets-admin
+    restart: always
+
+  ets:
+    build:
+      context: ./Ets/Ets
+      dockerfile: Dockerfile
+    container_name: ets-frontend
+    restart: always
+
+  mongo:
+    image: mongo:7
+    container_name: ets-mongo
+    volumes:
+      - mongo-data:/data/db
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: ets-redis
+    restart: always
+
+volumes:
+  mongo-data:
+  caddy-data:
+  caddy-config:
