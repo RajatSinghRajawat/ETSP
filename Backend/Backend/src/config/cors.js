@@ -8,6 +8,8 @@ export const allowedOrigins = Array.from(
   ]),
 );
 
+const prodOriginPattern = /^https?:\/\/(.*\.)?vetlinked\.(in|com)(:\d+)?$/;
+
 export function isCorsOriginAllowed(origin) {
   if (!origin) {
     return true;
@@ -17,7 +19,7 @@ export function isCorsOriginAllowed(origin) {
     return true;
   }
 
-  if (localOriginPattern.test(origin)) {
+  if (localOriginPattern.test(origin) || prodOriginPattern.test(origin)) {
     return true;
   }
 
