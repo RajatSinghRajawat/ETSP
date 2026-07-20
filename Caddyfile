@@ -1,5 +1,5 @@
 # Main User Frontend
-vetlinked.in, vetlinkedin.com {
+vetlinked.in, vetlinked.com {
     # Route Socket.IO and REST API requests to backend
     handle_path /api/* {
         reverse_proxy backend:5000
@@ -15,11 +15,11 @@ vetlinked.in, vetlinkedin.com {
 }
 
 # Admin Frontend
-admin.vetlinked.in, admin.vetlinkedin.com {
+admin.vetlinked.in, admin.vetlinked.com {
     reverse_proxy admin:3001
 }
 
 # Dedicated Backend API Subdomains
-api.vetlinked.in, api.vetlinkedin.com {
+api.vetlinked.in, api.vetlinked.com {
     reverse_proxy backend:5000
 }
