@@ -1,6 +1,22 @@
 import { io, type Socket } from 'socket.io-client';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname.endsWith('vetlinked.com')) {
+      return 'https://api.vetlinked.com';
+    }
+    if (hostname.endsWith('vetlinked.in')) {
+      return 'https://api.vetlinked.in';
+    }
+  }
+  return 'http://localhost:5000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 let socket: Socket | null = null;
 let currentToken: string | null = null;
