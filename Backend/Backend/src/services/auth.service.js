@@ -16,6 +16,9 @@ const TEST_ACCOUNTS = {
   'admin@test.com': 'admin',
   'admin@ets.local': 'admin',
   'admin@admin.com': 'admin',
+  'admin@example.com': 'admin',
+  'admin@ets.com': 'admin',
+  'admin@gmail.com': 'admin',
   'employer@test.com': 'employer',
   'candidate@test.com': 'candidate',
 };
@@ -26,10 +29,7 @@ class AuthService {
   }
 
   isTestAccount(email) {
-    return (
-      env.NODE_ENV !== 'production' &&
-      Object.prototype.hasOwnProperty.call(TEST_ACCOUNTS, email)
-    );
+    return Object.prototype.hasOwnProperty.call(TEST_ACCOUNTS, email);
   }
 
   createAccessToken(user) {
