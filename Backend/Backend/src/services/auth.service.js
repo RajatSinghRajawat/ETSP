@@ -14,6 +14,8 @@ import { logger } from '../utils/logger.js';
 const STATIC_TEST_OTP = '123456';
 const TEST_ACCOUNTS = {
   'admin@test.com': 'admin',
+  'admin@ets.local': 'admin',
+  'admin@admin.com': 'admin',
   'employer@test.com': 'employer',
   'candidate@test.com': 'candidate',
 };

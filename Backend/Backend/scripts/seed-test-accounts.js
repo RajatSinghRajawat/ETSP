@@ -4,6 +4,8 @@ import { logger } from '../src/utils/logger.js';
 
 const TEST_ACCOUNTS = [
   { email: 'admin@test.com', role: 'admin' },
+  { email: 'admin@ets.local', role: 'admin' },
+  { email: 'admin@admin.com', role: 'admin' },
   { email: 'employer@test.com', role: 'employer' },
   { email: 'candidate@test.com', role: 'candidate' },
 ];
