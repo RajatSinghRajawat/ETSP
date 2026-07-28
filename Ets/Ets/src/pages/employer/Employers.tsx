@@ -217,18 +217,56 @@ const Employers: React.FC = () => {
       </Box>
 
       {/* Hero */}
-      <Box sx={{ background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)', color: 'white', py: { xs: 6, md: 9 } }}>
+      <Box sx={{ background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)', color: 'white', py: { xs: 6, md: 8 } }}>
         <Container maxWidth="xl" sx={{ px: { xs: 2, md: 4 } }}>
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Chip
+              label="Employer Portal"
+              sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 700, mb: 2 }}
+            />
             <Typography variant="h3" sx={{ fontWeight: 800, mb: 1.5, fontSize: { xs: '2rem', md: '2.8rem' } }}>
-              Find Top Employers
+              Hire Top Veterinary Candidates Across Cities
             </Typography>
-            <Typography variant="h6" sx={{ opacity: 0.92, maxWidth: 620, mx: 'auto', fontWeight: 400, fontSize: { xs: '1rem', md: '1.15rem' } }}>
-              Connect with leading animal hospitals, clinics, and pet care organizations across India
+            <Typography variant="h6" sx={{ opacity: 0.92, maxWidth: 650, mx: 'auto', fontWeight: 400, fontSize: { xs: '1rem', md: '1.15rem' }, mb: 3 }}>
+              Connect directly with verified veterinarians, pet groomers, trainers, and clinic staff
             </Typography>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => navigate('/employer/post-job')}
+                sx={{
+                  bgcolor: '#ffffff',
+                  color: '#0c5283',
+                  fontWeight: 800,
+                  px: 4,
+                  py: 1.5,
+                  borderRadius: 999,
+                  '&:hover': { bgcolor: '#f0f4f8' }
+                }}
+              >
+                Post a Job for Free
+              </Button>
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={() => navigate('/signup/employer')}
+                sx={{
+                  borderColor: '#ffffff',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  px: 4,
+                  py: 1.5,
+                  borderRadius: 999,
+                  '&:hover': { borderColor: '#ffffff', bgcolor: 'rgba(255,255,255,0.1)' }
+                }}
+              >
+                Register Clinic / Hospital
+              </Button>
+            </Box>
           </Box>
 
-          <Paper elevation={0} sx={{ borderRadius: 999, p: 0.75, maxWidth: 820, mx: 'auto', bgcolor: 'white', boxShadow: '0 20px 50px rgba(0,0,0,0.18)' }}>
+          <Paper elevation={0} sx={{ borderRadius: 999, p: 0.75, maxWidth: 820, mx: 'auto', bgcolor: 'white', boxShadow: '0 20px 50px rgba(0,0,0,0.18)', mt: 4 }}>
             <Box sx={{ display: 'flex', gap: 1, flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center' }}>
               <TextField
                 fullWidth
@@ -273,6 +311,31 @@ const Employers: React.FC = () => {
               </IconButton>
             </Box>
           </Paper>
+        </Container>
+      </Box>
+
+      {/* Why Choose VetsLinked for Employers */}
+      <Box sx={{ py: 6, bgcolor: 'rgba(12, 82, 131, 0.03)', borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Container maxWidth="xl" sx={{ px: { xs: 2, md: 4 } }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, textAlign: 'center', mb: 4, color: '#0c5283' }}>
+            Why Choose VetsLinked for Employers?
+          </Typography>
+          <Grid container spacing={3}>
+            {[
+              { title: 'Easy Job Posting', desc: 'Create and publish job listings in under 2 minutes.', icon: '⚡' },
+              { title: 'Specialized Profiles', desc: 'Profiles tailored exclusively for veterinary and pet care roles.', icon: '🐾' },
+              { title: 'Verified Candidates', desc: 'Background-verified doctors and staff ready for hire.', icon: '✓' },
+              { title: 'Direct Chat', desc: 'Instantly connect and message candidates directly.', icon: '💬' },
+            ].map((feature, i) => (
+              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
+                <Paper elevation={0} sx={{ p: 3, borderRadius: 3, height: '100%', border: '1px solid rgba(12,82,131,0.1)', bgcolor: 'white', textAlign: 'center' }}>
+                  <Typography variant="h3" sx={{ mb: 1 }}>{feature.icon}</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: '#0c5283' }}>{feature.title}</Typography>
+                  <Typography variant="body2" color="text.secondary">{feature.desc}</Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
         </Container>
       </Box>
 

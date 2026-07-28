@@ -623,13 +623,20 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
                     <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
+                        select
                         label="Organization Type"
-                        placeholder="Hospital, Clinic, Organization, Pet Store"
                         value={formData.organizationType}
                         error={Boolean(formErrors.organizationType)}
                         helperText={formErrors.organizationType}
                         onChange={(event) => updateField('organizationType', event.target.value)}
-                      />
+                      >
+                        <MenuItem value="">Select Organization Type</MenuItem>
+                        {['Veterinary Hospital', 'Private Clinic', 'Pet Clinic', 'Animal Shelter', 'Diagnostic Lab', 'NGO / Rescue Center', 'Corporate Pet Care', 'Other'].map((type) => (
+                          <MenuItem key={type} value={type}>
+                            {type}
+                          </MenuItem>
+                        ))}
+                      </TextField>
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
@@ -696,33 +703,43 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
                     <Grid size={{ xs: 12, md: 4 }}>
                       <TextField
                         fullWidth
+                        select
                         label="Team Size"
-                        placeholder="e.g. 50-100"
                         value={formData.teamSize}
                         error={Boolean(formErrors.teamSize)}
                         helperText={formErrors.teamSize}
                         onChange={(event) => updateField('teamSize', event.target.value)}
-                      />
+                      >
+                        <MenuItem value="">Select Team Size</MenuItem>
+                        {['1-5', '6-10', '11-20', '21-50', '50+'].map((size) => (
+                          <MenuItem key={size} value={size}>
+                            {size} employees
+                          </MenuItem>
+                        ))}
+                      </TextField>
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }}>
                       <TextField
                         fullWidth
-                        label="Active Jobs"
-                        inputMode="numeric"
-                        value={formData.activeJobs}
-                        error={Boolean(formErrors.activeJobs)}
-                        helperText={formErrors.activeJobs}
-                        onChange={(event) => handleNumericFieldChange('activeJobs', event.target.value)}
+                        label="Active Jobs Count"
+                        disabled
+                        value={formData.activeJobs || '0 (Auto-managed)'}
+                        helperText="Active job postings count"
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Headquarters"
-                        value={formData.headquarters}
-                        error={Boolean(formErrors.headquarters)}
-                        helperText={formErrors.headquarters}
-                        onChange={(event) => updateField('headquarters', event.target.value)}
+                      <Autocomplete
+                        options={indiaCityOptions}
+                        value={formData.headquarters || null}
+                        onChange={(_, newValue) => updateField('headquarters', newValue || '')}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Headquarters City"
+                            error={Boolean(formErrors.headquarters)}
+                            helperText={formErrors.headquarters || 'Select headquarters city'}
+                          />
+                        )}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
@@ -840,7 +857,8 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
                         label="Company Overview"
                         value={formData.overview}
                         error={Boolean(formErrors.overview)}
-                        helperText={formErrors.overview}
+                        helperText={formErrors.overview || `${formData.overview.length}/1000 characters`}
+                        slotProps={{ htmlInput: { maxLength: 1000 } }}
                         onChange={(event) => updateField('overview', event.target.value)}
                         placeholder="Describe the organization, care standards, team culture and hiring proposition"
                       />

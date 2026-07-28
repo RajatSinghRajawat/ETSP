@@ -492,17 +492,52 @@ const FindJob: React.FC = () => {
             </Box>
           </Paper>
 
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
-            {skillOptions.slice(0, 6).map((skill) => (
-              <Chip
-                key={skill._id}
-                label={skill.name}
-                clickable
-                onClick={() => handleFilterChange('skills', skill.value)}
-                sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: 2, px: 1, fontWeight: 600, '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}
-              />
-            ))}
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="subtitle2" sx={{ opacity: 0.9, mb: 1, textAlign: 'center', fontWeight: 700 }}>
+              Choose Jobs by City:
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
+              {locations.map((city) => (
+                <Chip
+                  key={city}
+                  label={city}
+                  clickable
+                  onClick={() => handleFilterChange('location', city === filters.location ? '' : city)}
+                  sx={{
+                    bgcolor: filters.location === city ? '#ffffff' : 'rgba(255,255,255,0.18)',
+                    color: filters.location === city ? '#0c5283' : '#ffffff',
+                    fontWeight: 700,
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
+                  }}
+                />
+              ))}
+            </Box>
           </Box>
+        </Container>
+      </Box>
+
+      {/* Why Choose VetsLinked section for Candidates */}
+      <Box sx={{ py: 5, bgcolor: 'rgba(10, 182, 162, 0.04)', borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Container maxWidth="xl" sx={{ px: { xs: 2, md: 4 } }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, textAlign: 'center', mb: 3.5, color: '#0c5283' }}>
+            Why Choose VetsLinked for Job Seekers?
+          </Typography>
+          <Grid container spacing={3}>
+            {[
+              { title: 'Easy Application', desc: 'Apply to top clinics with 1-click using your unified profile.', icon: '⚡' },
+              { title: 'Specialized Jobs', desc: 'Roles focused purely on veterinary medicine & animal care.', icon: '🩺' },
+              { title: 'Verified Employers', desc: '100% genuine animal hospitals and verified clinic practices.', icon: '🛡️' },
+              { title: 'Direct Chat', desc: 'Talk directly with hiring managers & hospital Directors.', icon: '💬' },
+            ].map((item, index) => (
+              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
+                <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, bgcolor: 'white', border: '1px solid rgba(10,182,162,0.15)', textAlign: 'center' }}>
+                  <Typography variant="h4" sx={{ mb: 1 }}>{item.icon}</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, color: '#0c5283', fontSize: '1.05rem' }}>{item.title}</Typography>
+                  <Typography variant="body2" color="text.secondary">{item.desc}</Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
         </Container>
       </Box>
 

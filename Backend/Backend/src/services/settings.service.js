@@ -42,14 +42,18 @@ async function upsertSettingValue(key, value) {
 export async function getStripeSettings() {
   const value = await getSettingValue(STRIPE_KEY);
 
-  if (!value?.secretKey) {
+  const secretKey = value?.secretKey ? readSecret(value.secretKey) : (process.env.STRIPE_SECRET_KEY || '');
+  const publishableKey = value?.publishableKey || process.env.STRIPE_PUBLISHABLE_KEY || '';
+  const webhookSecret = value?.webhookSecret ? readSecret(value.webhookSecret) : (process.env.STRIPE_WEBHOOK_SECRET || '');
+
+  if (!secretKey) {
     return null;
   }
 
   return {
-    secretKey: readSecret(value.secretKey),
-    publishableKey: value.publishableKey || '',
-    webhookSecret: readSecret(value.webhookSecret),
+    secretKey,
+    publishableKey,
+    webhookSecret,
   };
 }
 
@@ -146,15 +150,17 @@ export async function updateEmailSettings({ enabled, host, port, user, pass, fro
 
 /* ---------------------------- SMS (MSG91) ---------------------------- */
 
-/** MSG91 settings — disabled until the admin configures and enables it. */
+/** MSG91 settings — fallback to .env when not set in DB. */
 export async function getMsg91Settings() {
   const value = await getSettingValue(MSG91_KEY);
 
+  const authKey = value?.authKey ? readSecret(value.authKey) : (process.env.MSG91_AUTH_KEY || '');
+
   return {
-    enabled: value?.enabled === true,
-    authKey: value?.authKey ? readSecret(value.authKey) : '',
-    senderId: value?.senderId || '',
-    templateId: value?.templateId || '',
+    enabled: value?.enabled === true || Boolean(process.env.MSG91_AUTH_KEY),
+    authKey,
+    senderId: value?.senderId || process.env.MSG91_SENDER_ID || '',
+    templateId: value?.templateId || process.env.MSG91_TEMPLATE_ID || '',
   };
 }
 

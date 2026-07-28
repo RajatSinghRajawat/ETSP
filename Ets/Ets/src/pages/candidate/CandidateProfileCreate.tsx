@@ -829,12 +829,19 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Current Location"
-                        value={formData.currentLocation}
-                        onChange={(event) => updateField('currentLocation', event.target.value)}
-                        slotProps={adornment(<LocationOn />)}
+                      <Autocomplete
+                        options={indiaCityOptions}
+                        value={formData.currentLocation || null}
+                        onChange={(_event, value) => updateField('currentLocation', value ?? '')}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            fullWidth
+                            label="Current Location"
+                            placeholder="Select city"
+                            slotProps={adornment(<LocationOn />)}
+                          />
+                        )}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
@@ -1039,17 +1046,17 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                   <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
                     <CardContent>
                       <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                        Verification Preference
+                        Aadhaar Verification
                       </Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Aadhaar verification is optional, but it adds a trust badge to the public profile.
+                        Aadhaar verification connects via secure OTP to verify your identity and instantly grants a Verified Candidate Badge to build maximum employer trust.
                       </Typography>
                       <Button
                         variant={formData.aadhaarVerified ? 'contained' : 'outlined'}
                         onClick={() => updateField('aadhaarVerified', !formData.aadhaarVerified)}
                         fullWidth
                       >
-                        {formData.aadhaarVerified ? 'Verified profile enabled' : 'Mark as Aadhaar verified'}
+                        {formData.aadhaarVerified ? '✓ Verified Badge Enabled' : 'Enable Aadhaar Verification'}
                       </Button>
                     </CardContent>
                   </Card>
@@ -1060,12 +1067,30 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
             {activeStep === 1 && (
               <Grid container spacing={3}>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Current Job Title"
+                  <Autocomplete
+                    freeSolo
+                    options={[
+                      'Veterinarian',
+                      'Veterinary Assistant',
+                      'Ward Boy',
+                      'Pet Trainer',
+                      'Pet Groomer',
+                      'Receptionist',
+                      'Floor Manager',
+                      'Sales Manager',
+                      'Inventory Incharge'
+                    ]}
                     value={formData.currentJobTitle}
-                    onChange={(event) => updateField('currentJobTitle', event.target.value)}
-                    slotProps={adornment(<Work />)}
+                    onInputChange={(_event, value) => updateField('currentJobTitle', value)}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        label="Current Job Title"
+                        placeholder="Select or enter job title"
+                        slotProps={adornment(<Work />)}
+                      />
+                    )}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -1609,9 +1634,6 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                       ) : (
                         'Submit Profile'
                       )}
-                    </Button>
-                    <Button variant="text" onClick={() => navigate('/candidate/dashboard')}>
-                      Open Dashboard
                     </Button>
                   </>
                 )}

@@ -196,9 +196,9 @@ const ChatBotWidget: React.FC = () => {
   const [searchJobs, { isLoading: isSearchingJobs }] = useSearchJobsWithAiMutation();
   const { isLoggedIn, isChecking, aiAllowed, planName } = useAiEntitlement();
 
-  // Whole-chat gate: without a plan that includes AI, VetBot stays locked —
-  // no scripted replies either, only the upgrade/sign-in prompt.
-  const aiLocked = !isChecking && (!isLoggedIn || !aiAllowed);
+  // VetBot is available to everyone on the homepage and general pages.
+  // Advanced RAG/resume AI actions remain feature-gated for logged in accounts.
+  const aiLocked = false;
 
   const [resumeBuilderOpen, setResumeBuilderOpen] = useState(false);
 

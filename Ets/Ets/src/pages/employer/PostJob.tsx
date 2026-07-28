@@ -572,23 +572,44 @@ const PostJob: React.FC = () => {
                 >
                   <Grid container spacing={2.5}>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Job Title"
-                        placeholder="e.g. Veterinary Surgeon"
+                      <Autocomplete
+                        freeSolo
+                        options={[
+                          'Veterinarian',
+                          'Veterinary Assistant',
+                          'Ward Boy',
+                          'Pet Trainer',
+                          'Pet Groomer',
+                          'Receptionist',
+                          'Floor Manager',
+                          'Sales Manager',
+                          'Inventory Incharge'
+                        ]}
                         value={formData.title}
-                        error={Boolean(formErrors.title)}
-                        helperText={formErrors.title}
-                        onChange={(event) => updateField('title', event.target.value)}
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <TitleIcon sx={{ color: '#0c5283', fontSize: 20 }} />
-                              </InputAdornment>
-                            ),
-                          },
-                        }}
+                        onInputChange={(_event, value) => updateField('title', value)}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            fullWidth
+                            label="Job Title"
+                            placeholder="Select or type custom job title"
+                            error={Boolean(formErrors.title)}
+                            helperText={formErrors.title || "Select or add custom title"}
+                            slotProps={{
+                              input: {
+                                ...params.InputProps,
+                                startAdornment: (
+                                  <>
+                                    <InputAdornment position="start">
+                                      <TitleIcon sx={{ color: '#0c5283', fontSize: 20 }} />
+                                    </InputAdornment>
+                                    {params.InputProps.startAdornment}
+                                  </>
+                                ),
+                              },
+                            }}
+                          />
+                        )}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
@@ -731,6 +752,24 @@ const PostJob: React.FC = () => {
                   title="Role Description"
                   caption="Describe the responsibilities and the skills you need."
                 >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      Role Description & Responsibilities
+                    </Typography>
+                    <Button
+                      size="small"
+                      startIcon={<Bolt />}
+                      variant="outlined"
+                      onClick={() => {
+                        const title = formData.title || 'Veterinary Professional';
+                        const generated = `Key Responsibilities:\n• Deliver high quality clinical care and patient management for ${title} role.\n• Perform routine health examinations, diagnostic procedures, and client communication.\n• Maintain accurate medical records, hygiene standards, and team collaboration.\n• Ensure patient safety, comfort, and follow animal welfare protocols.\n\nQualifications & Requirements:\n• Professional degree or certification relevant to ${title}.\n• Strong clinical skills, empathy, and effective communication.\n• Dedicated team player with problem solving mindset.`;
+                        updateField('description', generated);
+                      }}
+                      sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
+                    >
+                      Role Description AI
+                    </Button>
+                  </Box>
                   <TextField
                     fullWidth
                     label="Job Description"
@@ -844,11 +883,48 @@ const PostJob: React.FC = () => {
                       </FormControl>
                     </Grid>
                     <Grid size={{ xs: 12 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                        Automated Benefits & Perks:
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                        {[
+                          'Health Insurance',
+                          'Paid Leave',
+                          'Flexible Hours',
+                          'Accommodation',
+                          'Performance Bonus',
+                          'PF & ESI',
+                          'Overtime Pay',
+                          'Transport Allowance'
+                        ].map((benefit) => {
+                          const currentBenefits = (formData.benefits || '').split(',').map((b) => b.trim()).filter(Boolean);
+                          const isSelected = currentBenefits.includes(benefit);
+                          return (
+                            <Chip
+                              key={benefit}
+                              label={benefit}
+                              clickable
+                              color={isSelected ? 'secondary' : 'default'}
+                              variant={isSelected ? 'filled' : 'outlined'}
+                              onClick={() => {
+                                let next: string[];
+                                if (isSelected) {
+                                  next = currentBenefits.filter((b) => b !== benefit);
+                                } else {
+                                  next = [...currentBenefits, benefit];
+                                }
+                                updateField('benefits', next.join(', '));
+                              }}
+                              sx={{ fontWeight: 600, borderRadius: 2 }}
+                            />
+                          );
+                        })}
+                      </Box>
                       <TextField
                         fullWidth
-                        label="Benefits"
+                        label="Custom Benefits & Details"
                         multiline
-                        minRows={4}
+                        minRows={3}
                         placeholder="Health cover, flexible hours, learning stipend..."
                         value={formData.benefits}
                         onChange={(event) => updateField('benefits', event.target.value)}
@@ -998,36 +1074,53 @@ const PostJob: React.FC = () => {
                 >
                   Cancel
                 </Button>
-                <Button
-                  size="large"
-                  startIcon={isLoading ? <CircularProgress color="inherit" size={18} /> : <Save />}
-                  disabled={isLoading || quotaExhausted}
-                  onClick={handleSubmit}
-                  sx={{
-                    px: 4,
-                    py: 1.1,
-                    fontWeight: 800,
-                    borderRadius: 2.5,
-                    textTransform: 'none',
-                    color: '#fff',
-                    background: BRAND_GRADIENT,
-                    boxShadow: '0 12px 24px -10px rgba(12,82,131,0.6)',
-                    '&:hover': {
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    disabled={isLoading}
+                    onClick={() => {
+                      updateField('status', 'draft');
+                      handleSubmit();
+                    }}
+                    sx={{ borderRadius: 2.5, fontWeight: 700 }}
+                  >
+                    Save Draft
+                  </Button>
+                  <Button
+                    size="large"
+                    startIcon={isLoading ? <CircularProgress color="inherit" size={18} /> : <Save />}
+                    disabled={isLoading || quotaExhausted}
+                    onClick={() => {
+                      updateField('status', 'active');
+                      handleSubmit();
+                    }}
+                    sx={{
+                      px: 4,
+                      py: 1.1,
+                      fontWeight: 800,
+                      borderRadius: 2.5,
+                      textTransform: 'none',
+                      color: '#fff',
                       background: BRAND_GRADIENT,
-                      transform: 'translateY(-1px)',
-                      boxShadow: '0 16px 30px -10px rgba(12,82,131,0.7)',
-                    },
-                    '&.Mui-disabled': { background: 'rgba(12,82,131,0.4)', color: '#fff', opacity: 0.85 },
-                  }}
-                >
-                  {isLoading
-                    ? isEdit
-                      ? 'Updating Job…'
-                      : 'Posting Job…'
-                    : isEdit
-                      ? 'Update Job'
-                      : 'Post Job'}
-                </Button>
+                      boxShadow: '0 12px 24px -10px rgba(12,82,131,0.6)',
+                      '&:hover': {
+                        background: BRAND_GRADIENT,
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 16px 30px -10px rgba(12,82,131,0.7)',
+                      },
+                      '&.Mui-disabled': { background: 'rgba(12,82,131,0.4)', color: '#fff', opacity: 0.85 },
+                    }}
+                  >
+                    {isLoading
+                      ? isEdit
+                        ? 'Updating Job…'
+                        : 'Posting Job…'
+                      : isEdit
+                        ? 'Update Job'
+                        : 'Post a Job'}
+                  </Button>
+                </Box>
               </Box>
             </Paper>
           </Grid>

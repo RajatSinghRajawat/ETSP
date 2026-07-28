@@ -152,7 +152,6 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
           { label: t('find_job'), path: '/find-job', icon: <Work /> },
           { label: t('employers'), path: '/employers', icon: <Business /> },
         ]),
-    { label: 'Pricing', path: '/pricing', icon: <WorkspacePremium /> },
     { label: t('about'), path: '/about', icon: <Info /> },
     { label: t('contact'), path: '/contact', icon: <Phone /> },
   ];
@@ -253,7 +252,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
         <Container maxWidth="lg">
           <Toolbar sx={{ minHeight: { xs: 64, md: 72 }, px: { xs: 0 } }}>
             <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 1.5, mr: { xs: 1, md: 4 } }}>
-              <Box component="img" src="/Logo.png" alt="Logo" sx={{ height: { xs: 32, md: 40 }, width: 'auto' }} />
+              <Box component="img" src="/Logo.png" alt="Logo" sx={{ height: { xs: 38, md: 48 }, width: 'auto' }} />
             </Box>
 
             {!isMobile && (
@@ -265,8 +264,9 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                     to={item.path}
                     sx={{
                       color: 'text.primary',
-                      fontWeight: isActive(item.path) ? 600 : 500,
-                      px: 2,
+                      fontWeight: isActive(item.path) ? 700 : 600,
+                      fontSize: '1rem',
+                      px: 2.2,
                       py: 1,
                       borderRadius: 2,
                       position: 'relative',
@@ -300,7 +300,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                     <IconButton
                       onClick={handleLanguageMenuOpen}
                       size="small"
-                    sx={{
+                      sx={{
                         color: 'text.primary',
                         transition: 'color 0.3s ease',
                         '&:hover': {
@@ -320,7 +320,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                     <IconButton
                       onClick={toggleMode}
                       size="small"
-                    sx={{
+                      sx={{
                         color: 'text.primary',
                         transition: 'color 0.3s ease',
                         '&:hover': {
@@ -405,15 +405,44 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
               )}
 
               {isMobile && (
-                <IconButton
-                  onClick={() => setMobileOpen(true)}
-                sx={{
-                    color: 'text.primary',
-                    transition: 'color 0.3s ease'
-                  }}
-                >
-                  <MenuIcon />
-                </IconButton>
+                <>
+                  <Tooltip title={t('language')}>
+                    <IconButton
+                      onClick={handleLanguageMenuOpen}
+                      size="small"
+                      sx={{ color: 'text.primary' }}
+                    >
+                      <LanguageIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleLanguageMenuClose}>
+                    <MenuItem onClick={() => changeLanguage('en')} selected={i18n.language === 'en'}>English</MenuItem>
+                    <MenuItem onClick={() => changeLanguage('hi')} selected={i18n.language === 'hi'}>हिन्दी (Hindi)</MenuItem>
+                  </Menu>
+
+                  {!currentUser && (
+                    <Button
+                      component={Link}
+                      to="/login"
+                      variant="outlined"
+                      size="small"
+                      startIcon={<AccountCircle />}
+                      sx={{ py: 0.5, px: 1, fontSize: '0.8rem', minWidth: 'auto' }}
+                    >
+                      {t('login')}
+                    </Button>
+                  )}
+
+                  <IconButton
+                    onClick={() => setMobileOpen(true)}
+                    sx={{
+                      color: 'text.primary',
+                      transition: 'color 0.3s ease'
+                    }}
+                  >
+                    <MenuIcon />
+                  </IconButton>
+                </>
               )}
             </Box>
           </Toolbar>
