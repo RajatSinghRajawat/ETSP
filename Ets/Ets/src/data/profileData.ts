@@ -289,12 +289,87 @@ export const employerSpecialtyOptions = [
 ];
 
 export const employerBenefitOptions = [
-  'Relocation Support',
   'Health Insurance',
   'Accommodation',
-  'Joining Bonus',
-  'Weekend Allowance',
-  'Learning Budget',
-  'Flexible Shifts',
+  'Flexible Work Hours',
+  'Paid Leaves',
   'Performance Bonus',
+  'PF & Gratuity',
+  'Overtime Pay',
+  'Relocation Support',
+  'Training & CME Stipend',
+];
+
+export const standardJobTitles = [
+  'Veterinarian',
+  'Veterinary Assistant',
+  'Ward Boy',
+  'Pet Trainer',
+  'Pet Groomer',
+  'Receptionist',
+  'Floor Manager',
+  'Sales Manager',
+  'Inventory Incharge',
+  'Animal Caretaker',
+  'Lab Technician / Paravet',
+  'Veterinary Surgeon',
+];
+
+export const standardOrganizationTypes = [
+  'Clinic',
+  'Hospital',
+  'NGO / Animal Shelter',
+  'Research & Academia',
+  'Petcare Services',
+  'Pharma & Healthcare',
+  'Pet Boarding / Resort',
+  'Feed & Nutrition Company',
+];
+
+export const standardEducationLevels = [
+  'B.V.Sc & A.H (Bachelor of Veterinary Science)',
+  'M.V.Sc (Master of Veterinary Science)',
+  'Ph.D in Veterinary Science',
+  'Diploma in Animal Husbandry / Paravet',
+  'Certificate Course in Pet Grooming / Training',
+  'Any Graduate / Bachelor Degree',
+  '10th / 12th Pass',
+];
+
+export const standardCourseTypes = ['Full Time', 'Part Time', 'Correspondence / Distance Learning'];
+
+export const standardGradeFormats = ['Percentage (%)', 'CGPA (Out of 10)', 'Grade (A/B/C)', 'Pass Class'];
+
+export const standardTeamSizes = [
+  '1-5 Employees',
+  '6-20 Employees',
+  '21-50 Employees',
+  '51-200 Employees',
+  '200+ Employees',
+];
+
+export const standardExperienceYears = [
+  'Freshers (0 Years)',
+  '1-2 Years',
+  '3-5 Years',
+  '5-10 Years',
+  '10+ Years',
+];
+
+export const standardSkillsList = [
+  'Clinical Consultation',
+  'Soft Tissue Surgery',
+  'Emergency & Trauma Care',
+  'Diagnostic Imaging (X-Ray/USG)',
+  'Vaccination & Immunization',
+  'Pet Grooming & Styling',
+  'Animal Handling & Restraint',
+  'Patient Care & Ward Monitoring',
+  'Inventory & Stock Management',
+  'Front Desk & Appointment Scheduling',
+  'Client Communication',
+  'Sales & Client Acquisition',
+  'Anesthesia Management',
+  'Laboratory Sample Analysis',
+  'Nutrition Counselling',
 ];

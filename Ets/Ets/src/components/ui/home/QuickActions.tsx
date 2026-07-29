@@ -9,7 +9,7 @@ const QuickActions: React.FC = () => {
   const actions = [
     {
       icon: <SearchIcon sx={{ fontSize: 52, color: '#0c5283' }} />,
-      title: t('quick_vet'),
+      title: "I am a Candidate",
       btn: t('find_jobs'),
       bgColor: 'linear-gradient(135deg, rgba(12, 82, 131, 0.08) 0%, rgba(12, 82, 131, 0.02) 100%)',
       borderColor: 'rgba(12, 82, 131, 0.2)',
@@ -19,7 +19,7 @@ const QuickActions: React.FC = () => {
     },
     {
       icon: <WorkIcon sx={{ fontSize: 52, color: '#0ab6a2' }} />,
-      title: t('quick_employer'),
+      title: "I am an Employer",
       btn: t('post_job'),
       bgColor: 'linear-gradient(135deg, rgba(10, 182, 162, 0.08) 0%, rgba(10, 182, 162, 0.02) 100%)',
       borderColor: 'rgba(10, 182, 162, 0.2)',
@@ -78,8 +78,8 @@ const QuickActions: React.FC = () => {
           >
             What are you looking for?
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
-            Choose from our options to either find your dream veterinary job or hire the best talent for your clinic
+          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 650, mx: 'auto', fontSize: '1.05rem', fontWeight: 500 }}>
+            Choose from our options to find your dream veterinary job or hire the best talent for your organization
           </Typography>
         </Box>
 

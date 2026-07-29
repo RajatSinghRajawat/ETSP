@@ -178,14 +178,14 @@ const HomeSlider: React.FC = () => {
               sx={{
                 mb: 4,
                 fontWeight: 400,
-                color: 'rgba(255,255,255,0.88)',
-                maxWidth: '560px',
+                color: 'rgba(255,255,255,0.92)',
+                maxWidth: '620px',
                 mx: { xs: 'auto', md: 0 },
-                fontSize: { xs: '1rem', md: '1.15rem' },
+                fontSize: { xs: '1.05rem', md: '1.25rem' },
                 lineHeight: 1.6
               }}
             >
-              Connect with top clinics, hospitals, and specialized veterinary opportunities across India.
+              Connect with top clinics, companies and specialized veterinary opportunities across India
             </Typography>
 
             {/* Inline Search Bar */}
@@ -203,7 +203,7 @@ const HomeSlider: React.FC = () => {
                 boxShadow: '0 20px 50px rgba(0,0,0,0.18)',
                 maxWidth: '600px',
                 mx: { xs: 'auto', md: 0 },
-                mb: 3
+                mb: 2
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, px: 2, py: { xs: 0.5, sm: 0 } }}>
@@ -256,48 +256,60 @@ const HomeSlider: React.FC = () => {
               </Button>
             </Box>
 
-            {/* Trust strip */}
-            <Stack
-              direction="row"
-              spacing={3}
+            {/* Below job search text */}
+            <Typography
+              variant="body2"
               sx={{
-                justifyContent: { xs: 'center', md: 'flex-start' },
-                color: 'rgba(255,255,255,0.85)',
-                flexWrap: 'wrap',
-                rowGap: 1,
-                mb: 3
+                color: '#ffd700',
+                fontWeight: 700,
+                textAlign: { xs: 'center', md: 'left' },
+                mb: 3,
+                fontSize: '0.9rem',
+                letterSpacing: '0.3px'
               }}
             >
-              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                <Verified sx={{ fontSize: 18, color: '#0ab6a2' }} />
-                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem' }}>Verified Clinics</Typography>
-              </Box>
-              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                <Bolt sx={{ fontSize: 18, color: '#ffd700' }} />
-                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem' }}>Free for Candidates</Typography>
-              </Box>
-              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                <AccessTime sx={{ fontSize: 18, color: '#ffd700' }} />
-                <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.85rem' }}>24h Response</Typography>
-              </Box>
-            </Stack>
-            {/* Hiring CTA */}
-            <Box sx={{ display: 'flex', justifyContent: { xs: 'center', md: 'flex-start' }, alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.85rem' }}>
+              Verified Employers | Free for Candidates | Jobs Across India
+            </Typography>
+
+            {/* Hiring CTA Banner */}
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: { xs: 'center', md: 'flex-start' },
+                alignItems: 'center',
+                gap: 1.5,
+                bgcolor: 'rgba(255, 255, 255, 0.15)',
+                backdropFilter: 'blur(8px)',
+                p: 1.5,
+                px: 2.5,
+                borderRadius: 3,
+                border: '1px solid rgba(255,255,255,0.3)',
+                maxWidth: 'fit-content',
+                mx: { xs: 'auto', md: 0 }
+              }}
+            >
+              <Typography variant="body1" sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem' }}>
                 Are you hiring?
               </Typography>
               <Button
                 component={Link}
                 to="/employer/post-job"
-                variant="text"
+                variant="contained"
                 size="small"
                 endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
                 sx={{
-                  color: '#ffd700',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  textTransform: 'none',
-                  '&:hover': { bgcolor: 'rgba(255,215,0,0.08)' }
+                  bgcolor: '#ffd700',
+                  color: '#0a3f66',
+                  fontWeight: 800,
+                  fontSize: '0.88rem',
+                  px: 2.5,
+                  py: 0.8,
+                  borderRadius: 2,
+                  boxShadow: '0 4px 14px rgba(255,215,0,0.4)',
+                  '&:hover': {
+                    bgcolor: '#ffca00',
+                    boxShadow: '0 6px 18px rgba(255,215,0,0.6)'
+                  }
                 }}
               >
                 Post a Job
@@ -484,10 +496,10 @@ const HomeSlider: React.FC = () => {
               </AvatarGroup>
               <Box>
                 <Typography variant="caption" sx={{ display: 'block', fontWeight: 800, lineHeight: 1.2, color: '#0c5283' }}>
-                  Verified Vets
+                  Verified Candidates
                 </Typography>
                 <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '0.65rem' }}>
-                  Aadhaar checked
+                  Identity checked
                 </Typography>
               </Box>
             </Box>

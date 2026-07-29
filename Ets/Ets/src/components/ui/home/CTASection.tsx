@@ -84,7 +84,7 @@ const CTASection: React.FC = () => {
                 mx: 'auto'
               }}
             >
-              Join thousands of veterinary professionals who have found their dream jobs through VetJobs
+              Join thousands of veterinary professionals who have found their dream jobs through VetsLinked
             </Typography>
 
             <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -111,17 +111,16 @@ const CTASection: React.FC = () => {
                   transition: 'all 0.3s ease'
                 }}
               >
-                {t('cta_signup')}
+                Signup
               </Button>
-
             </Box>
 
             <Box sx={{ mt: 6, pt: 4, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
               <Typography variant="body2" sx={{ opacity: 0.8, mb: 2 }}>
-                Trusted by leading veterinary clinics and hospitals
+                Trusted by leading veterinary organizations
               </Typography>
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap', opacity: 0.7 }}>
-                {['PetCare Hospital', 'Animal Health Co', 'VetFirst Clinic', 'PetMed Plus'].map((name) => (
+                {['Clinics / Hospitals / NGOs', 'Animal Health Co', 'Research & Academia', 'Petcare Services'].map((name) => (
                   <Typography key={name} variant="subtitle2" sx={{ fontWeight: 600 }}>
                     {name}
                   </Typography>

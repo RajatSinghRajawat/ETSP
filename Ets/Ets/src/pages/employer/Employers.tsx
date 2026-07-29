@@ -336,6 +336,42 @@ const Employers: React.FC = () => {
               </Grid>
             ))}
           </Grid>
+
+          {/* Quick Job Post by Role Icons */}
+          <Box sx={{ mt: 6, pt: 4, borderTop: '1px solid rgba(12,82,131,0.1)' }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, textAlign: 'center', mb: 3, color: '#0c5283' }}>
+              Hire Candidates for Any Role (Click to Post Job)
+            </Typography>
+            <Grid container spacing={2}>
+              {[
+                'Veterinarian', 'Veterinary Assistant', 'Ward Boy', 
+                'Pet Trainer', 'Pet Groomer', 'Receptionist', 
+                'Floor Manager', 'Sales Manager', 'Inventory Incharge'
+              ].map((role) => (
+                <Grid size={{ xs: 6, sm: 4, md: 2.66 }} key={role}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => navigate(`/employer/post-job?title=${encodeURIComponent(role)}`)}
+                    sx={{
+                      py: 1.5,
+                      borderRadius: 2.5,
+                      borderColor: 'rgba(12,82,131,0.2)',
+                      color: '#0c5283',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      '&:hover': {
+                        bgcolor: 'rgba(10,182,162,0.08)',
+                        borderColor: '#0ab6a2'
+                      }
+                    }}
+                  >
+                    + {role}
+                  </Button>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
         </Container>
       </Box>
 

@@ -54,15 +54,20 @@ const Footer: React.FC = () => {
               {t('company')}
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {['About Us', 'Careers', 'Press', 'Blog'].map((text) => (
+              {[
+                { name: 'About Us', link: '/about' },
+                { name: 'Contact Us', link: '/contact' },
+                { name: 'Careers', link: '#' },
+                { name: 'Help Center', link: '#' }
+              ].map((item) => (
                 <MuiLink 
-                  key={text}
-                  href="#" 
+                  key={item.name}
+                  href={item.link} 
                   color="inherit" 
                   underline="none"
                   sx={{ opacity: 0.7, fontSize: '0.9rem', '&:hover': { opacity: 1, color: 'secondary.main' } }}
                 >
-                  {text}
+                  {item.name}
                 </MuiLink>
               ))}
             </Box>

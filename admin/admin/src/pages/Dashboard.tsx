@@ -140,6 +140,53 @@ export default function Dashboard() {
           <Grid templateColumns={{ base: '1fr', xl: '1fr 1fr' }} gap={6}>
             <Box bg="white" borderWidth="1px" borderColor="gray.200" borderRadius="xl" p={5}>
               <HStack justify="space-between" mb={4}>
+                <Heading size="sm" color="gray.800">Category Insights & Talent Supply</Heading>
+              </HStack>
+              <Table.Root size="sm" variant="line">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeader>Category</Table.ColumnHeader>
+                    <Table.ColumnHeader>Active Jobs</Table.ColumnHeader>
+                    <Table.ColumnHeader>Available Candidates</Table.ColumnHeader>
+                    <Table.ColumnHeader>Apps/Job</Table.ColumnHeader>
+                    <Table.ColumnHeader>Admin Insight</Table.ColumnHeader>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {[
+                    { category: 'Veterinarian', active: 48, candidates: 163, ratio: 8.2, insight: 'Healthy', color: 'green' },
+                    { category: 'Veterinary Surgeon', active: 19, candidates: 32, ratio: 3.1, insight: 'Candidate shortage', color: 'red' },
+                    { category: 'Paravet / Assistant', active: 34, candidates: 91, ratio: 6.8, insight: 'Healthy', color: 'green' },
+                    { category: 'Veterinary Sales', active: 22, candidates: 284, ratio: 18.7, insight: 'Candidate surplus', color: 'blue' },
+                    { category: 'Pet Grooming & Care', active: 15, candidates: 72, ratio: 4.8, insight: 'Healthy', color: 'green' },
+                  ].map((row) => (
+                    <Table.Row key={row.category}>
+                      <Table.Cell fontWeight="bold">{row.category}</Table.Cell>
+                      <Table.Cell>{row.active}</Table.Cell>
+                      <Table.Cell>{row.candidates}</Table.Cell>
+                      <Table.Cell>{row.ratio}</Table.Cell>
+                      <Table.Cell>
+                        <Text
+                          fontSize="xs"
+                          fontWeight="bold"
+                          color={`${row.color}.600`}
+                          bg={`${row.color}.50`}
+                          px={2}
+                          py={1}
+                          borderRadius="md"
+                          display="inline-block"
+                        >
+                          {row.insight}
+                        </Text>
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table.Root>
+            </Box>
+
+            <Box bg="white" borderWidth="1px" borderColor="gray.200" borderRadius="xl" p={5}>
+              <HStack justify="space-between" mb={4}>
                 <Heading size="sm" color="gray.800">Recent jobs</Heading>
               </HStack>
               {data.recent.jobs.length === 0 ? (
@@ -161,40 +208,6 @@ export default function Dashboard() {
                         <Table.Cell>{job.companyName}</Table.Cell>
                         <Table.Cell><StatusBadge value={job.status} /></Table.Cell>
                         <Table.Cell color="gray.500">{formatDateTime(job.createdAt)}</Table.Cell>
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table.Root>
-              )}
-            </Box>
-
-            <Box bg="white" borderWidth="1px" borderColor="gray.200" borderRadius="xl" p={5}>
-              <HStack justify="space-between" mb={4}>
-                <Heading size="sm" color="gray.800">Recent applications</Heading>
-              </HStack>
-              {data.recent.applications.length === 0 ? (
-                <Text color="gray.500" fontSize="sm">No applications yet.</Text>
-              ) : (
-                <Table.Root size="sm" variant="line">
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.ColumnHeader>Candidate</Table.ColumnHeader>
-                      <Table.ColumnHeader>Job</Table.ColumnHeader>
-                      <Table.ColumnHeader>Status</Table.ColumnHeader>
-                      <Table.ColumnHeader>Applied</Table.ColumnHeader>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {data.recent.applications.map((app) => (
-                      <Table.Row key={app._id}>
-                        <Table.Cell fontWeight="semibold">
-                          {app.candidateProfile
-                            ? `${app.candidateProfile.firstName} ${app.candidateProfile.lastName}`
-                            : app.candidateEmail}
-                        </Table.Cell>
-                        <Table.Cell>{app.job?.title ?? '—'}</Table.Cell>
-                        <Table.Cell><StatusBadge value={app.status} /></Table.Cell>
-                        <Table.Cell color="gray.500">{formatDateTime(app.createdAt)}</Table.Cell>
                       </Table.Row>
                     ))}
                   </Table.Body>

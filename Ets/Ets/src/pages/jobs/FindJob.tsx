@@ -549,10 +549,17 @@ const FindJob: React.FC = () => {
               {appliedFilter === 'applied' ? 'Your Applied Jobs' : appliedFilter === 'unapplied' ? 'Jobs To Explore' : 'Search Results'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Showing {jobs.length} of {pagination?.total ?? 0} jobs found
+              Showing {jobs.length} of {pagination?.total ?? 0} active jobs found
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <Select displayEmpty defaultValue="newest" sx={selectSx}>
+                <MenuItem value="newest">Sort by: Newest</MenuItem>
+                <MenuItem value="relevant">Sort by: Most Relevant</MenuItem>
+                <MenuItem value="verified">Sort by: Verified First</MenuItem>
+              </Select>
+            </FormControl>
             {isCandidate && <Box sx={{ display: { xs: 'none', sm: 'block' } }}>{statusToggle}</Box>}
             <Button startIcon={<Tune />} variant="outlined" onClick={() => setDrawerOpen(true)} sx={{ borderWidth: 2, borderRadius: 2, fontWeight: 700 }}>
               Filters

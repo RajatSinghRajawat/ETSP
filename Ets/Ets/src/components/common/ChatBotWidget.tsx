@@ -99,6 +99,10 @@ const formatTime = () =>
 const buildBotReply = (text: string, isEmployer: boolean): string => {
   const lower = text.toLowerCase();
 
+  if (lower.includes('human') || lower.includes('support') || lower.includes('contact') || lower.includes('help')) {
+    return 'Our human support team is available Monday through Saturday (9 AM - 7 PM IST). You can email support@vetlinked.in or call us directly at +91 123 456 7890. Alternatively, visit our Contact page!';
+  }
+
   if (isEmployer) {
     if (lower.includes('post') || lower.includes('vacancy') || lower.includes('job')) {
       return 'You can post a new job from your Employer Dashboard → "Post a Job". Add the role, location, salary and required skills to start receiving applications.';
@@ -134,15 +138,15 @@ const buildBotReply = (text: string, isEmployer: boolean): string => {
 };
 
 const CANDIDATE_QUICK_REPLIES = [
-  'How do I create a profile?',
+  'How do I create a candidate profile?',
   'Find vet jobs near me',
-  'How do I apply to a job?',
+  'Speak with Human Support',
 ];
 
 const EMPLOYER_QUICK_REPLIES = [
   'How do I post a job?',
   'How do I review applications?',
-  'How do I edit my company profile?',
+  'Speak with Human Support',
 ];
 
 const getCurrentUserRole = (): string | null => {

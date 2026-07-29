@@ -1215,10 +1215,22 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                       <Grid container spacing={2}>
                         {formData.experiences.map((experience, index) => (
                           <Grid size={{ xs: 12 }} key={`experience-${index}`}>
-                            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-                                Experience {index + 1}
-                              </Typography>
+                            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, position: 'relative' }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                  Experience {index + 1}
+                                </Typography>
+                                {formData.experiences.length > 1 && (
+                                  <Button
+                                    size="small"
+                                    color="error"
+                                    startIcon={<Delete />}
+                                    onClick={() => updateField('experiences', formData.experiences.filter((_, i) => i !== index))}
+                                  >
+                                    Delete Experience
+                                  </Button>
+                                )}
+                              </Box>
                               <Grid container spacing={2}>
                                 <Grid size={{ xs: 12, md: 6 }}>
                                   <TextField
@@ -1301,18 +1313,34 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
             {activeStep === 2 && (
               <Grid container spacing={3}>
                 <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    label="Level of Education"
+                  <Autocomplete
+                    freeSolo
+                    options={[
+                      'B.V.Sc & A.H (Bachelor of Veterinary Science)',
+                      'M.V.Sc (Master of Veterinary Science)',
+                      'Ph.D in Veterinary Science',
+                      'Diploma in Animal Husbandry / Paravet',
+                      'Certificate Course in Pet Grooming / Training',
+                      'Any Graduate / Bachelor Degree',
+                      '10th / 12th Pass'
+                    ]}
                     value={formData.educationLevel}
-                    onChange={(event) => updateField('educationLevel', event.target.value)}
-                    slotProps={adornment(<School />)}
+                    onInputChange={(_event, value) => updateField('educationLevel', value)}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        label="Level of Education"
+                        placeholder="Select or search degree level"
+                        slotProps={adornment(<School />)}
+                      />
+                    )}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
-                    label="Degree"
+                    label="Degree / Qualification"
                     value={formData.degree}
                     onChange={(event) => updateField('degree', event.target.value)}
                     slotProps={adornment(<EmojiEvents />)}
@@ -1330,11 +1358,18 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                 <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
+                    select
                     label="Course Type"
                     value={formData.courseType}
                     onChange={(event) => updateField('courseType', event.target.value)}
                     slotProps={adornment(<Description />)}
-                  />
+                  >
+                    {['Full Time', 'Part Time', 'Correspondence / Distance Learning'].map((type) => (
+                      <MenuItem key={type} value={type}>
+                        {type}
+                      </MenuItem>
+                    ))}
+                  </TextField>
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
                   <TextField

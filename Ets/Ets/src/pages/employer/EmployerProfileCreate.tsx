@@ -627,16 +627,25 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
                         label="Organization Type"
                         value={formData.organizationType}
                         error={Boolean(formErrors.organizationType)}
-                        helperText={formErrors.organizationType}
+                        helperText={formErrors.organizationType || 'Select or type a custom organization type'}
                         onChange={(event) => updateField('organizationType', event.target.value)}
                       >
                         <MenuItem value="">Select Organization Type</MenuItem>
-                        {['Veterinary Hospital', 'Private Clinic', 'Pet Clinic', 'Animal Shelter', 'Diagnostic Lab', 'NGO / Rescue Center', 'Corporate Pet Care', 'Other'].map((type) => (
+                        {['Clinic', 'Hospital', 'NGO / Animal Shelter', 'Research & Academia', 'Petcare Services', 'Pharma & Healthcare', 'Pet Boarding / Resort', 'Feed & Nutrition Company', 'Other / Custom'].map((type) => (
                           <MenuItem key={type} value={type}>
                             {type}
                           </MenuItem>
                         ))}
                       </TextField>
+                      {formData.organizationType === 'Other / Custom' && (
+                        <TextField
+                          fullWidth
+                          size="small"
+                          sx={{ mt: 1.5 }}
+                          label="Enter Custom Organization Type"
+                          onChange={(e) => updateField('organizationType', e.target.value)}
+                        />
+                      )}
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
