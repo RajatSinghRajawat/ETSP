@@ -16,13 +16,15 @@ import { unlockCandidate } from '../services/unlock.service.js';
 import { AppError } from '../utils/app-error.js';
 
 export async function createProfile(request, reply) {
-  if (request.user.role !== 'candidate') {
+  if (request.user && request.user.role !== 'candidate') {
     throw new AppError('Candidate profile creation requires candidate account token', 403);
   }
 
+  const email = request.user?.email || request.body?.email;
+
   const profile = await createCandidateProfile({
     ...request.body,
-    email: request.user.email,
+    email,
   });
 
   return reply.code(201).send({

@@ -13,7 +13,7 @@ import {
 } from '../controllers/candidate-profile.controller.js';
 import { z } from 'zod';
 import { buildMyResume, fetchCandidateResume, fetchMyResume, refineMyResume, saveMyResume } from '../controllers/resume.controller.js';
-import { authenticate } from '../middlewares/auth.js';
+import { authenticate, authenticateOptional } from '../middlewares/auth.js';
 import {
   requireResumeBuilderAccess,
   requireResumeEditAccess,
@@ -60,7 +60,7 @@ export async function candidateProfileRoutes(app) {
   }, postVerifyPhoneConfirm);
   app.get('/me/follows', { preHandler: authenticate }, getMyFollows);
   app.post('/', {
-    preHandler: [authenticate, validateBody(candidateProfileSchema)],
+    preHandler: [authenticateOptional, validateBody(candidateProfileSchema)],
   }, createProfile);
   app.get('/', { preHandler: authenticate }, getProfiles);
   // Candidate identity/contact is plan-gated — authentication required so the

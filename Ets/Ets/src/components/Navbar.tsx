@@ -147,7 +147,10 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
   const navItems = [
     { label: t('home'), path: '/', icon: <Home /> },
     ...(isEmployer
-      ? [{ label: t('candidates'), path: '/employer/employees', icon: <People /> }]
+      ? [
+          { label: t('candidates'), path: '/employer/employees', icon: <People /> },
+          { label: t('post_job_nav') || 'Post Job', path: '/employer/post-job', icon: <Work /> },
+        ]
       : [
           { label: t('find_job'), path: '/find-job', icon: <Work /> },
           { label: t('employers'), path: '/employers', icon: <Business /> },
@@ -335,6 +338,26 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                   {currentUser ? (
                     <>
                       <HeaderChatButton />
+                      {isEmployer && (
+                        <Button
+                          component={Link}
+                          to="/employer/post-job"
+                          variant="contained"
+                          size="small"
+                          startIcon={<Work fontSize="small" />}
+                          sx={{
+                            bgcolor: 'primary.main',
+                            color: 'white',
+                            fontWeight: 700,
+                            borderRadius: 2,
+                            ml: 1,
+                            textTransform: 'none',
+                            '&:hover': { bgcolor: 'primary.dark' }
+                          }}
+                        >
+                          {t('post_job_nav') || 'Post Job'}
+                        </Button>
+                      )}
                       <Tooltip title={userDisplayName}>
                         <IconButton onClick={handleProfileMenuOpen} size="small" sx={{ ml: 1 }}>
                           <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 14 }}>

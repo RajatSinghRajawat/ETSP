@@ -66,6 +66,33 @@ import {
 type JobFormErrors = Partial<Record<keyof JobPayload, string>>;
 type SalaryRangeErrors = Partial<Record<'salaryMin' | 'salaryMax', string>>;
 
+interface StoredUser {
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  role?: 'candidate' | 'employer' | 'admin' | string;
+}
+
+const getStoredUser = (): StoredUser | null => {
+  const token = localStorage.getItem('ets-access-token');
+  const user = localStorage.getItem('user');
+
+  if (!token) {
+    return null;
+  }
+
+  if (!user) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(user) as StoredUser;
+  } catch {
+    return {};
+  }
+};
+
 const BRAND_GRADIENT = 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)';
 
 // One sx applied to the form wrapper — themes every field inside without touching each one.
@@ -340,14 +367,22 @@ const PostJob: React.FC = () => {
     );
   };
 
-  const handleSubmit = async () => {
+  const currentUser = getStoredUser();
+  const isGuest = !currentUser;
+  const isCandidate = currentUser?.role === 'candidate';
+  const hasNoEmployerProfile = currentUser?.role === 'employer' && employerData && !employerData.data?._id;
+
+  const handleSubmit = async (statusOverride?: JobPayload['status']) => {
     if (!validateForm()) {
       setSubmitError(`Please fix the highlighted fields before ${isEdit ? 'updating' : 'posting'}.`);
       return;
     }
 
+    const targetStatus = statusOverride ?? formData.status ?? 'active';
+
     const payload: JobPayload = {
       ...formData,
+      status: targetStatus,
       salary: getSalaryLabel(),
       screeningQuestions: (formData.screeningQuestions ?? []).filter((entry) => entry.question.trim()),
     };
@@ -409,6 +444,55 @@ const PostJob: React.FC = () => {
             { label: isEdit ? 'Edit Job' : 'Post Job' },
           ]}
         />
+
+        {isGuest && (
+          <Alert
+            severity="warning"
+            sx={{ mb: 3, borderRadius: 3 }}
+            action={
+              <Stack direction="row" spacing={1}>
+                <Button color="inherit" size="small" onClick={() => navigate('/login')}>
+                  Login as Employer
+                </Button>
+                <Button color="inherit" size="small" onClick={() => navigate('/signup/employer')}>
+                  Sign Up as Employer
+                </Button>
+              </Stack>
+            }
+          >
+            You are not logged in. Please sign in or register as an Employer to post a job and receive applications.
+          </Alert>
+        )}
+
+        {isCandidate && (
+          <Alert
+            severity="warning"
+            sx={{ mb: 3, borderRadius: 3 }}
+            action={
+              <Stack direction="row" spacing={1}>
+                <Button color="inherit" size="small" onClick={() => navigate('/signup/employer')}>
+                  Create Employer Profile
+                </Button>
+              </Stack>
+            }
+          >
+            You are currently signed in with a Candidate account. Job posting requires an Employer profile.
+          </Alert>
+        )}
+
+        {hasNoEmployerProfile && (
+          <Alert
+            severity="warning"
+            sx={{ mb: 3, borderRadius: 3 }}
+            action={
+              <Button color="inherit" size="small" onClick={() => navigate('/signup/employer')}>
+                Set Up Profile
+              </Button>
+            }
+          >
+            Please complete your Company Profile before posting your first job opening.
+          </Alert>
+        )}
 
         {isEdit && isJobLoading && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
@@ -1079,10 +1163,7 @@ const PostJob: React.FC = () => {
                     variant="outlined"
                     size="large"
                     disabled={isLoading}
-                    onClick={() => {
-                      updateField('status', 'draft');
-                      handleSubmit();
-                    }}
+                    onClick={() => handleSubmit('draft')}
                     sx={{ borderRadius: 2.5, fontWeight: 700 }}
                   >
                     Save Draft
@@ -1091,10 +1172,7 @@ const PostJob: React.FC = () => {
                     size="large"
                     startIcon={isLoading ? <CircularProgress color="inherit" size={18} /> : <Save />}
                     disabled={isLoading || quotaExhausted}
-                    onClick={() => {
-                      updateField('status', 'active');
-                      handleSubmit();
-                    }}
+                    onClick={() => handleSubmit('active')}
                     sx={{
                       px: 4,
                       py: 1.1,

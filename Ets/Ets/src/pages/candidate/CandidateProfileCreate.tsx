@@ -635,10 +635,28 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
           </Alert>
         )}
         {saveState === 'submitted' && (
-          <Alert sx={{ mb: 3 }} icon={<CheckCircle fontSize="inherit" />} severity="success">
+          <Alert
+            sx={{ mb: 3 }}
+            icon={<CheckCircle fontSize="inherit" />}
+            severity="success"
+            action={
+              !showSidebar ? (
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => navigate('/login')}
+                  sx={{ fontWeight: 800, textTransform: 'none' }}
+                >
+                  Proceed to Login with OTP
+                </Button>
+              ) : undefined
+            }
+          >
             {hasExistingProfile
               ? 'Candidate profile updated successfully.'
-              : 'Candidate profile submitted successfully.'}
+              : !showSidebar
+                ? 'Candidate profile submitted successfully! Click "Proceed to Login with OTP" to sign in to your new candidate dashboard.'
+                : 'Candidate profile submitted successfully.'}
           </Alert>
         )}
         {submitError && (
