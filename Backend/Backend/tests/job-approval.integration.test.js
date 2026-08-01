@@ -66,6 +66,39 @@ describe('unapproved jobs stay hidden from candidates', () => {
     await expectAppError(getJobById(job._id.toString()), 404);
   });
 
+  // The gate is for candidates — the employer still has to review and edit the
+  // job they just posted, and an admin has to open it to decide on it.
+  test('the posting employer can still open their own unapproved job', async () => {
+    const { profile, authUser } = await createEmployer();
+    const job = await Job.create(jobFields(profile));
+
+    await expect(getJobById(job._id.toString(), authUser)).resolves.toMatchObject({
+      approvalStatus: 'rejected',
+    });
+  });
+
+  test('an admin can open an unapproved job', async () => {
+    const job = await postJob();
+
+    await expect(
+      getJobById(job._id.toString(), { email: 'admin@test.local', role: 'admin' }),
+    ).resolves.toBeDefined();
+  });
+
+  test('a different employer cannot open someone else’s unapproved job', async () => {
+    const job = await postJob();
+    const { authUser: otherEmployer } = await createEmployer();
+
+    await expectAppError(getJobById(job._id.toString(), otherEmployer), 404);
+  });
+
+  test('a signed-in candidate cannot open an unapproved job', async () => {
+    const job = await postJob();
+    const { authUser } = await createCandidate();
+
+    await expectAppError(getJobById(job._id.toString(), authUser), 404);
+  });
+
   test('an approved job shows up in the public listing', async () => {
     const job = await postJob({ title: 'Visible Vet Job' });
 

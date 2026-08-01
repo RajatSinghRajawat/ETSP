@@ -267,16 +267,27 @@ export async function getJobs(query, user) {
   };
 }
 
-export async function getJobById(id) {
+export async function getJobById(id, user = null) {
   if (!id.match(/^[0-9a-fA-F]{24}$/)) {
     throw new AppError('Job not found', 404);
   }
 
   const job = await Job.findOne({ _id: id, ...liveJobFilter() }).lean();
 
-  if (!job) {
-    throw new AppError('Job not found', 404);
+  if (job) {
+    return job;
   }
 
-  return job;
+  // The gate above is for candidates. The employer who posted the job still
+  // has to open it to review and edit it while it waits on approval, and an
+  // admin needs to see it to make that decision.
+  if (user) {
+    const owned = await Job.findOne({ _id: id }).lean();
+
+    if (owned && (user.role === 'admin' || owned.employerEmail === user.email)) {
+      return owned;
+    }
+  }
+
+  throw new AppError('Job not found', 404);
 }
