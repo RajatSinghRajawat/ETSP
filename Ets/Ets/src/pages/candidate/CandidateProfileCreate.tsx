@@ -32,6 +32,7 @@ import {
   Business,
   CalendarMonth,
   CheckCircle,
+  Delete,
   Description,
   Email,
   EmojiEvents,

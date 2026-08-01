@@ -13,6 +13,7 @@ import {
   Grid,
   MenuItem,
   Paper,
+  Stack,
   Step,
   StepLabel,
   Stepper,
@@ -551,7 +552,7 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
                 ? 'Your company profile has been updated successfully.'
                 : 'Your employer profile and account have been registered! You can now log in with your email to access your Employer Dashboard and post jobs.'}
             </Typography>
-            <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap">
+            <Stack direction="row" spacing={2} sx={{ justifyContent: 'center', flexWrap: 'wrap' }}>
               {!showSidebar && (
                 <Button
                   variant="contained"
