@@ -163,6 +163,7 @@ export async function runAutoApplyForCandidate(candidate, entitlements) {
     JobApplication.find({ candidateProfile: candidate._id }).select('job').lean(),
     Job.find({
       status: 'active',
+      approvalStatus: 'approved',
       $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
     })
       .select('_id title companyName location skills description employerProfile employerEmail')
@@ -205,7 +206,7 @@ export async function runAutoApplyForCandidate(candidate, entitlements) {
 export function autoApplyNewJobInBackground(job) {
   setImmediate(async () => {
     try {
-      if (!job || job.status !== 'active') return;
+      if (!job || job.status !== 'active' || job.approvalStatus !== 'approved') return;
 
       const candidates = await CandidateProfile.find({
         autoApplyEnabled: true,

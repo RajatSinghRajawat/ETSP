@@ -16,14 +16,21 @@ import {
   Wrap,
 } from '@chakra-ui/react';
 import { useState } from 'react';
-import { FiEye, FiMoreVertical, FiTrash2 } from 'react-icons/fi';
+import { FiCheck, FiEye, FiMoreVertical, FiTrash2, FiXCircle } from 'react-icons/fi';
 import { ConfirmDelete } from '../components/ConfirmDelete';
 import { Detail, DetailDrawer } from '../components/DetailDrawer';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
 import { toaster } from '../components/Toaster';
-import { useDeleteJob, useJob, useJobs, useUpdateJob } from '../hooks/useAdmin';
+import {
+  useApproveJob,
+  useDeleteJob,
+  useJob,
+  useJobs,
+  useRejectJob,
+  useUpdateJob,
+} from '../hooks/useAdmin';
 import { extractErrorMessage } from '../lib/api';
 import { formatDate, formatDateTime } from '../lib/format';
 import type { JobRow } from '../types';
@@ -48,6 +55,22 @@ export default function Jobs() {
   const job = useJob(viewId);
   const updateJob = useUpdateJob();
   const deleteJob = useDeleteJob();
+  const approveJob = useApproveJob();
+  const rejectJob = useRejectJob();
+
+  function handleApprove(j: JobRow) {
+    approveJob.mutate(j._id, {
+      onSuccess: () => toaster.create({ title: 'Job approved — now live for candidates', type: 'success' }),
+      onError: (err) => toaster.create({ title: 'Failed', description: extractErrorMessage(err), type: 'error' }),
+    });
+  }
+
+  function handleReject(j: JobRow) {
+    rejectJob.mutate(j._id, {
+      onSuccess: () => toaster.create({ title: 'Job unpublished — hidden from candidates', type: 'success' }),
+      onError: (err) => toaster.create({ title: 'Failed', description: extractErrorMessage(err), type: 'error' }),
+    });
+  }
 
   function handleStatusChange(j: JobRow, newStatus: JobRow['status']) {
     updateJob.mutate(
@@ -118,6 +141,7 @@ export default function Jobs() {
                 <Table.ColumnHeader>Location</Table.ColumnHeader>
                 <Table.ColumnHeader>Type</Table.ColumnHeader>
                 <Table.ColumnHeader>Status</Table.ColumnHeader>
+                <Table.ColumnHeader>Approval</Table.ColumnHeader>
                 <Table.ColumnHeader>Posted</Table.ColumnHeader>
                 <Table.ColumnHeader textAlign="end">Actions</Table.ColumnHeader>
               </Table.Row>
@@ -140,6 +164,7 @@ export default function Jobs() {
                       <NativeSelect.Indicator />
                     </NativeSelect.Root>
                   </Table.Cell>
+                  <Table.Cell><StatusBadge value={j.approvalStatus ?? 'rejected'} /></Table.Cell>
                   <Table.Cell color="gray.500">{formatDate(j.createdAt)}</Table.Cell>
                   <Table.Cell textAlign="end">
                     <Menu.Root>
@@ -154,6 +179,15 @@ export default function Jobs() {
                             <Menu.Item value="view" onClick={() => setViewId(j._id)}>
                               <FiEye style={{ marginRight: 8 }} /> View details
                             </Menu.Item>
+                            {j.approvalStatus !== 'approved' ? (
+                              <Menu.Item value="approve" color="green.600" onClick={() => handleApprove(j)}>
+                                <FiCheck style={{ marginRight: 8 }} /> Approve job
+                              </Menu.Item>
+                            ) : (
+                              <Menu.Item value="reject" color="red.600" onClick={() => handleReject(j)}>
+                                <FiXCircle style={{ marginRight: 8 }} /> Unpublish job
+                              </Menu.Item>
+                            )}
                             <Menu.Item value="delete" color="red.600" onClick={() => setDeleteTarget(j)}>
                               <FiTrash2 style={{ marginRight: 8 }} /> Delete
                             </Menu.Item>

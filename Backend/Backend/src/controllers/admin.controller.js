@@ -101,6 +101,16 @@ export async function patchJob(request) {
   return ok('Job updated successfully', data);
 }
 
+export async function approveJob(request) {
+  const data = await adminService.approveJob(request.params.id);
+  return ok('Job approved successfully', data);
+}
+
+export async function rejectJob(request) {
+  const data = await adminService.rejectJob(request.params.id);
+  return ok('Job rejected successfully', data);
+}
+
 export async function removeJob(request) {
   await adminService.deleteJob(request.params.id);
   return ok('Job deleted successfully', { id: request.params.id });

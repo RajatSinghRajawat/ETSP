@@ -54,7 +54,7 @@ async function sendOnce(job, candidate, kind, heading, subject) {
 export function notifyCandidatesOfJobInBackground(job) {
   setImmediate(async () => {
     try {
-      if (!job || job.status !== 'active') {
+      if (!job || job.status !== 'active' || job.approvalStatus !== 'approved') {
         return;
       }
 

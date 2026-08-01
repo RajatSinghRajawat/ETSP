@@ -26,11 +26,19 @@ function toPositiveNumber(value, fallback) {
   return Math.floor(parsed);
 }
 
-// Public listings only ever show live jobs: active AND not past validity.
+// Public listings only ever show live jobs: active, admin-approved AND not
+// past validity.
 const notExpiredFilter = () => ({ $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] });
 
+/** The gate every candidate-facing job query must apply. */
+export const liveJobFilter = () => ({
+  status: 'active',
+  approvalStatus: 'approved',
+  ...notExpiredFilter(),
+});
+
 function buildPublicJobFilters(query = {}) {
-  const filters = { status: 'active', $and: [notExpiredFilter()] };
+  const filters = { status: 'active', approvalStatus: 'approved', $and: [notExpiredFilter()] };
 
   if (query.search) {
     const keyword = new RegExp(escapeRegex(String(query.search).trim()), 'i');
@@ -264,7 +272,7 @@ export async function getJobById(id) {
     throw new AppError('Job not found', 404);
   }
 
-  const job = await Job.findOne({ _id: id, status: 'active', ...notExpiredFilter() }).lean();
+  const job = await Job.findOne({ _id: id, ...liveJobFilter() }).lean();
 
   if (!job) {
     throw new AppError('Job not found', 404);

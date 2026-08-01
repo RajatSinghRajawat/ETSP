@@ -191,6 +191,7 @@ export interface JobRow {
   education?: string;
   benefits?: string;
   status: 'draft' | 'active' | 'closed';
+  approvalStatus?: 'rejected' | 'approved';
   employerEmail: string;
   employerProfile: string;
   createdAt: string;

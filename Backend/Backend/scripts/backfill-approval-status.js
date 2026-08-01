@@ -5,6 +5,7 @@
 import { connectDatabase, disconnectDatabase } from '../src/config/database.js';
 import { CandidateProfile } from '../src/models/candidate-profile.model.js';
 import { EmployerProfile } from '../src/models/employer-profile.model.js';
+import { Job } from '../src/models/job.model.js';
 import { logger } from '../src/utils/logger.js';
 
 async function run() {
@@ -13,6 +14,7 @@ async function run() {
   for (const [label, Model] of [
     ['Candidate', CandidateProfile],
     ['Employer', EmployerProfile],
+    ['Job', Job],
   ]) {
     const grandfathered = await Model.updateMany(
       { approvalStatus: { $exists: false } },

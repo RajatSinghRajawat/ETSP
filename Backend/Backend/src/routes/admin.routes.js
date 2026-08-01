@@ -21,6 +21,8 @@ import {
   getJobs,
   getJob,
   patchJob,
+  approveJob,
+  rejectJob,
   removeJob,
   getApplications,
   patchApplication,
@@ -93,6 +95,8 @@ export async function adminRoutes(app) {
   app.get('/jobs', getJobs);
   app.get('/jobs/:id', getJob);
   app.patch('/jobs/:id', patchJob);
+  app.patch('/jobs/:id/approve', approveJob);
+  app.patch('/jobs/:id/reject', rejectJob);
   app.delete('/jobs/:id', removeJob);
 
   app.get('/applications', getApplications);

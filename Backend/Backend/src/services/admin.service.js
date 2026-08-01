@@ -326,6 +326,30 @@ export async function updateJob(id, input) {
   return job;
 }
 
+export async function approveJob(id) {
+  assertObjectId(id);
+  const job = await Job.findByIdAndUpdate(
+    id,
+    { $set: { approvalStatus: 'approved' } },
+    { new: true, runValidators: true },
+  ).lean();
+  if (!job) throw new AppError('Job not found', 404);
+  return job;
+}
+
+// Like the profile gates, rejection is a reversible status flip rather than a
+// delete, so an admin can publish the job later. Use deleteJob to remove it.
+export async function rejectJob(id) {
+  assertObjectId(id);
+  const job = await Job.findByIdAndUpdate(
+    id,
+    { $set: { approvalStatus: 'rejected' } },
+    { new: true, runValidators: true },
+  ).lean();
+  if (!job) throw new AppError('Job not found', 404);
+  return job;
+}
+
 export async function deleteJob(id) {
   assertObjectId(id);
   const job = await Job.findByIdAndDelete(id).lean();

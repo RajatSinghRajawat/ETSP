@@ -354,6 +354,34 @@ export function useUpdateJob() {
   });
 }
 
+export function useApproveJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<JobRow>>(`/admin/jobs/${id}/approve`);
+      return unwrap(res.data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'jobs'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
+export function useRejectJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<JobRow>>(`/admin/jobs/${id}/reject`);
+      return unwrap(res.data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'jobs'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
 export function useDeleteJob() {
   const qc = useQueryClient();
   return useMutation({

@@ -32,6 +32,16 @@ const jobSchema = new mongoose.Schema(
       default: 'active',
       index: true,
     },
+    // Admin verification gate, mirroring the profile models: a newly posted job
+    // starts 'rejected' (not cleared) and stays out of every candidate-facing
+    // surface until an admin approves it. The employer still sees it on their
+    // own dashboard so they know it is awaiting review.
+    approvalStatus: {
+      type: String,
+      enum: ['rejected', 'approved'],
+      default: 'rejected',
+      index: true,
+    },
     // Plan-driven validity: set from the plan's jobValidityDays (or the job
     // credit's validityDays) when the job is posted/reactivated. null = never
     // expires (grandfathered pre-subscription jobs).
