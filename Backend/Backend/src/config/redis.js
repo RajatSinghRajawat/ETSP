@@ -2,13 +2,26 @@ import Redis from 'ioredis';
 import { env } from './env.js';
 import { logger } from '../utils/logger.js';
 
+let lastLoggedErrorTime = 0;
+
 export const redis = new Redis(env.REDIS_URL, {
   lazyConnect: true,
   maxRetriesPerRequest: null,
+  enableOfflineQueue: false,
+  retryStrategy(times) {
+    if (times > 3) {
+      return null; // Stop retrying when Redis is unavailable
+    }
+    return Math.min(times * 500, 2000);
+  },
 });
 
 redis.on('error', (error) => {
-  logger.error('Redis error', { message: error.message });
+  const now = Date.now();
+  if (now - lastLoggedErrorTime > 30000) {
+    lastLoggedErrorTime = now;
+    logger.error('Redis error', { message: error.message });
+  }
 });
 
 export async function connectRedis() {

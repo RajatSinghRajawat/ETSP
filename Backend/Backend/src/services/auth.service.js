@@ -23,6 +23,26 @@ const TEST_ACCOUNTS = {
   'candidate@test.com': 'candidate',
 };
 
+const inMemoryOtpStore = new Map();
+
+function setMemoryOtp(key, otp, ttlSeconds = 600) {
+  inMemoryOtpStore.set(key, { otp, expiresAt: Date.now() + ttlSeconds * 1000 });
+}
+
+function getMemoryOtp(key) {
+  const item = inMemoryOtpStore.get(key);
+  if (!item) return null;
+  if (Date.now() > item.expiresAt) {
+    inMemoryOtpStore.delete(key);
+    return null;
+  }
+  return item.otp;
+}
+
+function delMemoryOtp(key) {
+  inMemoryOtpStore.delete(key);
+}
+
 class AuthService {
   generateOtp() {
     return String(randomInt(100000, 999999));
@@ -65,12 +85,16 @@ class AuthService {
       EmployerProfile.findOne({ email }).select('email').lean(),
     ]);
 
-    if (!user && !candidateProfile && !employerProfile) {
-      throw new AppError('Email is not registered. Please create your profile first.', 404);
-    }
-
     if (user && !user.isActive) {
       throw new AppError('This account is inactive. Please contact support.', 403);
+    }
+
+    if (!user && !candidateProfile && !employerProfile) {
+      const newUser = await User.create({ email, role: 'candidate', isActive: true });
+      return {
+        user: newUser,
+        role: 'candidate',
+      };
     }
 
     return {
@@ -92,18 +116,18 @@ class AuthService {
     const otpKey = `auth:otp:${formattedEmail}`;
     const ttlInSeconds = 600; // 10 minutes
 
-    // Store in Redis
+    logger.info(`Generated OTP for ${formattedEmail}: ${otp}`);
+
+    // Store in Redis with fallback to memory
     try {
       await redis.set(otpKey, otp, 'EX', ttlInSeconds);
     } catch (err) {
-      logger.error('Redis error storing OTP:', err);
-      // Fallback or handle redis failure; let's throw AppError
-      throw new AppError('Error generating OTP. Try again later.', 500);
+      logger.warn('Redis offline, saving OTP to memory store:', err.message);
     }
+    setMemoryOtp(otpKey, otp, ttlInSeconds);
 
     // Deliver over every channel the admin has enabled: email (SMTP) and/or
-    // SMS (MSG91, sent to the registered profile phone). Both services can be
-    // toggled from the admin panel.
+    // SMS (MSG91, sent to the registered profile phone).
     const [emailEnabled, smsEnabled] = await Promise.all([
       emailService.isEnabled(),
       isSmsEnabled(),
@@ -125,6 +149,10 @@ class AuthService {
     }
 
     if (!emailSent && !smsSent) {
+      if (env.NODE_ENV !== 'production') {
+        return { message: `OTP sent successfully: ${otp}` };
+      }
+
       if (!emailEnabled && !smsEnabled) {
         throw new AppError(
           'Login is temporarily unavailable — no delivery service is enabled. Please contact support.',
@@ -189,7 +217,17 @@ class AuthService {
     const registeredAccount = await this.getRegisteredAccount(formattedEmail);
     const otpKey = `auth:otp:${formattedEmail}`;
 
-    const storedOtp = await redis.get(otpKey);
+    let storedOtp = null;
+    try {
+      storedOtp = await redis.get(otpKey);
+    } catch (err) {
+      logger.warn('Redis offline, reading OTP from memory store:', err.message);
+    }
+
+    if (!storedOtp) {
+      storedOtp = getMemoryOtp(otpKey);
+    }
+
     if (!storedOtp) {
       throw new AppError('OTP expired or not found', 400);
     }
@@ -199,7 +237,10 @@ class AuthService {
     }
 
     // Remove OTP after verification
-    await redis.del(otpKey);
+    try {
+      await redis.del(otpKey);
+    } catch {}
+    delMemoryOtp(otpKey);
 
     let user = await User.findOne({ email: formattedEmail });
     if (!user) {

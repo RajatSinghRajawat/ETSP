@@ -95,7 +95,7 @@ const Signup: React.FC = () => {
       />
 
       <Container maxWidth="lg" sx={{ position: 'relative', py: { xs: 4, md: 6 } }}>
-        <Grid container spacing={{ xs: 3, md: 6 }} alignItems="center">
+        <Grid container spacing={{ xs: 3, md: 6 }} sx={{ alignItems: 'center' }}>
           {/* LEFT — Brand / Image panel */}
           {isMdUp && (
             <Grid size={{ md: 5 }}>

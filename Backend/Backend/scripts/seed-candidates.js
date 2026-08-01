@@ -12,8 +12,9 @@ async function upsertCandidate(seed) {
     .lean();
 
   if (exists) {
-    logger.info(`Skipping existing candidate: ${seed.email}`);
-    return { created: false };
+    await CandidateProfile.updateOne({ _id: exists._id }, { $set: seed });
+    logger.info(`Updated existing candidate: ${seed.email}`);
+    return { created: false, updated: true };
   }
 
   await User.updateOne(

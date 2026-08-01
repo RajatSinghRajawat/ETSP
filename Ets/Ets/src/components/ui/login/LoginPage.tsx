@@ -453,8 +453,8 @@ const LoginPage: React.FC = () => {
         <Grid
           container
           spacing={0}
-          alignItems="stretch"
           sx={{
+            alignItems: 'stretch',
             borderRadius: 5,
             overflow: 'hidden',
             boxShadow: '0 30px 60px -20px rgba(12,82,131,0.35)',

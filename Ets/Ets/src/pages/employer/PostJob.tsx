@@ -679,18 +679,16 @@ const PostJob: React.FC = () => {
                             placeholder="Select or type custom job title"
                             error={Boolean(formErrors.title)}
                             helperText={formErrors.title || "Select or add custom title"}
-                            slotProps={{
-                              input: {
-                                ...params.InputProps,
-                                startAdornment: (
-                                  <>
-                                    <InputAdornment position="start">
-                                      <TitleIcon sx={{ color: '#0c5283', fontSize: 20 }} />
-                                    </InputAdornment>
-                                    {params.InputProps.startAdornment}
-                                  </>
-                                ),
-                              },
+                            InputProps={{
+                              ...(params.InputProps || {}),
+                              startAdornment: (
+                                <>
+                                  <InputAdornment position="start">
+                                    <TitleIcon sx={{ color: '#0c5283', fontSize: 20 }} />
+                                  </InputAdornment>
+                                  {params.InputProps?.startAdornment}
+                                </>
+                              ),
                             }}
                           />
                         )}

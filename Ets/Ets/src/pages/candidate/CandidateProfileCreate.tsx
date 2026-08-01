@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
-
-const ResumeBuilderModal = lazy(() => import('../../components/common/ResumeBuilderModal'));
+import { useEffect, useMemo, useState } from 'react';
+import ResumeBuilderModal from '../../components/common/ResumeBuilderModal';
 import {
   Alert,
+  Autocomplete,
   Avatar,
   Box,
   Button,
@@ -15,6 +15,7 @@ import {
   InputAdornment,
   MenuItem,
   Paper,
+  Snackbar,
   Stack,
   Step,
   StepLabel,
@@ -63,6 +64,7 @@ import {
   type CandidateExperience,
   type CandidateProfileForm,
 } from '../../data/profileData';
+import { indiaCityOptions, filterCityOptions } from '../../data/indiaCities';
 import {
   useCreateCandidateProfileMutation,
   useGetMyCandidateProfileQuery,
@@ -241,16 +243,22 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
   const [submitError, setSubmitError] = useState('');
   const [imageUploadError, setImageUploadError] = useState('');
   const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState('');
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
   const [createCandidateProfile, { isLoading: isCreating }] = useCreateCandidateProfileMutation();
   const [updateMyCandidateProfile, { isLoading: isUpdating }] = useUpdateMyCandidateProfileMutation();
   const [uploadCandidateProfileImage, { isLoading: isUploadingImage }] = useUploadCandidateProfileImageMutation();
   const isSubmitting = isCreating || isUpdating;
+  const hasToken = Boolean(localStorage.getItem('ets_auth_token'));
   const {
     data: myProfileResponse,
     isLoading: isLoadingProfile,
     isFetching: isFetchingProfile,
     error: profileLoadError,
-  } = useGetMyCandidateProfileQuery(undefined, { skip: !showSidebar });
+  } = useGetMyCandidateProfileQuery(undefined, { skip: !hasToken && !showSidebar });
   const existingProfile = myProfileResponse?.data;
   const hasExistingProfile = Boolean(existingProfile?._id);
   const [hasHydratedFromServer, setHasHydratedFromServer] = useState(false);
@@ -396,10 +404,6 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
       formData.email,
       formData.phone,
       formData.currentLocation,
-      formData.currentJobTitle,
-      formData.organizationName,
-      formData.educationLevel,
-      formData.degree,
     ];
 
     const locationScore = formData.preferredLocations.length > 0 ? 1 : 0;
@@ -468,6 +472,11 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
     localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
     setSaveState('saved');
     setSubmitError('');
+    setToast({
+      open: true,
+      message: '💾 Profile draft saved successfully!',
+      severity: 'info',
+    });
   };
 
   const getApiErrorMessage = (error: unknown) => {
@@ -531,16 +540,42 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
         void _omitPhone;
         await updateMyCandidateProfile(updatable).unwrap();
       } else {
-        await createCandidateProfile({
-          ...formData,
-          status: 'submitted',
-        }).unwrap();
+        try {
+          await createCandidateProfile({
+            ...formData,
+            status: 'submitted',
+          }).unwrap();
+        } catch (err: unknown) {
+          const apiError = err as { status?: number; data?: { message?: string } };
+          if (
+            apiError?.status === 409 ||
+            apiError?.data?.message?.includes('already have a candidate profile')
+          ) {
+            const { email: _omitEmail, phone: _omitPhone, ...updatable } = formData;
+            void _omitEmail;
+            void _omitPhone;
+            await updateMyCandidateProfile(updatable).unwrap();
+          } else {
+            throw err;
+          }
+        }
       }
 
       localStorage.removeItem(STORAGE_KEY);
       setSaveState('submitted');
+      setToast({
+        open: true,
+        message: '🎉 Candidate profile submitted successfully!',
+        severity: 'success',
+      });
     } catch (error) {
-      setSubmitError(getApiErrorMessage(error));
+      const msg = getApiErrorMessage(error);
+      setSubmitError(msg);
+      setToast({
+        open: true,
+        message: `❌ ${msg}`,
+        severity: 'error',
+      });
     }
   };
 
@@ -635,29 +670,72 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
           </Alert>
         )}
         {saveState === 'submitted' && (
-          <Alert
-            sx={{ mb: 3 }}
-            icon={<CheckCircle fontSize="inherit" />}
-            severity="success"
-            action={
-              !showSidebar ? (
+          <Paper
+            elevation={4}
+            sx={{
+              p: { xs: 3, md: 5 },
+              mb: 4,
+              textAlign: 'center',
+              borderRadius: 4,
+              background: 'linear-gradient(135deg, #e6f4ea 0%, #f4fbf7 100%)',
+              border: '2px solid #34a853',
+              boxShadow: '0 20px 40px -15px rgba(52, 168, 83, 0.25)',
+            }}
+          >
+            <Box
+              sx={{
+                width: 76,
+                height: 76,
+                borderRadius: '50%',
+                bgcolor: '#34a853',
+                color: '#fff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mb: 2,
+                boxShadow: '0 8px 24px -4px rgba(52,168,83,0.4)',
+              }}
+            >
+              <CheckCircle sx={{ fontSize: 48 }} />
+            </Box>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#137333', mb: 1 }}>
+              🎉 Candidate Registration Complete!
+            </Typography>
+            <Typography variant="body1" sx={{ color: '#202124', maxWidth: 620, mx: 'auto', mb: 3, fontSize: 16, lineHeight: 1.6 }}>
+              {showSidebar
+                ? 'Your candidate profile has been updated successfully.'
+                : 'Your profile and candidate account have been created! Click below to log in with your email and access your Candidate Dashboard.'}
+            </Typography>
+            <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap">
+              {!showSidebar && (
                 <Button
-                  color="inherit"
-                  size="small"
+                  variant="contained"
+                  size="large"
                   onClick={() => navigate('/login')}
-                  sx={{ fontWeight: 800, textTransform: 'none' }}
+                  sx={{
+                    py: 1.5,
+                    px: 4,
+                    borderRadius: 3,
+                    fontWeight: 800,
+                    fontSize: 16,
+                    textTransform: 'none',
+                    bgcolor: '#0c5283',
+                    '&:hover': { bgcolor: '#083b5e' },
+                  }}
                 >
                   Proceed to Login with OTP
                 </Button>
-              ) : undefined
-            }
-          >
-            {hasExistingProfile
-              ? 'Candidate profile updated successfully.'
-              : !showSidebar
-                ? 'Candidate profile submitted successfully! Click "Proceed to Login with OTP" to sign in to your new candidate dashboard.'
-                : 'Candidate profile submitted successfully.'}
-          </Alert>
+              )}
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={() => navigate('/')}
+                sx={{ py: 1.5, px: 3, borderRadius: 3, fontWeight: 700, textTransform: 'none' }}
+              >
+                Back to Home
+              </Button>
+            </Stack>
+          </Paper>
         )}
         {submitError && (
           <Alert sx={{ mb: 3 }} severity="error">
@@ -848,16 +926,28 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                       <Autocomplete
+                        freeSolo
                         options={indiaCityOptions}
-                        value={formData.currentLocation || null}
+                        value={formData.currentLocation || ''}
+                        onInputChange={(_event, value) => updateField('currentLocation', value ?? '')}
                         onChange={(_event, value) => updateField('currentLocation', value ?? '')}
                         renderInput={(params) => (
                           <TextField
                             {...params}
                             fullWidth
                             label="Current Location"
-                            placeholder="Select city"
-                            slotProps={adornment(<LocationOn />)}
+                            placeholder="Select or type city"
+                            InputProps={{
+                              ...(params.InputProps || {}),
+                              startAdornment: (
+                                <>
+                                  <InputAdornment position="start">
+                                    <LocationOn sx={{ color: '#0c5283', fontSize: 20 }} />
+                                  </InputAdornment>
+                                  {params.InputProps?.startAdornment}
+                                </>
+                              ),
+                            }}
                           />
                         )}
                       />
@@ -1098,15 +1188,26 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                       'Sales Manager',
                       'Inventory Incharge'
                     ]}
-                    value={formData.currentJobTitle}
-                    onInputChange={(_event, value) => updateField('currentJobTitle', value)}
+                    value={formData.currentJobTitle || ''}
+                    onInputChange={(_event, value) => updateField('currentJobTitle', value ?? '')}
+                    onChange={(_event, value) => updateField('currentJobTitle', value ?? '')}
                     renderInput={(params) => (
                       <TextField
                         {...params}
                         fullWidth
                         label="Current Job Title"
                         placeholder="Select or enter job title"
-                        slotProps={adornment(<Work />)}
+                        InputProps={{
+                          ...(params.InputProps || {}),
+                          startAdornment: (
+                            <>
+                              <InputAdornment position="start">
+                                <Work sx={{ color: '#0c5283', fontSize: 20 }} />
+                              </InputAdornment>
+                              {params.InputProps?.startAdornment}
+                            </>
+                          ),
+                        }}
                       />
                     )}
                   />
@@ -1342,15 +1443,26 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                       'Any Graduate / Bachelor Degree',
                       '10th / 12th Pass'
                     ]}
-                    value={formData.educationLevel}
-                    onInputChange={(_event, value) => updateField('educationLevel', value)}
+                    value={formData.educationLevel || ''}
+                    onInputChange={(_event, value) => updateField('educationLevel', value ?? '')}
+                    onChange={(_event, value) => updateField('educationLevel', value ?? '')}
                     renderInput={(params) => (
                       <TextField
                         {...params}
                         fullWidth
                         label="Level of Education"
                         placeholder="Select or search degree level"
-                        slotProps={adornment(<School />)}
+                        InputProps={{
+                          ...(params.InputProps || {}),
+                          startAdornment: (
+                            <>
+                              <InputAdornment position="start">
+                                <School sx={{ color: '#0c5283', fontSize: 20 }} />
+                              </InputAdornment>
+                              {params.InputProps?.startAdornment}
+                            </>
+                          ),
+                        }}
                       />
                     )}
                   />
@@ -1696,13 +1808,27 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
         </Paper>
       </Box>
 
-      <Suspense fallback={null}>
-        <ResumeBuilderModal
-          open={resumeOpen}
-          onClose={() => setResumeOpen(false)}
-          candidateName={candidateName}
-        />
-      </Suspense>
+      <ResumeBuilderModal
+        open={resumeOpen}
+        onClose={() => setResumeOpen(false)}
+        candidateName={candidateName}
+      />
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={5000}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: '100%', fontWeight: 700, borderRadius: 2.5, boxShadow: '0 10px 30px -10px rgba(0,0,0,0.3)' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
@@ -1746,7 +1872,7 @@ const StatCard: React.FC<StatCardProps> = ({ accent, icon, label, value, caption
       }}
     />
     <CardContent sx={{ position: 'relative', p: 3 }}>
-      <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ mb: 1.5 }}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: 'flex-start', mb: 1.5 }}>
         <Box
           sx={{
             width: 44,

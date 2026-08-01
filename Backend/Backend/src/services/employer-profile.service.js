@@ -1,4 +1,5 @@
 import { EmployerProfile } from '../models/employer-profile.model.js';
+import { User } from '../models/user.model.js';
 import { Job } from '../models/job.model.js';
 import { markImportedEmployerRegistered } from './imported-employer.service.js';
 import { logger } from '../utils/logger.js';
@@ -99,21 +100,42 @@ async function attachOpenJobs(profiles) {
 }
 
 export async function createEmployerProfile(input) {
-  const existingProfile = await EmployerProfile.findOne({
-    $or: [{ email: input.email }, { phoneNumber: input.phoneNumber }],
-  })
-    .select('email phoneNumber')
-    .lean();
+  const existingProfile = await EmployerProfile.findOne({ email: input.email }).lean();
 
-  if (existingProfile?.email === input.email) {
-    throw new AppError('Employer profile already exists with this email', 409);
+  if (existingProfile) {
+    const updated = await EmployerProfile.findOneAndUpdate(
+      { email: input.email },
+      { $set: input },
+      { new: true, runValidators: true },
+    ).lean();
+
+    await User.updateOne(
+      { email: input.email },
+      { $setOnInsert: { email: input.email, role: 'employer', isActive: true } },
+      { upsert: true },
+    );
+
+    return updated;
   }
 
-  if (existingProfile?.phoneNumber === input.phoneNumber) {
-    throw new AppError('Employer profile already exists with this phone number', 409);
+  if (input.phoneNumber) {
+    const phoneProfile = await EmployerProfile.findOne({
+      phoneNumber: input.phoneNumber,
+      email: { $ne: input.email },
+    }).select('_id').lean();
+
+    if (phoneProfile) {
+      throw new AppError('Employer profile already exists with this phone number', 409);
+    }
   }
 
   try {
+    await User.updateOne(
+      { email: input.email },
+      { $setOnInsert: { email: input.email, role: 'employer', isActive: true } },
+      { upsert: true },
+    );
+
     const profile = await EmployerProfile.create(input);
 
     try {

@@ -1,4 +1,5 @@
 import { CandidateProfile } from '../models/candidate-profile.model.js';
+import { User } from '../models/user.model.js';
 import { AppError } from '../utils/app-error.js';
 import {
   canEmployerViewCandidate,
@@ -110,23 +111,42 @@ function withBadges(candidate) {
 }
 
 export async function createCandidateProfile(input) {
-  const [profileForEmail, profileForPhone] = await Promise.all([
-    CandidateProfile.findOne({ email: input.email }).select('_id').lean(),
-    CandidateProfile.findOne({ phone: input.phone }).select('_id').lean(),
-  ]);
+  const profileForEmail = await CandidateProfile.findOne({ email: input.email }).lean();
 
   if (profileForEmail) {
-    throw new AppError(
-      'You already have a candidate profile. Please update it instead of creating a new one.',
-      409,
+    const updated = await CandidateProfile.findOneAndUpdate(
+      { email: input.email },
+      { $set: input },
+      { new: true, runValidators: true },
+    ).lean();
+
+    await User.updateOne(
+      { email: input.email },
+      { $setOnInsert: { email: input.email, role: 'candidate', isActive: true } },
+      { upsert: true },
     );
+
+    return updated;
   }
 
-  if (profileForPhone) {
-    throw new AppError('This phone number is already linked to another candidate profile', 409);
+  if (input.phone) {
+    const profileForPhone = await CandidateProfile.findOne({
+      phone: input.phone,
+      email: { $ne: input.email },
+    }).select('_id').lean();
+
+    if (profileForPhone) {
+      throw new AppError('This phone number is already linked to another candidate profile', 409);
+    }
   }
 
   try {
+    await User.updateOne(
+      { email: input.email },
+      { $setOnInsert: { email: input.email, role: 'candidate', isActive: true } },
+      { upsert: true },
+    );
+
     const profile = await CandidateProfile.create(input);
     return profile.toObject();
   } catch (error) {

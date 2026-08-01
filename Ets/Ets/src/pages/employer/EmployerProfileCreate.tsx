@@ -507,9 +507,72 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
         )}
 
         {saveState === 'submitted' && (
-          <Alert sx={{ mb: 3 }} icon={<CheckCircle fontSize="inherit" />} severity="success">
-            {showSidebar ? 'Employer profile updated successfully.' : 'Employer profile submitted successfully.'}
-          </Alert>
+          <Paper
+            elevation={4}
+            sx={{
+              p: { xs: 3, md: 5 },
+              mb: 4,
+              textAlign: 'center',
+              borderRadius: 4,
+              background: 'linear-gradient(135deg, #e6f4ea 0%, #f4fbf7 100%)',
+              border: '2px solid #34a853',
+              boxShadow: '0 20px 40px -15px rgba(52, 168, 83, 0.25)',
+            }}
+          >
+            <Box
+              sx={{
+                width: 76,
+                height: 76,
+                borderRadius: '50%',
+                bgcolor: '#34a853',
+                color: '#fff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mb: 2,
+                boxShadow: '0 8px 24px -4px rgba(52,168,83,0.4)',
+              }}
+            >
+              <CheckCircle sx={{ fontSize: 48 }} />
+            </Box>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#137333', mb: 1 }}>
+              🎉 Employer Registration Complete!
+            </Typography>
+            <Typography variant="body1" sx={{ color: '#202124', maxWidth: 620, mx: 'auto', mb: 3, fontSize: 16, lineHeight: 1.6 }}>
+              {showSidebar
+                ? 'Your company profile has been updated successfully.'
+                : 'Your employer profile and account have been registered! You can now log in with your email to access your Employer Dashboard and post jobs.'}
+            </Typography>
+            <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap">
+              {!showSidebar && (
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={() => navigate('/login')}
+                  sx={{
+                    py: 1.5,
+                    px: 4,
+                    borderRadius: 3,
+                    fontWeight: 800,
+                    fontSize: 16,
+                    textTransform: 'none',
+                    bgcolor: '#0c5283',
+                    '&:hover': { bgcolor: '#083b5e' },
+                  }}
+                >
+                  Proceed to Login with OTP
+                </Button>
+              )}
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={() => navigate('/')}
+                sx={{ py: 1.5, px: 3, borderRadius: 3, fontWeight: 700, textTransform: 'none' }}
+              >
+                Back to Home
+              </Button>
+            </Stack>
+          </Paper>
         )}
 
         {submitError && (
