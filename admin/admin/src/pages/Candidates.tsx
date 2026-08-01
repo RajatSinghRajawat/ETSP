@@ -163,30 +163,6 @@ export default function Candidates() {
                   <Table.Cell color="gray.500">{formatDate(c.createdAt)}</Table.Cell>
                   <Table.Cell textAlign="end">
                     <HStack gap={1} justify="flex-end">
-                      {c.approvalStatus === 'approved' ? (
-                        <Button
-                          size="xs"
-                          colorPalette="red"
-                          variant="subtle"
-                          onClick={() => setRejectTarget(c)}
-                          flexShrink={0}
-                        >
-                          <FiXCircle style={{ marginRight: 4 }} />
-                          Reject
-                        </Button>
-                      ) : (
-                        <Button
-                          size="xs"
-                          colorPalette="green"
-                          variant="subtle"
-                          onClick={() => handleApprove(c)}
-                          loading={approveCandidate.isPending && approveCandidate.variables === c._id}
-                          flexShrink={0}
-                        >
-                          <FiCheck style={{ marginRight: 4 }} />
-                          Approve
-                        </Button>
-                      )}
                       <Button
                         size="xs"
                         colorPalette="teal"

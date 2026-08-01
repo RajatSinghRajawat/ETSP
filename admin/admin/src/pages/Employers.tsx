@@ -266,60 +266,34 @@ export default function Employers() {
                     <Table.Cell><StatusBadge value={e.approvalStatus ?? 'rejected'} /></Table.Cell>
                     <Table.Cell color="gray.500">{formatDate(e.createdAt)}</Table.Cell>
                     <Table.Cell textAlign="end">
-                      <HStack gap={1} justify="flex-end">
-                        {e.approvalStatus === 'approved' ? (
-                          <Button
-                            size="xs"
-                            colorPalette="red"
-                            variant="subtle"
-                            onClick={() => setRejectTarget(e)}
-                            flexShrink={0}
-                          >
-                            <FiXCircle style={{ marginRight: 4 }} />
-                            Reject
-                          </Button>
-                        ) : (
-                          <Button
-                            size="xs"
-                            colorPalette="green"
-                            variant="subtle"
-                            onClick={() => handleApprove(e)}
-                            loading={approveEmployer.isPending && approveEmployer.variables === e._id}
-                            flexShrink={0}
-                          >
-                            <FiCheck style={{ marginRight: 4 }} />
-                            Approve
-                          </Button>
-                        )}
-                        <Menu.Root>
-                          <Menu.Trigger asChild>
-                            <IconButton aria-label="Actions" variant="ghost" size="sm">
-                              <FiMoreVertical />
-                            </IconButton>
-                          </Menu.Trigger>
-                          <Portal>
-                            <Menu.Positioner>
-                              <Menu.Content>
-                                <Menu.Item value="view" onClick={() => setViewId(e._id)}>
-                                  <FiEye style={{ marginRight: 8 }} /> View details
+                      <Menu.Root>
+                        <Menu.Trigger asChild>
+                          <IconButton aria-label="Actions" variant="ghost" size="sm">
+                            <FiMoreVertical />
+                          </IconButton>
+                        </Menu.Trigger>
+                        <Portal>
+                          <Menu.Positioner>
+                            <Menu.Content>
+                              <Menu.Item value="view" onClick={() => setViewId(e._id)}>
+                                <FiEye style={{ marginRight: 8 }} /> View details
+                              </Menu.Item>
+                              {e.approvalStatus !== 'approved' ? (
+                                <Menu.Item value="approve" color="green.600" onClick={() => handleApprove(e)}>
+                                  <FiCheck style={{ marginRight: 8 }} /> Approve registration
                                 </Menu.Item>
-                                {e.approvalStatus !== 'approved' ? (
-                                  <Menu.Item value="approve" color="green.600" onClick={() => handleApprove(e)}>
-                                    <FiCheck style={{ marginRight: 8 }} /> Approve registration
-                                  </Menu.Item>
-                                ) : (
-                                  <Menu.Item value="reject" color="red.600" onClick={() => setRejectTarget(e)}>
-                                    <FiXCircle style={{ marginRight: 8 }} /> Revoke approval
-                                  </Menu.Item>
-                                )}
-                                <Menu.Item value="delete" color="red.600" onClick={() => setDeleteTarget(e)}>
-                                  <FiTrash2 style={{ marginRight: 8 }} /> Delete
+                              ) : (
+                                <Menu.Item value="reject" color="red.600" onClick={() => setRejectTarget(e)}>
+                                  <FiXCircle style={{ marginRight: 8 }} /> Revoke approval
                                 </Menu.Item>
-                              </Menu.Content>
-                            </Menu.Positioner>
-                          </Portal>
-                        </Menu.Root>
-                      </HStack>
+                              )}
+                              <Menu.Item value="delete" color="red.600" onClick={() => setDeleteTarget(e)}>
+                                <FiTrash2 style={{ marginRight: 8 }} /> Delete
+                              </Menu.Item>
+                            </Menu.Content>
+                          </Menu.Positioner>
+                        </Portal>
+                      </Menu.Root>
                     </Table.Cell>
                   </Table.Row>
                 ))}
