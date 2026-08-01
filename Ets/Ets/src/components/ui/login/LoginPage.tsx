@@ -125,7 +125,9 @@ const LoginPage: React.FC = () => {
         const { accessToken, user } = response.data;
         localStorage.setItem('ets-access-token', accessToken);
         localStorage.setItem('user', JSON.stringify(user));
-        showToast('Login successful!', 'success');
+        const roleLabel =
+          user.role === 'employer' ? 'Employer' : user.role === 'admin' ? 'Admin' : 'Candidate';
+        showToast(`Login successful — signed in as ${roleLabel}`, 'success');
 
         if (user.role === 'candidate') {
           navigate('/candidate/dashboard');

@@ -78,6 +78,30 @@ class AuthService {
     }
   }
 
+  /**
+   * Which dashboard this login belongs to. The stored User.role cannot be
+   * trusted on its own: profile creation only writes the role via $setOnInsert,
+   * so an email that once had a candidate profile keeps role 'candidate' even
+   * after it is re-registered as an employer. The profiles that actually exist
+   * are the source of truth; User.role only decides it when both exist (a
+   * dual-role account that switches between them).
+   */
+  resolveRole(user, candidateProfile, employerProfile) {
+    if (user?.role === 'admin') {
+      return 'admin';
+    }
+
+    if (candidateProfile && !employerProfile) {
+      return 'candidate';
+    }
+
+    if (employerProfile && !candidateProfile) {
+      return 'employer';
+    }
+
+    return user?.role ?? (employerProfile ? 'employer' : 'candidate');
+  }
+
   async getRegisteredAccount(email) {
     const [user, candidateProfile, employerProfile] = await Promise.all([
       User.findOne({ email }).select('email role isActive').lean(),
@@ -100,7 +124,7 @@ class AuthService {
       );
     }
 
-    const role = user?.role ?? (employerProfile ? 'employer' : 'candidate');
+    const role = this.resolveRole(user, candidateProfile, employerProfile);
 
     if (role === 'candidate' && candidateProfile && candidateProfile.approvalStatus !== 'approved') {
       throw new AppError(
@@ -228,6 +252,10 @@ class AuthService {
       let user = await User.findOne({ email: formattedEmail });
       if (!user) {
         user = await User.create({ email: formattedEmail, role, isActive: true });
+      } else if (user.role !== role) {
+        // The map is the source of truth for these fixed accounts, so reset a
+        // role that drifted (e.g. an earlier profile created it as candidate).
+        user.role = role;
       }
 
       return this.issueTokenForUser(user);
@@ -264,6 +292,10 @@ class AuthService {
     let user = await User.findOne({ email: formattedEmail });
     if (!user) {
       user = await User.create({ email: formattedEmail, role: registeredAccount.role });
+    } else if (user.role !== registeredAccount.role) {
+      // Heal a stale role left behind by $setOnInsert during registration, so
+      // the token and every later read agree with the profiles on file.
+      user.role = registeredAccount.role;
     }
 
     // A successful email OTP proves email ownership — feeds the EXCEL

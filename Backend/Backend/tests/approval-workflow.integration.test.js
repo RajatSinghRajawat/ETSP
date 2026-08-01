@@ -290,6 +290,60 @@ describe('admin delete action', () => {
   });
 });
 
+// Profile creation writes User.role with $setOnInsert, so an email that once
+// had a candidate profile keeps role 'candidate' after being re-registered as
+// an employer — and the login would drop them on the candidate dashboard.
+describe('login role follows the profiles that exist', () => {
+  test('an employer-only profile logs in as employer even if the account says candidate', async () => {
+    const email = 'stale-role@test.local';
+    await registerEmployer(email, { approvalStatus: 'approved' });
+    await User.create({ email, role: 'candidate', isActive: true });
+
+    const account = await authService.getRegisteredAccount(email);
+    expect(account.role).toBe('employer');
+  });
+
+  test('a candidate-only profile logs in as candidate even if the account says employer', async () => {
+    const email = 'stale-role-2@test.local';
+    await registerCandidate(email, { approvalStatus: 'approved' });
+    await User.create({ email, role: 'employer', isActive: true });
+
+    const account = await authService.getRegisteredAccount(email);
+    expect(account.role).toBe('candidate');
+  });
+
+  test('verifying the OTP heals the stale role on the account record', async () => {
+    const email = 'employer@test.com';
+    await registerEmployer(email, { approvalStatus: 'approved' });
+    await User.updateOne({ email }, { $set: { role: 'candidate' } }, { upsert: true });
+
+    // employer@test.com is a static test account, so the OTP is fixed.
+    const result = await authService.verifyOtp(email, '123456');
+
+    expect(result.user.role).toBe('employer');
+    expect((await User.findOne({ email })).role).toBe('employer');
+  });
+
+  test('a dual-role account keeps the role stored on the account', async () => {
+    const email = 'dual-role-login@test.local';
+    await registerCandidate(email, { approvalStatus: 'approved' });
+    await registerEmployer(email, { approvalStatus: 'approved' });
+    await User.create({ email, role: 'employer', isActive: true });
+
+    const account = await authService.getRegisteredAccount(email);
+    expect(account.role).toBe('employer');
+  });
+
+  test('an admin account is never re-derived from profiles', async () => {
+    const email = 'admin-with-profile@test.local';
+    await registerCandidate(email, { approvalStatus: 'approved' });
+    await User.create({ email, role: 'admin', isActive: true });
+
+    const account = await authService.getRegisteredAccount(email);
+    expect(account.role).toBe('admin');
+  });
+});
+
 describe('unregistered emails', () => {
   test('an email that never registered cannot log in', async () => {
     await expectAppError(authService.sendOtp('never-registered@test.local'), 404);
