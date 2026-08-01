@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Box, Container, Typography, Button, Grid, Link as MuiLink, IconButton } from '@mui/material';
 import { Facebook, Twitter, LinkedIn, Instagram, Smartphone } from '@mui/icons-material';
+import { Link as RouterLink } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   const { t } = useTranslation();
@@ -143,11 +144,21 @@ const Footer: React.FC = () => {
             © {currentYear}. {t('all_rights')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 3 }}>
-            {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((text) => (
-              <MuiLink 
+            {/* Only Privacy Policy has a page so far; the other two stay inert
+                rather than pointing at a route that does not exist. */}
+            <MuiLink
+              component={RouterLink}
+              to="/privacy-policy"
+              color="inherit"
+              sx={{ opacity: 0.5, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { opacity: 1 } }}
+            >
+              {t('privacy_policy')}
+            </MuiLink>
+            {['Terms of Service', 'Cookie Policy'].map((text) => (
+              <MuiLink
                 key={text}
-                href="#" 
-                color="inherit" 
+                href="#"
+                color="inherit"
                 sx={{ opacity: 0.5, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { opacity: 1 } }}
               >
                 {text}
