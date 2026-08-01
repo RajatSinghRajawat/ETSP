@@ -51,6 +51,16 @@ export async function removeCandidate(request) {
   return ok('Candidate profile deleted successfully', { id: request.params.id });
 }
 
+export async function approveCandidate(request) {
+  const data = await adminService.approveCandidate(request.params.id);
+  return ok('Candidate profile approved successfully', data);
+}
+
+export async function rejectCandidate(request) {
+  const data = await adminService.rejectCandidate(request.params.id);
+  return ok('Candidate profile rejected successfully', data);
+}
+
 export async function getEmployers(request) {
   const data = await adminService.listEmployers(request.query);
   return ok('Employer profiles fetched successfully', data);
@@ -64,6 +74,16 @@ export async function getEmployer(request) {
 export async function removeEmployer(request) {
   await adminService.deleteEmployer(request.params.id);
   return ok('Employer profile deleted successfully', { id: request.params.id });
+}
+
+export async function approveEmployer(request) {
+  const data = await adminService.approveEmployer(request.params.id);
+  return ok('Employer profile approved successfully', data);
+}
+
+export async function rejectEmployer(request) {
+  const data = await adminService.rejectEmployer(request.params.id);
+  return ok('Employer profile rejected successfully', data);
 }
 
 export async function getJobs(request) {

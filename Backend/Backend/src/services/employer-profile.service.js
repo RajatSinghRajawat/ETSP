@@ -102,20 +102,11 @@ async function attachOpenJobs(profiles) {
 export async function createEmployerProfile(input) {
   const existingProfile = await EmployerProfile.findOne({ email: input.email }).lean();
 
+  // Registration is an anonymous endpoint, so a repeat email must be rejected
+  // rather than overwriting whatever profile already sits on that address.
+  // Signed-in owners edit through updateMyEmployerProfile instead.
   if (existingProfile) {
-    const updated = await EmployerProfile.findOneAndUpdate(
-      { email: input.email },
-      { $set: input },
-      { new: true, runValidators: true },
-    ).lean();
-
-    await User.updateOne(
-      { email: input.email },
-      { $setOnInsert: { email: input.email, role: 'employer', isActive: true } },
-      { upsert: true },
-    );
-
-    return updated;
+    throw new AppError('This email is already registered. Please login instead.', 409);
   }
 
   if (input.phoneNumber) {

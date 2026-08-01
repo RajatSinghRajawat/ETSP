@@ -105,7 +105,13 @@ const resources = {
       "phone_login": "Login with Phone",
       "email_login": "Login with Email",
       "dont_have_account": "Don't have an account?",
-      "sign_up": "Sign Up"
+      "sign_up": "Sign Up",
+      "email_placeholder": "Enter your email address",
+      "phone_placeholder": "Enter your phone number",
+      "otp_placeholder": "Enter 6-digit OTP",
+      "back_to_login": "Back to Login",
+      "send_otp": "Send OTP",
+      "verify_otp": "Verify OTP"
     }
   },
   hi: {
@@ -202,7 +208,13 @@ const resources = {
       "phone_login": "फ़ोन से लॉगिन करें",
       "email_login": "ईमेल से लॉगिन करें",
       "dont_have_account": "क्या आपका अकाउंट नहीं है?",
-      "sign_up": "साइन अप"
+      "sign_up": "साइन अप",
+      "email_placeholder": "अपना ईमेल पता दर्ज करें",
+      "phone_placeholder": "अपना फ़ोन नंबर दर्ज करें",
+      "otp_placeholder": "6 अंकों का OTP दर्ज करें",
+      "back_to_login": "लॉगिन पर वापस जाएं",
+      "send_otp": "OTP भेजें",
+      "verify_otp": "OTP सत्यापित करें"
     }
   }
 };

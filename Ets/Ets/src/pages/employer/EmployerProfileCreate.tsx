@@ -30,6 +30,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
+import { Toast } from '../../components/common';
 import { PageHeader } from '../../components/common/PageHeader';
 import {
   defaultEmployerProfile,
@@ -94,6 +95,11 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
   const [benefitInput, setBenefitInput] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saved' | 'submitted'>('idle');
   const [submitError, setSubmitError] = useState('');
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error',
+  });
   const [logoUploadError, setLogoUploadError] = useState('');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
   const [formErrors, setFormErrors] = useState<EmployerProfileErrors>({});
@@ -397,7 +403,9 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
       localStorage.removeItem(STORAGE_KEY);
       setSaveState('submitted');
     } catch (error) {
-      setSubmitError(getApiErrorMessage(error));
+      const msg = getApiErrorMessage(error);
+      setSubmitError(msg);
+      setToast({ open: true, message: `❌ ${msg}`, severity: 'error' });
     }
   };
 
@@ -1263,6 +1271,13 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
           </Box>
         </Paper>
       </Box>
+
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        severity={toast.severity}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
     </Box>
   );
 };

@@ -8,9 +8,13 @@ import {
   getCandidates,
   getCandidate,
   removeCandidate,
+  approveCandidate,
+  rejectCandidate,
   getEmployers,
   getEmployer,
   removeEmployer,
+  approveEmployer,
+  rejectEmployer,
   importEmployersExcel,
   getImportedEmployers,
   removeImportedEmployer,
@@ -69,6 +73,8 @@ export async function adminRoutes(app) {
   app.get('/candidates', getCandidates);
   app.get('/candidates/:id', getCandidate);
   app.delete('/candidates/:id', removeCandidate);
+  app.patch('/candidates/:id/approve', approveCandidate);
+  app.patch('/candidates/:id/reject', rejectCandidate);
 
   app.post('/candidates/:id/resume', buildResume);
   app.get('/candidates/:id/resume', fetchResume);
@@ -77,6 +83,8 @@ export async function adminRoutes(app) {
   app.get('/employers', getEmployers);
   app.get('/employers/:id', getEmployer);
   app.delete('/employers/:id', removeEmployer);
+  app.patch('/employers/:id/approve', approveEmployer);
+  app.patch('/employers/:id/reject', rejectEmployer);
 
   app.post('/imported-employers/upload', importEmployersExcel);
   app.get('/imported-employers', getImportedEmployers);

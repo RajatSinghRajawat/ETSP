@@ -18,7 +18,7 @@ import {
   Wrap,
 } from '@chakra-ui/react';
 import { useRef, useState } from 'react';
-import { FiEye, FiMoreVertical, FiTrash2, FiUpload } from 'react-icons/fi';
+import { FiCheck, FiEye, FiMoreVertical, FiTrash2, FiUpload, FiXCircle } from 'react-icons/fi';
 import { ConfirmDelete } from '../components/ConfirmDelete';
 import { Detail, DetailDrawer } from '../components/DetailDrawer';
 import { PageHeader } from '../components/PageHeader';
@@ -26,12 +26,14 @@ import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
 import { toaster } from '../components/Toaster';
 import {
+  useApproveEmployer,
   useDeleteEmployer,
   useDeleteImportedEmployer,
   useEmployer,
   useEmployers,
   useImportEmployers,
   useImportedEmployers,
+  useRejectEmployer,
 } from '../hooks/useAdmin';
 import { extractErrorMessage } from '../lib/api';
 import { formatDate, formatDateTime } from '../lib/format';
@@ -47,6 +49,7 @@ export default function Employers() {
   const [viewId, setViewId] = useState<string | null>(null);
   const [importedView, setImportedView] = useState<ImportedEmployerRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EmployerRow | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<EmployerRow | null>(null);
   const [deleteImportedTarget, setDeleteImportedTarget] = useState<ImportedEmployerRow | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -64,6 +67,8 @@ export default function Employers() {
   });
   const employer = useEmployer(viewId);
   const deleteEmployer = useDeleteEmployer();
+  const approveEmployer = useApproveEmployer();
+  const rejectEmployer = useRejectEmployer();
   const deleteImported = useDeleteImportedEmployer();
   const importEmployers = useImportEmployers();
 
@@ -109,6 +114,24 @@ export default function Employers() {
       onSuccess: () => {
         toaster.create({ title: 'Employer deleted', type: 'success' });
         setDeleteTarget(null);
+      },
+      onError: (err) => toaster.create({ title: 'Failed', description: extractErrorMessage(err), type: 'error' }),
+    });
+  }
+
+  function handleApprove(row: EmployerRow) {
+    approveEmployer.mutate(row._id, {
+      onSuccess: () => toaster.create({ title: 'Employer approved — they can now login', type: 'success' }),
+      onError: (err) => toaster.create({ title: 'Failed', description: extractErrorMessage(err), type: 'error' }),
+    });
+  }
+
+  function handleConfirmReject() {
+    if (!rejectTarget) return;
+    rejectEmployer.mutate(rejectTarget._id, {
+      onSuccess: () => {
+        toaster.create({ title: 'Employer rejected — login blocked', type: 'success' });
+        setRejectTarget(null);
       },
       onError: (err) => toaster.create({ title: 'Failed', description: extractErrorMessage(err), type: 'error' }),
     });
@@ -217,6 +240,7 @@ export default function Employers() {
                   <Table.ColumnHeader>Industry</Table.ColumnHeader>
                   <Table.ColumnHeader>Headquarters</Table.ColumnHeader>
                   <Table.ColumnHeader>Status</Table.ColumnHeader>
+                  <Table.ColumnHeader>Approval</Table.ColumnHeader>
                   <Table.ColumnHeader>Created</Table.ColumnHeader>
                   <Table.ColumnHeader textAlign="end">Actions</Table.ColumnHeader>
                 </Table.Row>
@@ -239,27 +263,63 @@ export default function Employers() {
                     <Table.Cell>{e.organizationType ?? '—'}</Table.Cell>
                     <Table.Cell>{e.headquarters ?? '—'}</Table.Cell>
                     <Table.Cell><StatusBadge value={e.status} /></Table.Cell>
+                    <Table.Cell><StatusBadge value={e.approvalStatus ?? 'rejected'} /></Table.Cell>
                     <Table.Cell color="gray.500">{formatDate(e.createdAt)}</Table.Cell>
                     <Table.Cell textAlign="end">
-                      <Menu.Root>
-                        <Menu.Trigger asChild>
-                          <IconButton aria-label="Actions" variant="ghost" size="sm">
-                            <FiMoreVertical />
-                          </IconButton>
-                        </Menu.Trigger>
-                        <Portal>
-                          <Menu.Positioner>
-                            <Menu.Content>
-                              <Menu.Item value="view" onClick={() => setViewId(e._id)}>
-                                <FiEye style={{ marginRight: 8 }} /> View details
-                              </Menu.Item>
-                              <Menu.Item value="delete" color="red.600" onClick={() => setDeleteTarget(e)}>
-                                <FiTrash2 style={{ marginRight: 8 }} /> Delete
-                              </Menu.Item>
-                            </Menu.Content>
-                          </Menu.Positioner>
-                        </Portal>
-                      </Menu.Root>
+                      <HStack gap={1} justify="flex-end">
+                        {e.approvalStatus === 'approved' ? (
+                          <Button
+                            size="xs"
+                            colorPalette="red"
+                            variant="subtle"
+                            onClick={() => setRejectTarget(e)}
+                            flexShrink={0}
+                          >
+                            <FiXCircle style={{ marginRight: 4 }} />
+                            Reject
+                          </Button>
+                        ) : (
+                          <Button
+                            size="xs"
+                            colorPalette="green"
+                            variant="subtle"
+                            onClick={() => handleApprove(e)}
+                            loading={approveEmployer.isPending && approveEmployer.variables === e._id}
+                            flexShrink={0}
+                          >
+                            <FiCheck style={{ marginRight: 4 }} />
+                            Approve
+                          </Button>
+                        )}
+                        <Menu.Root>
+                          <Menu.Trigger asChild>
+                            <IconButton aria-label="Actions" variant="ghost" size="sm">
+                              <FiMoreVertical />
+                            </IconButton>
+                          </Menu.Trigger>
+                          <Portal>
+                            <Menu.Positioner>
+                              <Menu.Content>
+                                <Menu.Item value="view" onClick={() => setViewId(e._id)}>
+                                  <FiEye style={{ marginRight: 8 }} /> View details
+                                </Menu.Item>
+                                {e.approvalStatus !== 'approved' ? (
+                                  <Menu.Item value="approve" color="green.600" onClick={() => handleApprove(e)}>
+                                    <FiCheck style={{ marginRight: 8 }} /> Approve registration
+                                  </Menu.Item>
+                                ) : (
+                                  <Menu.Item value="reject" color="red.600" onClick={() => setRejectTarget(e)}>
+                                    <FiXCircle style={{ marginRight: 8 }} /> Revoke approval
+                                  </Menu.Item>
+                                )}
+                                <Menu.Item value="delete" color="red.600" onClick={() => setDeleteTarget(e)}>
+                                  <FiTrash2 style={{ marginRight: 8 }} /> Delete
+                                </Menu.Item>
+                              </Menu.Content>
+                            </Menu.Positioner>
+                          </Portal>
+                        </Menu.Root>
+                      </HStack>
                     </Table.Cell>
                   </Table.Row>
                 ))}
@@ -462,6 +522,17 @@ export default function Employers() {
         loading={deleteEmployer.isPending}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
+      />
+
+      <ConfirmDelete
+        open={Boolean(rejectTarget)}
+        title="Reject registration"
+        description={`Reject ${rejectTarget?.companyName ?? 'this employer'}'s registration? They will not be able to login. Their profile stays on file, so you can approve them again later.`}
+        confirmLabel="Reject"
+        irreversible={false}
+        loading={rejectEmployer.isPending}
+        onCancel={() => setRejectTarget(null)}
+        onConfirm={handleConfirmReject}
       />
 
       <ConfirmDelete

@@ -4,6 +4,7 @@ import { EmployerProfile } from '../models/employer-profile.model.js';
 import { Job } from '../models/job.model.js';
 import { JobApplication } from '../models/job-application.model.js';
 import { AppError } from '../utils/app-error.js';
+import { emailService } from './email.service.js';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -174,6 +175,42 @@ export async function deleteCandidate(id) {
   return profile;
 }
 
+export async function approveCandidate(id) {
+  assertObjectId(id);
+  const profile = await CandidateProfile.findByIdAndUpdate(
+    id,
+    { $set: { approvalStatus: 'approved' } },
+    { new: true, runValidators: true },
+  ).lean();
+  if (!profile) throw new AppError('Candidate profile not found', 404);
+
+  emailService
+    .sendApprovalEmail(profile.email, { firstName: profile.firstName, role: 'candidate' })
+    .catch(() => {});
+
+  return profile;
+}
+
+// Rejection is the reverse of approval, not a deletion: it flips the gate back
+// so the candidate can no longer log in while the profile stays on file. That
+// keeps the decision reversible — an admin can approve again later. Use
+// deleteCandidate when the record itself should be removed.
+export async function rejectCandidate(id) {
+  assertObjectId(id);
+  const profile = await CandidateProfile.findByIdAndUpdate(
+    id,
+    { $set: { approvalStatus: 'rejected' } },
+    { new: true, runValidators: true },
+  ).lean();
+  if (!profile) throw new AppError('Candidate profile not found', 404);
+
+  emailService
+    .sendRejectionEmail(profile.email, { firstName: profile.firstName, role: 'candidate' })
+    .catch(() => {});
+
+  return profile;
+}
+
 export async function listEmployers(query = {}) {
   const { page, limit, skip } = readPaging(query);
   const filters = {};
@@ -209,6 +246,42 @@ export async function deleteEmployer(id) {
   if (!profile) throw new AppError('Employer profile not found', 404);
   await Job.deleteMany({ employerProfile: profile._id });
   await JobApplication.deleteMany({ employerProfile: profile._id });
+  return profile;
+}
+
+export async function approveEmployer(id) {
+  assertObjectId(id);
+  const profile = await EmployerProfile.findByIdAndUpdate(
+    id,
+    { $set: { approvalStatus: 'approved' } },
+    { new: true, runValidators: true },
+  ).lean();
+  if (!profile) throw new AppError('Employer profile not found', 404);
+
+  emailService
+    .sendApprovalEmail(profile.email, { firstName: profile.firstName, role: 'employer' })
+    .catch(() => {});
+
+  return profile;
+}
+
+// Rejection is the reverse of approval, not a deletion: it flips the gate back
+// so the employer can no longer log in while the profile stays on file. That
+// keeps the decision reversible — an admin can approve again later. Use
+// deleteEmployer when the record itself should be removed.
+export async function rejectEmployer(id) {
+  assertObjectId(id);
+  const profile = await EmployerProfile.findByIdAndUpdate(
+    id,
+    { $set: { approvalStatus: 'rejected' } },
+    { new: true, runValidators: true },
+  ).lean();
+  if (!profile) throw new AppError('Employer profile not found', 404);
+
+  emailService
+    .sendRejectionEmail(profile.email, { firstName: profile.firstName, role: 'employer' })
+    .catch(() => {});
+
   return profile;
 }
 

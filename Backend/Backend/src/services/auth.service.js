@@ -81,25 +81,44 @@ class AuthService {
   async getRegisteredAccount(email) {
     const [user, candidateProfile, employerProfile] = await Promise.all([
       User.findOne({ email }).select('email role isActive').lean(),
-      CandidateProfile.findOne({ email }).select('email').lean(),
-      EmployerProfile.findOne({ email }).select('email').lean(),
+      CandidateProfile.findOne({ email }).select('email approvalStatus').lean(),
+      EmployerProfile.findOne({ email }).select('email approvalStatus').lean(),
     ]);
 
     if (user && !user.isActive) {
       throw new AppError('This account is inactive. Please contact support.', 403);
     }
 
+    // No account and no profile of either kind: either the email never
+    // registered, or an admin rejected it (rejection deletes both the profile
+    // and the account). Auto-creating an account here would hand both cases a
+    // working login, defeating the admin-approval gate below.
     if (!user && !candidateProfile && !employerProfile) {
-      const newUser = await User.create({ email, role: 'candidate', isActive: true });
-      return {
-        user: newUser,
-        role: 'candidate',
-      };
+      throw new AppError(
+        'No registration found for this email. Please register first and wait for admin approval.',
+        404,
+      );
+    }
+
+    const role = user?.role ?? (employerProfile ? 'employer' : 'candidate');
+
+    if (role === 'candidate' && candidateProfile && candidateProfile.approvalStatus !== 'approved') {
+      throw new AppError(
+        'Your candidate registration has not been approved by the admin yet. You will be able to login once it is verified.',
+        403,
+      );
+    }
+
+    if (role === 'employer' && employerProfile && employerProfile.approvalStatus !== 'approved') {
+      throw new AppError(
+        'Your employer registration has not been approved by the admin yet. You will be able to login once it is verified.',
+        403,
+      );
     }
 
     return {
       user,
-      role: user?.role ?? (employerProfile ? 'employer' : 'candidate'),
+      role,
     };
   }
 

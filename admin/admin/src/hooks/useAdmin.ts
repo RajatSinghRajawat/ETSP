@@ -145,6 +145,34 @@ export function useDeleteCandidate() {
   });
 }
 
+export function useApproveCandidate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<CandidateRow>>(`/admin/candidates/${id}/approve`);
+      return unwrap(res.data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'candidates'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
+export function useRejectCandidate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<CandidateRow>>(`/admin/candidates/${id}/reject`);
+      return unwrap(res.data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'candidates'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
 export function useBuildResume() {
   const qc = useQueryClient();
   return useMutation({
@@ -211,6 +239,34 @@ export function useDeleteEmployer() {
     mutationFn: async (id: string) => {
       await api.delete(`/admin/employers/${id}`);
       return id;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'employers'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
+export function useApproveEmployer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<EmployerRow>>(`/admin/employers/${id}/approve`);
+      return unwrap(res.data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'employers'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
+export function useRejectEmployer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<EmployerRow>>(`/admin/employers/${id}/reject`);
+      return unwrap(res.data);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'employers'] });

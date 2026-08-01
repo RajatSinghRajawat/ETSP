@@ -15,7 +15,8 @@
     "seed:test-accounts": "node scripts/seed-test-accounts.js",
     "seed:candidates": "node scripts/seed-candidates.js",
     "seed:jobs": "node scripts/seed-jobs.js",
-    "seed:plans": "node scripts/seed-plans.js"
+    "seed:plans": "node scripts/seed-plans.js",
+    "migrate:approval-status": "node scripts/backfill-approval-status.js"
   },
   "keywords": [],
   "author": "",
