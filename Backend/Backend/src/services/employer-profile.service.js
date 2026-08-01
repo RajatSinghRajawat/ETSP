@@ -88,7 +88,9 @@ async function attachOpenJobs(profiles) {
 
   const profileIds = profiles.map((profile) => profile._id);
   const jobCounts = await Job.aggregate([
-    { $match: { employerProfile: { $in: profileIds }, status: 'active' } },
+    // Counts the jobs a visitor can actually open, so the badge cannot advertise
+    // postings that are still waiting on admin approval.
+    { $match: { employerProfile: { $in: profileIds }, status: 'active', approvalStatus: 'approved' } },
     { $group: { _id: '$employerProfile', total: { $sum: 1 } } },
   ]);
   const countsByProfile = new Map(jobCounts.map((item) => [String(item._id), item.total]));

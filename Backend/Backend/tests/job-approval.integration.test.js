@@ -2,8 +2,11 @@ import { jest } from '@jest/globals';
 import { Job } from '../src/models/job.model.js';
 import * as adminService from '../src/services/admin.service.js';
 import { getJobById, getJobs } from '../src/services/job.service.js';
+import { getEmployerProfiles } from '../src/services/employer-profile.service.js';
+import { getMySavedJobs, saveJob } from '../src/services/saved-job.service.js';
+import { createJobApplication } from '../src/services/job-application.service.js';
 import { connectTestDb, clearTestDb, disconnectTestDb } from './helpers/db.js';
-import { createEmployer, jobFields, seedPlans } from './helpers/fixtures.js';
+import { createCandidate, createEmployer, jobFields, seedPlans } from './helpers/fixtures.js';
 
 jest.setTimeout(60_000);
 
@@ -110,5 +113,62 @@ describe('admin job approve/reject', () => {
 
   test('approving an unknown job id throws a 404', async () => {
     await expectAppError(adminService.approveJob('507f1f77bcf86cd799439011'), 404);
+  });
+});
+
+// Every candidate-facing surface must respect the gate, not just the listing —
+// otherwise an unapproved job leaks through whichever path was missed.
+describe('other candidate-facing surfaces respect the gate', () => {
+  test('a candidate cannot apply to an unapproved job', async () => {
+    const { profile: employerProfile } = await createEmployer();
+    const job = await Job.create(jobFields(employerProfile));
+    const { authUser } = await createCandidate();
+
+    await expectAppError(createJobApplication(authUser, { jobId: job._id.toString() }), 404);
+  });
+
+  test('a candidate can apply once the job is approved', async () => {
+    const { profile: employerProfile } = await createEmployer();
+    const job = await Job.create(jobFields(employerProfile));
+    const { authUser } = await createCandidate();
+
+    await adminService.approveJob(job._id.toString());
+
+    await expect(
+      createJobApplication(authUser, { jobId: job._id.toString() }),
+    ).resolves.toBeDefined();
+  });
+
+  test('an unapproved job cannot be saved', async () => {
+    const { profile: employerProfile } = await createEmployer();
+    const job = await Job.create(jobFields(employerProfile));
+    const { authUser } = await createCandidate();
+
+    await expectAppError(saveJob(authUser, job._id.toString()), 404);
+  });
+
+  test('unpublishing a job drops it from the saved list', async () => {
+    const { profile: employerProfile } = await createEmployer();
+    const job = await Job.create(jobFields(employerProfile));
+    const { authUser } = await createCandidate();
+
+    await adminService.approveJob(job._id.toString());
+    await saveJob(authUser, job._id.toString());
+    expect(await getMySavedJobs(authUser)).toHaveLength(1);
+
+    await adminService.rejectJob(job._id.toString());
+    expect(await getMySavedJobs(authUser)).toHaveLength(0);
+  });
+
+  test('the employer open-jobs badge only counts approved jobs', async () => {
+    const { profile: employerProfile } = await createEmployer();
+    await Job.create(jobFields(employerProfile, { title: 'Unapproved' }));
+    const approved = await Job.create(jobFields(employerProfile, { title: 'Approved' }));
+    await adminService.approveJob(approved._id.toString());
+
+    const result = await getEmployerProfiles({});
+    const row = result.items.find((p) => String(p._id) === String(employerProfile._id));
+
+    expect(row.openJobs).toBe(1);
   });
 });
