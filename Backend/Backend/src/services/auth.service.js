@@ -124,20 +124,13 @@ class AuthService {
       );
     }
 
-    const role = this.resolveRole(user, candidateProfile, employerProfile);
+    const preferredRole = this.resolveRole(user, candidateProfile, employerProfile);
+    const role = this.pickLoginRole(preferredRole, candidateProfile, employerProfile);
 
-    if (role === 'candidate' && candidateProfile && candidateProfile.approvalStatus !== 'approved') {
-      throw new AppError(
-        'Your candidate registration has not been approved by the admin yet. You will be able to login once it is verified.',
-        403,
-      );
-    }
-
-    if (role === 'employer' && employerProfile && employerProfile.approvalStatus !== 'approved') {
-      throw new AppError(
-        'Your employer registration has not been approved by the admin yet. You will be able to login once it is verified.',
-        403,
-      );
+    if (role === 'candidate') {
+      this.assertProfileApproved('candidate', candidateProfile);
+    } else if (role === 'employer') {
+      this.assertProfileApproved('employer', employerProfile);
     }
 
     return {
@@ -213,14 +206,57 @@ class AuthService {
 
   async getProfileForRole(email, role) {
     if (role === 'candidate') {
-      return CandidateProfile.findOne({ email }).select('_id email phone').lean();
+      return CandidateProfile.findOne({ email }).select('_id email phone approvalStatus').lean();
     }
 
-    return EmployerProfile.findOne({ email }).select('_id email phoneNumber').lean();
+    return EmployerProfile.findOne({ email }).select('_id email phoneNumber approvalStatus').lean();
   }
 
   getProfilePhone(profile, role) {
     return role === 'candidate' ? profile?.phone : profile?.phoneNumber;
+  }
+
+  assertProfileApproved(role, profile) {
+    if (!profile) {
+      throw new AppError(`No ${role} profile found for this account`, 404);
+    }
+
+    if (profile.approvalStatus === 'approved') {
+      return;
+    }
+
+    if (role === 'candidate') {
+      throw new AppError(
+        'Your candidate registration has not been approved by the admin yet. You will be able to use this profile once it is verified.',
+        403,
+      );
+    }
+
+    throw new AppError(
+      'Your employer registration has not been approved by the admin yet. You will be able to use this profile once it is verified.',
+      403,
+    );
+  }
+
+  /**
+   * When both candidate and employer profiles exist, prefer an approved role so a
+   * pending sibling cannot block OTP login for the approved one.
+   */
+  pickLoginRole(preferredRole, candidateProfile, employerProfile) {
+    const candidateApproved = candidateProfile?.approvalStatus === 'approved';
+    const employerApproved = employerProfile?.approvalStatus === 'approved';
+
+    if (preferredRole === 'candidate' && candidateApproved) return 'candidate';
+    if (preferredRole === 'employer' && employerApproved) return 'employer';
+
+    if (candidateApproved && !employerApproved) return 'candidate';
+    if (employerApproved && !candidateApproved) return 'employer';
+    if (candidateApproved && employerApproved) {
+      return preferredRole === 'employer' ? 'employer' : 'candidate';
+    }
+
+    // Neither approved — surface the preferred role's pending message.
+    return preferredRole === 'employer' ? 'employer' : 'candidate';
   }
 
   async issueTokenForUser(user) {
@@ -322,15 +358,26 @@ class AuthService {
       throw new AppError('This account cannot switch profiles', 403);
     }
 
+    if (!['candidate', 'employer'].includes(targetRole) || targetRole === currentRole) {
+      throw new AppError('Invalid profile switch target', 400);
+    }
+
     const currentProfile = await this.getProfileForRole(email, currentRole);
     if (!currentProfile) {
       throw new AppError(`No ${currentRole} profile found for this account`, 404);
     }
 
+    // Current side must stay approved too (token shouldn't exist otherwise, but be safe).
+    this.assertProfileApproved(currentRole, currentProfile);
+
     const targetProfile = await this.getProfileForRole(email, targetRole);
     if (!targetProfile) {
       throw new AppError(`No ${targetRole} profile found for this account`, 404);
     }
+
+    // Critical: do not let an approved employer (or candidate) jump into the
+    // sibling profile before admin has approved that side.
+    this.assertProfileApproved(targetRole, targetProfile);
 
     if (this.getProfilePhone(currentProfile, currentRole) !== this.getProfilePhone(targetProfile, targetRole)) {
       throw new AppError('Profile switch requires the same email and phone number on both profiles', 409);
