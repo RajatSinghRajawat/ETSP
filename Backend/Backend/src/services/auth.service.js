@@ -375,13 +375,9 @@ class AuthService {
       throw new AppError(`No ${targetRole} profile found for this account`, 404);
     }
 
-    // Critical: do not let an approved employer (or candidate) jump into the
-    // sibling profile before admin has approved that side.
+    // Target must be admin-approved — do not let an approved employer jump into
+    // a pending candidate profile (or the reverse).
     this.assertProfileApproved(targetRole, targetProfile);
-
-    if (this.getProfilePhone(currentProfile, currentRole) !== this.getProfilePhone(targetProfile, targetRole)) {
-      throw new AppError('Profile switch requires the same email and phone number on both profiles', 409);
-    }
 
     let user = await User.findOne({ email });
     if (!user) {
