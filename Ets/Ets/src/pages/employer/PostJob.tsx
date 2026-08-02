@@ -15,7 +15,6 @@ import {
   FormControlLabel,
   Grid,
   IconButton,
-  InputAdornment,
   InputLabel,
   LinearProgress,
   MenuItem,
@@ -38,7 +37,6 @@ import {
   Save,
   School,
   Star,
-  Title as TitleIcon,
   Tune,
   Visibility,
   WorkOutlined,
@@ -657,42 +655,18 @@ const PostJob: React.FC = () => {
                 >
                   <Grid container spacing={2.5}>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <Autocomplete
-                        freeSolo
-                        options={[
-                          'Veterinarian',
-                          'Veterinary Assistant',
-                          'Ward Boy',
-                          'Pet Trainer',
-                          'Pet Groomer',
-                          'Receptionist',
-                          'Floor Manager',
-                          'Sales Manager',
-                          'Inventory Incharge'
-                        ]}
+                      <LookupSelect
+                        category="job_title"
+                        label="Job Title"
                         value={formData.title}
-                        onInputChange={(_event, value) => updateField('title', value)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            fullWidth
-                            label="Job Title"
-                            placeholder="Select or type custom job title"
-                            error={Boolean(formErrors.title)}
-                            helperText={formErrors.title || "Select or add custom title"}
-                            InputProps={{
-                              ...(params.InputProps || {}),
-                              startAdornment: (
-                                <>
-                                  <InputAdornment position="start">
-                                    <TitleIcon sx={{ color: '#0c5283', fontSize: 20 }} />
-                                  </InputAdornment>
-                                  {params.InputProps?.startAdornment}
-                                </>
-                              ),
-                            }}
-                          />
-                        )}
+                        onChange={(v) => updateField('title', v)}
+                        valueMode="name"
+                        required
+                        error={Boolean(formErrors.title)}
+                        helperText={
+                          formErrors.title ||
+                          'Pick from the list, or use Add new… for admin approval'
+                        }
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>

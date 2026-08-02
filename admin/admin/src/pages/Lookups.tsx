@@ -68,7 +68,7 @@ export default function Lookups() {
   const { data: categoriesData } = useLookupCategories();
   const categories = categoriesData?.items ?? [];
 
-  const [category, setCategory] = useState<LookupCategory | ''>('');
+  const [category, setCategory] = useState<LookupCategory | ''>('job_title');
   const [status, setStatus] = useState<LookupStatus | ''>('');
   const [search, setSearch] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -175,7 +175,7 @@ export default function Lookups() {
     <Box>
       <PageHeader
         title="Lookups"
-        description="Manage every website select-box option. Approve user proposals before they go live, or disable / delete any value."
+        description="Manage select options (job titles, types, skills, and more). User suggestions stay pending until you Approve — then they appear in Post Job and other forms."
         actions={
           <HStack gap={2}>
             {pendingCount > 0 && (

@@ -38,6 +38,7 @@ type LookupSelectProps = {
   fullWidth?: boolean;
   size?: 'small' | 'medium';
   helperText?: string;
+  error?: boolean;
   allowPropose?: boolean;
   emptyLabel?: string;
 };
@@ -57,6 +58,7 @@ export default function LookupSelect({
   fullWidth = true,
   size = 'medium',
   helperText,
+  error = false,
   allowPropose = true,
   emptyLabel = 'Select…',
 }: LookupSelectProps) {
@@ -72,6 +74,8 @@ export default function LookupSelect({
 
   const optionKey = (item: { name: string; value: string }) =>
     valueMode === 'name' ? item.name : item.value;
+
+  const valueInOptions = Boolean(value && options.some((o) => optionKey(o) === value));
 
   const handleSelect = (event: SelectChangeEvent<string>) => {
     const next = event.target.value;
@@ -114,7 +118,13 @@ export default function LookupSelect({
 
   return (
     <>
-      <FormControl fullWidth={fullWidth} required={required} disabled={disabled || isLoading} size={size}>
+      <FormControl
+        fullWidth={fullWidth}
+        required={required}
+        disabled={disabled || isLoading}
+        size={size}
+        error={error}
+      >
         <InputLabel>{label}</InputLabel>
         <Select
           label={label}
@@ -133,6 +143,10 @@ export default function LookupSelect({
             <MenuItem disabled value="__loading__">
               <CircularProgress size={16} sx={{ mr: 1 }} /> Loading…
             </MenuItem>
+          )}
+          {/* Keep current value selectable when editing a legacy/custom entry. */}
+          {value && !valueInOptions && (
+            <MenuItem value={value}>{value}</MenuItem>
           )}
           {options.map((opt) => (
             <MenuItem key={opt._id} value={optionKey(opt)}>
