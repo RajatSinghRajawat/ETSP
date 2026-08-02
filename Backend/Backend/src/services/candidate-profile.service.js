@@ -1,5 +1,4 @@
 import { CandidateProfile } from '../models/candidate-profile.model.js';
-import { EmployerProfile } from '../models/employer-profile.model.js';
 import { User } from '../models/user.model.js';
 import { AppError } from '../utils/app-error.js';
 import {
@@ -122,21 +121,15 @@ export async function createCandidateProfile(input) {
 
   const payload = { ...input, email };
 
-  const [profileForEmail, existingUser, employerForEmail] = await Promise.all([
+  const [profileForEmail, existingUser] = await Promise.all([
     CandidateProfile.findOne({ email }).select('_id email').lean(),
     User.findOne({ email }).select('_id email role').lean(),
-    EmployerProfile.findOne({ email }).select('_id email').lean(),
   ]);
 
-  // One email → one candidate. Also block if the same address is already an
-  // employer account so the platform never issues dual profiles for one inbox.
+  // Same email may also register as employer — only block a second candidate.
   if (profileForEmail) {
-    throw new AppError('This email is already registered. Please login instead.', 409);
-  }
-
-  if (employerForEmail || existingUser?.role === 'employer') {
     throw new AppError(
-      'This email is already registered as an employer. Please login or use a different email.',
+      'This email is already registered as a candidate. Please login instead.',
       409,
     );
   }
@@ -172,7 +165,7 @@ export async function createCandidateProfile(input) {
     if (duplicateMessage) {
       throw new AppError(
         duplicateMessage.includes('email')
-          ? 'This email is already registered. Please login instead.'
+          ? 'This email is already registered as a candidate. Please login instead.'
           : duplicateMessage,
         409,
       );

@@ -1,5 +1,4 @@
 import { EmployerProfile } from '../models/employer-profile.model.js';
-import { CandidateProfile } from '../models/candidate-profile.model.js';
 import { User } from '../models/user.model.js';
 import { Job } from '../models/job.model.js';
 import { markImportedEmployerRegistered } from './imported-employer.service.js';
@@ -113,21 +112,15 @@ export async function createEmployerProfile(input) {
 
   const payload = { ...input, email };
 
-  const [existingProfile, existingUser, candidateForEmail] = await Promise.all([
+  const [existingProfile, existingUser] = await Promise.all([
     EmployerProfile.findOne({ email }).select('_id email').lean(),
     User.findOne({ email }).select('_id email role').lean(),
-    CandidateProfile.findOne({ email }).select('_id email').lean(),
   ]);
 
-  // Registration is an anonymous endpoint, so a repeat email must be rejected
-  // rather than overwriting whatever profile already sits on that address.
+  // Same email may also register as candidate — only block a second employer.
   if (existingProfile) {
-    throw new AppError('This email is already registered. Please login instead.', 409);
-  }
-
-  if (candidateForEmail || existingUser?.role === 'candidate') {
     throw new AppError(
-      'This email is already registered as a candidate. Please login or use a different email.',
+      'This email is already registered as an employer. Please login instead.',
       409,
     );
   }
@@ -174,7 +167,7 @@ export async function createEmployerProfile(input) {
     if (duplicateMessage) {
       throw new AppError(
         duplicateMessage.includes('email')
-          ? 'This email is already registered. Please login instead.'
+          ? 'This email is already registered as an employer. Please login instead.'
           : duplicateMessage,
         409,
       );
