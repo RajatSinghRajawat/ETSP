@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { Box, Container, Typography, Card, CardContent, Button } from '@mui/material';
 import {
   MedicalServices,
@@ -11,193 +10,102 @@ import {
   BusinessCenter,
   TrendingUp,
   Inventory,
-  ArrowForward
+  ArrowForward,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useLocalizedSiteContent } from '../../../hooks/useLocalizedSiteContent';
 
-export interface JobProfileItem {
-  id: string;
-  titleKey: string;
-  defaultTitle: string;
-  icon: React.ReactNode;
-  description: string;
-  color: string;
-  bgColor: string;
-}
-
-export const jobProfilesList: JobProfileItem[] = [
-  {
-    id: 'veterinarian',
-    titleKey: 'job_veterinarian',
-    defaultTitle: 'Veterinarian',
-    icon: <MedicalServices sx={{ fontSize: 44 }} />,
-    description: 'Diagnosis, surgery, and comprehensive clinical pet care.',
-    color: '#0c5283',
-    bgColor: 'rgba(12, 82, 131, 0.08)'
-  },
-  {
-    id: 'veterinary-assistant',
-    titleKey: 'job_vet_assistant',
-    defaultTitle: 'Veterinary Assistant',
-    icon: <Healing sx={{ fontSize: 44 }} />,
-    description: 'Assist doctors in clinical care, treatment, and diagnostics.',
-    color: '#0ab6a2',
-    bgColor: 'rgba(10, 182, 162, 0.08)'
-  },
-  {
-    id: 'ward-boy',
-    titleKey: 'job_ward_boy',
-    defaultTitle: 'Ward Boy',
-    icon: <Hotel sx={{ fontSize: 44 }} />,
-    description: 'Inpatient ward management, animal handling, and sanitation.',
-    color: '#7c3aed',
-    bgColor: 'rgba(124, 58, 237, 0.08)'
-  },
-  {
-    id: 'pet-trainer',
-    titleKey: 'job_pet_trainer',
-    defaultTitle: 'Pet Trainer',
-    icon: <Pets sx={{ fontSize: 44 }} />,
-    description: 'Behavioral training, discipline, and agility instruction.',
-    color: '#f59e0b',
-    bgColor: 'rgba(245, 158, 11, 0.08)'
-  },
-  {
-    id: 'pet-groomer',
-    titleKey: 'job_pet_groomer',
-    defaultTitle: 'Pet Groomer',
-    icon: <ContentCut sx={{ fontSize: 44 }} />,
-    description: 'Professional bathing, styling, coat care, and hygiene.',
-    color: '#ec4899',
-    bgColor: 'rgba(236, 72, 153, 0.08)'
-  },
-  {
-    id: 'receptionist',
-    titleKey: 'job_receptionist',
-    defaultTitle: 'Receptionist',
-    icon: <SupportAgent sx={{ fontSize: 44 }} />,
-    description: 'Front desk management, appointment scheduling, and client handling.',
-    color: '#3b82f6',
-    bgColor: 'rgba(59, 130, 246, 0.08)'
-  },
-  {
-    id: 'floor-manager',
-    titleKey: 'job_floor_manager',
-    defaultTitle: 'Floor Manager',
-    icon: <BusinessCenter sx={{ fontSize: 44 }} />,
-    description: 'Supervising clinic operations, staff coordination, and service flow.',
-    color: '#10b981',
-    bgColor: 'rgba(16, 185, 129, 0.08)'
-  },
-  {
-    id: 'sales-manager',
-    titleKey: 'job_sales_manager',
-    defaultTitle: 'Sales Manager',
-    icon: <TrendingUp sx={{ fontSize: 44 }} />,
-    description: 'Business development, client growth, and pharma/vet product sales.',
-    color: '#8b5cf6',
-    bgColor: 'rgba(139, 92, 246, 0.08)'
-  },
-  {
-    id: 'inventory-incharge',
-    titleKey: 'job_inventory_incharge',
-    defaultTitle: 'Inventory Incharge',
-    icon: <Inventory sx={{ fontSize: 44 }} />,
-    description: 'Managing medicines, surgical supplies, and pet product stocks.',
-    color: '#0284c7',
-    bgColor: 'rgba(2, 132, 199, 0.08)'
-  }
-];
+const ICON_MAP: Record<string, React.ReactNode> = {
+  MedicalServices: <MedicalServices sx={{ fontSize: 44 }} />,
+  Healing: <Healing sx={{ fontSize: 44 }} />,
+  Hotel: <Hotel sx={{ fontSize: 44 }} />,
+  Pets: <Pets sx={{ fontSize: 44 }} />,
+  ContentCut: <ContentCut sx={{ fontSize: 44 }} />,
+  SupportAgent: <SupportAgent sx={{ fontSize: 44 }} />,
+  BusinessCenter: <BusinessCenter sx={{ fontSize: 44 }} />,
+  TrendingUp: <TrendingUp sx={{ fontSize: 44 }} />,
+  Inventory: <Inventory sx={{ fontSize: 44 }} />,
+};
 
 const JobProfilesSection: React.FC = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
+  const { content } = useLocalizedSiteContent();
+  const section = content?.jobProfiles;
 
-  const handleProfileClick = (title: string) => {
-    navigate(`/find-job?search=${encodeURIComponent(title)}`);
+  const title = section?.title || 'Job Profiles';
+  const subtitle =
+    section?.subtitle || 'Explore specialized roles across clinics, hospitals and pet-care businesses.';
+  const exploreLabel = section?.exploreLabel || 'Explore Jobs';
+  const items = section?.items ?? [];
+
+  const handleProfileClick = (query: string) => {
+    navigate(`/find-job?search=${encodeURIComponent(query)}`);
   };
 
   return (
-    <Box sx={{ py: 9, bgcolor: 'background.paper', position: 'relative', overflow: 'hidden' }}>
+    <Box sx={{ py: { xs: 6, md: 10 }, bgcolor: 'background.default' }}>
       <Container maxWidth="lg">
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography
-            variant="h3"
-            sx={{
-              fontWeight: 800,
-              mb: 1.5,
-              color: 'primary.main',
-              fontSize: { xs: '2rem', md: '2.5rem' }
-            }}
-          >
-            {t('job_profiles_title') || 'Job Profiles'}
+        <Box sx={{ textAlign: 'center', mb: 5 }}>
+          <Typography variant="h3" sx={{ fontWeight: 800, mb: 1.5, fontSize: { xs: 28, md: 36 } }}>
+            {title}
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 650, mx: 'auto', fontSize: '1.05rem' }}>
-            {t('job_profiles_subtitle') || 'Explore specialized roles across veterinary hospitals, clinics, and pet care centers'}
+          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 640, mx: 'auto' }}>
+            {subtitle}
           </Typography>
         </Box>
 
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 3.5
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
+            gap: 2.5,
           }}
         >
-          {jobProfilesList.map((profile) => (
+          {items.map((profile) => (
             <Card
               key={profile.id}
-              onClick={() => handleProfileClick(profile.defaultTitle)}
+              elevation={0}
+              onClick={() => handleProfileClick(profile.searchQuery || profile.title)}
               sx={{
-                cursor: 'pointer',
-                borderRadius: 4,
+                borderRadius: 3,
                 border: '1px solid',
                 borderColor: 'divider',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                flexDirection: 'column',
+                cursor: 'pointer',
+                transition: 'transform 0.2s, box-shadow 0.2s',
                 '&:hover': {
-                  borderColor: profile.color,
-                  boxShadow: `0 12px 28px ${profile.bgColor}`,
-                  transform: 'translateY(-6px)'
-                }
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 12px 28px rgba(12,82,131,0.12)',
+                },
               }}
             >
-              <CardContent sx={{ p: 3.5, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+              <CardContent sx={{ p: 3 }}>
                 <Box
                   sx={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: 3,
-                    bgcolor: profile.bgColor,
-                    color: profile.color,
+                    width: 64,
+                    height: 64,
+                    borderRadius: 2,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    mb: 2.5
+                    mb: 2,
+                    color: profile.color || '#0c5283',
+                    bgcolor: profile.bgColor || 'rgba(12, 82, 131, 0.08)',
                   }}
                 >
-                  {profile.icon}
+                  {ICON_MAP[profile.iconKey || ''] || <MedicalServices sx={{ fontSize: 44 }} />}
                 </Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
-                  {t(profile.titleKey) || profile.defaultTitle}
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                  {profile.title}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, flexGrow: 1, lineHeight: 1.6 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: 44 }}>
                   {profile.description}
                 </Typography>
                 <Button
                   size="small"
                   endIcon={<ArrowForward />}
-                  sx={{
-                    alignSelf: 'flex-start',
-                    color: profile.color,
-                    fontWeight: 600,
-                    p: 0,
-                    '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' }
-                  }}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
                 >
-                  {t('explore_jobs') || 'Explore Jobs'}
+                  {exploreLabel}
                 </Button>
               </CardContent>
             </Card>

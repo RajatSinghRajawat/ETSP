@@ -17,6 +17,11 @@ import type {
   GrantSubscriptionInput,
   ImportedEmployerRow,
   JobRow,
+  LookupCategory,
+  LookupCategoryMeta,
+  LookupListResult,
+  LookupOption,
+  LookupStatus,
   Msg91SettingsView,
   Paginated,
   Plan,
@@ -557,7 +562,12 @@ export function useStripeSettings() {
 export function useUpdateStripeSettings() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { secretKey?: string; publishableKey?: string; webhookSecret?: string }) => {
+    mutationFn: async (body: {
+      secretKey?: string;
+      publishableKey?: string;
+      webhookSecret?: string;
+      subscriptionsEnabled?: boolean;
+    }) => {
       const res = await api.put<ApiResponse<StripeSettingsView>>('/admin/settings/stripe', body);
       return unwrap(res.data);
     },
@@ -595,17 +605,116 @@ export function useUpdateEmailSettings() {
   });
 }
 
-export interface SiteContent {
-  contact: { email: string; phone: string; address: string; workingHours: string };
-  social: { facebook: string; twitter: string; linkedin: string; instagram: string };
-  about: {
+export interface SiteLegalSection {
+  id: string;
+  title: string;
+  body: string[];
+}
+
+export interface SiteLegalPage {
+  heroTitle: string;
+  heroSubtitle: string;
+  lastUpdated: string;
+  intro: string;
+  sections: SiteLegalSection[];
+  contactCardTitle: string;
+  contactCardBody: string;
+}
+
+export interface SiteJobProfileItem {
+  id: string;
+  title: string;
+  description: string;
+  searchQuery?: string;
+  color?: string;
+  bgColor?: string;
+  iconKey?: string;
+}
+
+export interface SiteLocaleContent {
+  contact: {
+    email: string;
+    phone: string;
+    address: string;
+    workingHours: string;
     heroTitle: string;
     heroSubtitle: string;
+    formTitle: string;
+    formSubmitLabel: string;
+  };
+  about: {
+    heroOverline: string;
+    heroTitle: string;
+    heroSubtitle: string;
+    primaryCtaLabel: string;
+    primaryCtaPath: string;
+    secondaryCtaLabel: string;
+    secondaryCtaPath: string;
+    missionTitle: string;
+    missionBody: string[];
+    missionImageUrl: string;
     storyTitle: string;
     storyBody: string;
     stats: Array<{ value: string; label: string }>;
+    valuesTitle: string;
+    valuesSubtitle: string;
+    values: Array<{ id: string; title: string; description: string; iconKey?: string }>;
+    journeyTitle: string;
+    journeySubtitle: string;
+    milestones: Array<{ year: string; title: string; description: string }>;
+    teamTitle: string;
+    teamSubtitle: string;
+    team: Array<{ name: string; role: string; image?: string; experience?: string }>;
+    ctaTitle: string;
+    ctaSubtitle: string;
+    ctaPrimaryLabel: string;
+    ctaPrimaryPath: string;
+    ctaSecondaryLabel: string;
+    ctaSecondaryPath: string;
   };
+  hero: {
+    badge: string;
+    headlinePrefix: string;
+    headlineAccent: string;
+    headlineSuffix: string;
+    subtitle: string;
+    searchKeywordPlaceholder: string;
+    searchLocationPlaceholder: string;
+    searchButtonLabel: string;
+    trustLine: string;
+    hiringPrompt: string;
+    hiringCtaLabel: string;
+    hiringCtaPath: string;
+    floatingBadge1Title: string;
+    floatingBadge1Subtitle: string;
+    floatingBadge2Title: string;
+    floatingBadge2Subtitle: string;
+  };
+  jobProfiles: {
+    title: string;
+    subtitle: string;
+    exploreLabel: string;
+    items: SiteJobProfileItem[];
+  };
+  privacy: SiteLegalPage;
+  terms: SiteLegalPage;
+  cookies: SiteLegalPage;
 }
+
+export interface SiteContent {
+  social: { facebook: string; twitter: string; linkedin: string; instagram: string };
+  en: SiteLocaleContent;
+  hi: SiteLocaleContent;
+}
+
+export type SiteContentLang = 'en' | 'hi';
+
+export type SiteContentUpdateInput = Partial<SiteLocaleContent> & {
+  lang?: SiteContentLang;
+  social?: SiteContent['social'];
+  en?: Partial<SiteLocaleContent>;
+  hi?: Partial<SiteLocaleContent>;
+};
 
 export function useSiteContent() {
   return useQuery({
@@ -620,8 +729,22 @@ export function useSiteContent() {
 export function useUpdateSiteContent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: Partial<SiteContent>) => {
+    mutationFn: async (body: SiteContentUpdateInput | Record<string, unknown>) => {
       const res = await api.put<ApiResponse<SiteContent>>('/admin/settings/site-content', body);
+      return unwrap(res.data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'settings', 'site-content'] }),
+  });
+}
+
+export function useTranslateSiteContent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body?: { sections?: Array<keyof SiteLocaleContent> }) => {
+      const res = await api.post<ApiResponse<SiteContent>>(
+        '/admin/settings/site-content/translate',
+        body ?? {},
+      );
       return unwrap(res.data);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'settings', 'site-content'] }),
@@ -653,5 +776,121 @@ export function useUpdateMsg91Settings() {
       return res.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'settings', 'msg91'] }),
+  });
+}
+
+/* ------------------------------ Lookups ------------------------------ */
+
+function invalidateLookups(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ['admin', 'lookups'] });
+}
+
+export function useLookupCategories() {
+  return useQuery({
+    queryKey: ['admin', 'lookups', 'categories'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<{ items: LookupCategoryMeta[] }>>('/admin/lookups/categories');
+      return unwrap(res.data);
+    },
+  });
+}
+
+export function useLookups(params: {
+  category?: LookupCategory | '';
+  status?: LookupStatus | '';
+  search?: string;
+  page?: number;
+  limit?: number;
+} = {}) {
+  return useQuery({
+    queryKey: ['admin', 'lookups', params],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<LookupListResult>>('/admin/lookups', { params });
+      return unwrap(res.data);
+    },
+  });
+}
+
+export function useCreateLookup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: {
+      category: LookupCategory;
+      name: string;
+      value?: string;
+      description?: string;
+      order?: number;
+      isActive?: boolean;
+    }) => {
+      const res = await api.post<ApiResponse<LookupOption>>('/admin/lookups', body);
+      return unwrap(res.data);
+    },
+    onSuccess: () => invalidateLookups(qc),
+  });
+}
+
+export function useUpdateLookup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...body
+    }: {
+      id: string;
+      name?: string;
+      value?: string;
+      description?: string;
+      order?: number;
+      isActive?: boolean;
+      status?: LookupStatus;
+    }) => {
+      const res = await api.patch<ApiResponse<LookupOption>>(`/admin/lookups/${id}`, body);
+      return unwrap(res.data);
+    },
+    onSuccess: () => invalidateLookups(qc),
+  });
+}
+
+export function useDeleteLookup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.delete<ApiResponse<null>>(`/admin/lookups/${id}`);
+      return unwrap(res.data);
+    },
+    onSuccess: () => invalidateLookups(qc),
+  });
+}
+
+export function useApproveLookup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<LookupOption>>(`/admin/lookups/${id}/approve`);
+      return unwrap(res.data);
+    },
+    onSuccess: () => invalidateLookups(qc),
+  });
+}
+
+export function useRejectLookup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      const res = await api.patch<ApiResponse<LookupOption>>(`/admin/lookups/${id}/reject`, { reason });
+      return unwrap(res.data);
+    },
+    onSuccess: () => invalidateLookups(qc),
+  });
+}
+
+export function useDisableLookup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<LookupOption>>(`/admin/lookups/${id}/disable`);
+      return unwrap(res.data);
+    },
+    onSuccess: () => invalidateLookups(qc),
   });
 }

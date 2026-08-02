@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import { useNavigate } from 'react-router-dom';
+import { useSubscriptionsEnabled } from '../../hooks/useSubscriptionsEnabled';
 
 export type PlanGateCode =
   | 'PLAN_LIMIT_REACHED'
@@ -78,13 +79,17 @@ const GATE_COPY: Record<PlanGateCode, GateCopy> = {
  * CustomEvent whenever the API rejects a request with a plan-gating error
  * code; this dialog listens and offers the pricing page (or the add-ons
  * section for credit purchases).
+ *
+ * Suppressed entirely when the admin has turned subscriptions off.
  */
 const UpgradeDialog = () => {
   const [detail, setDetail] = useState<PlanGateDetail | null>(null);
   const navigate = useNavigate();
+  const { subscriptionsEnabled } = useSubscriptionsEnabled();
 
   useEffect(() => {
     const handler = (event: Event) => {
+      if (!subscriptionsEnabled) return;
       const custom = event as CustomEvent<PlanGateDetail>;
       if (custom.detail?.code) {
         setDetail(custom.detail);
@@ -93,14 +98,14 @@ const UpgradeDialog = () => {
 
     window.addEventListener('ets:plan-gate', handler);
     return () => window.removeEventListener('ets:plan-gate', handler);
-  }, []);
+  }, [subscriptionsEnabled]);
 
   const close = () => setDetail(null);
 
   const copy = detail ? GATE_COPY[detail.code] ?? GATE_COPY.FEATURE_NOT_IN_PLAN : null;
 
   return (
-    <Dialog open={Boolean(detail)} onClose={close} maxWidth="xs" fullWidth>
+    <Dialog open={Boolean(detail) && subscriptionsEnabled} onClose={close} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <WorkspacePremiumIcon color="primary" />
         {copy?.title}

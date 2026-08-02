@@ -8,7 +8,7 @@ import { EmployerProfile } from '../models/employer-profile.model.js';
 import { Job } from '../models/job.model.js';
 import { JobApplication } from '../models/job-application.model.js';
 
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+const openai = env.OPENAI_API_KEY ? new OpenAI({ apiKey: env.OPENAI_API_KEY }) : null;
 
 const MAX_QUESTION_LENGTH = 500;
 const MAX_HISTORY = 8;

@@ -8,6 +8,8 @@ import { jobApplicationRoutes } from './job-application.routes.js';
 import { jobRoutes } from './job.routes.js';
 import { savedJobRoutes } from './saved-job.routes.js';
 import { siteContentRoutes } from './site-content.routes.js';
+import { billingStatusRoutes } from './billing-status.routes.js';
+import { lookupOptionRoutes } from './lookup-option.routes.js';
 import {
   educationRoutes,
   jobTypeRoutes,
@@ -33,6 +35,7 @@ export async function apiRoutes(app) {
   app.register(skillRoutes, { prefix: '/skills' });
   app.register(educationRoutes, { prefix: '/educations' });
   app.register(salaryUnitRoutes, { prefix: '/salary-units' });
+  app.register(lookupOptionRoutes, { prefix: '/lookups' });
   app.register(adminRoutes, { prefix: '/admin' });
   app.register(aiAssistantRoutes, { prefix: '/ai' });
   app.register(planRoutes, { prefix: '/plans' });
@@ -40,4 +43,5 @@ export async function apiRoutes(app) {
   app.register(purchaseRoutes, { prefix: '/purchases' });
   app.register(webhookRoutes, { prefix: '/webhooks' });
   app.register(siteContentRoutes, { prefix: '/site-content' });
+  app.register(billingStatusRoutes, { prefix: '/billing-status' });
 }

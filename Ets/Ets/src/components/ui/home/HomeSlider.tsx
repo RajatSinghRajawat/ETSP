@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGetJobsQuery, type JobResponse } from '../../../store/api/jobApi';
+import { useLocalizedSiteContent } from '../../../hooks/useLocalizedSiteContent';
 import HeroAnimation from './HeroAnimation';
 
 const HomeSlider: React.FC = () => {
@@ -29,6 +30,8 @@ const HomeSlider: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
   const { data: jobsData, isLoading: jobsLoading } = useGetJobsQuery({ limit: 1 });
+  const { content } = useLocalizedSiteContent();
+  const hero = content?.hero;
   const previewJob: JobResponse | undefined = jobsData?.data?.items?.[0];
   const totalJobs = jobsData?.data?.pagination?.total ?? 0;
 
@@ -42,6 +45,25 @@ const HomeSlider: React.FC = () => {
     const query = params.toString();
     navigate(query ? `/jobs?${query}` : '/jobs');
   };
+
+  const badge = hero?.badge || "India's #1 Veterinary Job Portal";
+  const headlinePrefix = hero?.headlinePrefix || 'Empowering Your';
+  const headlineAccent = hero?.headlineAccent || 'Veterinary';
+  const headlineSuffix = hero?.headlineSuffix || 'Career';
+  const subtitle =
+    hero?.subtitle ||
+    'Connect with top clinics, companies and specialized veterinary opportunities across India';
+  const keywordPlaceholder = hero?.searchKeywordPlaceholder || 'Job title, skill, or keyword';
+  const locationPlaceholder = hero?.searchLocationPlaceholder || 'Location';
+  const searchButtonLabel = hero?.searchButtonLabel || 'Search';
+  const trustLine = hero?.trustLine || 'Verified Employers | Free for Candidates | Jobs Across India';
+  const hiringPrompt = hero?.hiringPrompt || 'Are you hiring?';
+  const hiringCtaLabel = hero?.hiringCtaLabel || 'Post a Job';
+  const hiringCtaPath = hero?.hiringCtaPath || '/employer/post-job';
+  const badge1Title = hero?.floatingBadge1Title || 'Verified Candidates';
+  const badge1Subtitle = hero?.floatingBadge1Subtitle || 'Identity checked';
+  const badge2Title = hero?.floatingBadge2Title || '100% Free';
+  const badge2Subtitle = hero?.floatingBadge2Subtitle || 'For job seekers';
 
   return (
     <Box
@@ -139,7 +161,7 @@ const HomeSlider: React.FC = () => {
                     fontSize: '0.82rem'
                   }}
                 >
-                  <Bolt sx={{ fontSize: 16, color: '#ffd700' }} /> India's #1 Veterinary Job Portal
+                  <Bolt sx={{ fontSize: 16, color: '#ffd700' }} /> {badge}
                 </Typography>
               </Box>
             </Stack>
@@ -157,7 +179,7 @@ const HomeSlider: React.FC = () => {
                 textShadow: '0 2px 12px rgba(0,0,0,0.15)'
               }}
             >
-              Empowering Your{' '}
+              {headlinePrefix}{' '}
               <Box
                 component="span"
                 sx={{
@@ -167,9 +189,9 @@ const HomeSlider: React.FC = () => {
                   display: 'inline-block'
                 }}
               >
-                Veterinary
+                {headlineAccent}
               </Box>{' '}
-              Career
+              {headlineSuffix}
             </Typography>
 
             {/* Subtitle */}
@@ -185,7 +207,7 @@ const HomeSlider: React.FC = () => {
                 lineHeight: 1.6
               }}
             >
-              Connect with top clinics, companies and specialized veterinary opportunities across India
+              {subtitle}
             </Typography>
 
             {/* Inline Search Bar */}
@@ -209,7 +231,7 @@ const HomeSlider: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, px: 2, py: { xs: 0.5, sm: 0 } }}>
                 <Search sx={{ color: 'text.secondary', mr: 1, fontSize: 22 }} />
                 <InputBase
-                  placeholder="Job title, skill, or keyword"
+                  placeholder={keywordPlaceholder}
                   fullWidth
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -227,7 +249,7 @@ const HomeSlider: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, px: 2, py: { xs: 0.5, sm: 0 } }}>
                 <LocationOn sx={{ color: 'text.secondary', mr: 1, fontSize: 22 }} />
                 <InputBase
-                  placeholder="Location"
+                  placeholder={locationPlaceholder}
                   fullWidth
                   value={searchLocation}
                   onChange={(e) => setSearchLocation(e.target.value)}
@@ -252,7 +274,7 @@ const HomeSlider: React.FC = () => {
                   }
                 }}
               >
-                Search
+                {searchButtonLabel}
               </Button>
             </Box>
 
@@ -268,7 +290,7 @@ const HomeSlider: React.FC = () => {
                 letterSpacing: '0.3px'
               }}
             >
-              Verified Employers | Free for Candidates | Jobs Across India
+              {trustLine}
             </Typography>
 
             {/* Hiring CTA Banner */}
@@ -289,11 +311,11 @@ const HomeSlider: React.FC = () => {
               }}
             >
               <Typography variant="body1" sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem' }}>
-                Are you hiring?
+                {hiringPrompt}
               </Typography>
               <Button
                 component={Link}
-                to="/employer/post-job"
+                to={hiringCtaPath}
                 variant="contained"
                 size="small"
                 endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
@@ -312,7 +334,7 @@ const HomeSlider: React.FC = () => {
                   }
                 }}
               >
-                Post a Job
+                {hiringCtaLabel}
               </Button>
             </Box>
           </Box>
@@ -496,10 +518,10 @@ const HomeSlider: React.FC = () => {
               </AvatarGroup>
               <Box>
                 <Typography variant="caption" sx={{ display: 'block', fontWeight: 800, lineHeight: 1.2, color: '#0c5283' }}>
-                  Verified Candidates
+                  {badge1Title}
                 </Typography>
                 <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '0.65rem' }}>
-                  Identity checked
+                  {badge1Subtitle}
                 </Typography>
               </Box>
             </Box>
@@ -531,10 +553,10 @@ const HomeSlider: React.FC = () => {
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ display: 'block', fontWeight: 800, lineHeight: 1.2, color: '#0c5283' }}>
-                  100% Free
+                  {badge2Title}
                 </Typography>
                 <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '0.65rem' }}>
-                  For job seekers
+                  {badge2Subtitle}
                 </Typography>
               </Box>
             </Box>

@@ -9,6 +9,7 @@ import { User } from '../models/user.model.js';
 import { AppError } from '../utils/app-error.js';
 import { logger } from '../utils/logger.js';
 import { getFreePlan } from './plan.service.js';
+import { isSubscriptionsEnabled } from './settings.service.js';
 import {
   reconcilePendingSubscription,
   refreshSubscriptionFromStripe,
@@ -50,6 +51,48 @@ const FEATURE_DEFAULTS = {
 
 // Users without any plan (no free plan seeded yet) get nothing — fail closed.
 const LOCKED_FEATURES = { ...FEATURE_DEFAULTS };
+
+/**
+ * Open-access matrix used when the admin turns subscriptions OFF. This is
+ * intentionally NOT the free plan — free plans still gate AI, chat, unlocks,
+ * resume builder, etc.
+ */
+const OPEN_FEATURES_EMPLOYER = {
+  ...FEATURE_DEFAULTS,
+  aiEnabled: true,
+  maxActiveJobs: null,
+  jobValidityDays: null,
+  featuredJobs: 9999,
+  searchFiltersEnabled: true,
+  chatEnabled: true,
+  screeningQuestionsEnabled: true,
+  unlockCreditsPerJob: 9999,
+  visibleExcelProfilesPerJob: null,
+  dedicatedAccountManager: true,
+  creditAddonsEnabled: false,
+  perCvUnlockEnabled: false,
+  autoReplyEnabled: true,
+};
+
+const OPEN_FEATURES_CANDIDATE = {
+  ...FEATURE_DEFAULTS,
+  aiEnabled: true,
+  maxApplications: null,
+  verifiedBadgeEnabled: true,
+  featuredProfileEnabled: true,
+  searchBoostEnabled: true,
+  jobAlertsEnabled: true,
+  autoApplyEnabled: true,
+  profileBoostEnabled: true,
+  directMessageEmployersPerMonth: 9999,
+  visibilityToggleEnabled: true,
+  followEmployersEnabled: true,
+  resumeBuilderIncluded: true,
+};
+
+function openFeaturesForRole(role) {
+  return role === 'employer' ? { ...OPEN_FEATURES_EMPLOYER } : { ...OPEN_FEATURES_CANDIDATE };
+}
 
 /**
  * Fill the canonical shape from a plan document's features. Legacy fallbacks:
@@ -109,6 +152,9 @@ async function findLiveSubscription(userId, role) {
  * Resolve what a user is entitled to right now:
  * active paid subscription's plan → free plan of their role → locked defaults.
  *
+ * When the admin turns subscriptions off, every authenticated user gets the
+ * open-access feature matrix (site runs free — no plan gates).
+ *
  * Works without Stripe webhooks: when the locally stored billing period has
  * lapsed, the subscription is re-pulled from the Stripe API — a renewal
  * advances the period, a cancellation/failed payment downgrades to free. A
@@ -121,6 +167,20 @@ async function findLiveSubscription(userId, role) {
 export async function getEntitlements(user, options = {}) {
   if (!user?.id || !user?.role) {
     throw new AppError('Authentication required', 401);
+  }
+
+  if (!(await isSubscriptionsEnabled())) {
+    const { periodStart, periodEnd } = getCalendarMonthPeriod();
+    return {
+      plan: null,
+      planName: 'Open Access',
+      isFree: true,
+      features: openFeaturesForRole(user.role),
+      periodStart,
+      periodEnd,
+      subscription: null,
+      subscriptionsEnabled: false,
+    };
   }
 
   let subscription = await findLiveSubscription(user.id, user.role);
@@ -178,6 +238,7 @@ export async function getEntitlements(user, options = {}) {
       periodStart,
       periodEnd,
       subscription,
+      subscriptionsEnabled: true,
     };
   }
 
@@ -194,6 +255,7 @@ export async function getEntitlements(user, options = {}) {
       periodStart,
       periodEnd,
       subscription: null,
+      subscriptionsEnabled: true,
     };
   }
 
@@ -209,6 +271,7 @@ export async function getEntitlements(user, options = {}) {
     periodStart,
     periodEnd,
     subscription: null,
+    subscriptionsEnabled: true,
   };
 }
 
@@ -280,6 +343,11 @@ export async function getEmployerContext(user, options = {}) {
   let availableJobCredits = 0;
   let hasPpjContext = false;
   const effectiveFeatures = { ...entitlements.features };
+
+  // Stamp so masking / unlock checks treat every candidate as fully visible.
+  if (entitlements.subscriptionsEnabled === false) {
+    effectiveFeatures.__openAccess = true;
+  }
 
   if (employerProfile) {
     availableJobCredits = await JobCredit.countDocuments({

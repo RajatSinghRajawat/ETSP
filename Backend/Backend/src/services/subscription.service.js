@@ -12,6 +12,7 @@ import {
   getEntitlements,
 } from './entitlement.service.js';
 import { reconcilePendingPurchases } from './purchase.service.js';
+import { isSubscriptionsEnabled } from './settings.service.js';
 import { confirmCheckoutSessionById, syncCandidateTier } from './subscription-sync.service.js';
 import { getStripe, syncPlanToStripe } from './stripe.service.js';
 
@@ -31,6 +32,19 @@ export async function getActiveSubscription(userId, role) {
 
 function serializePlan(entitlements) {
   if (!entitlements.plan) {
+    if (entitlements.subscriptionsEnabled === false) {
+      return {
+        _id: 'open-access',
+        name: 'Open Access',
+        planKey: null,
+        description: 'All features unlocked while subscriptions are disabled.',
+        priceInr: 0,
+        annualPriceInr: null,
+        interval: 'month',
+        features: entitlements.features,
+        isFree: true,
+      };
+    }
     return null;
   }
 
@@ -58,6 +72,7 @@ export async function getMySubscription(user) {
     cancelAtPeriodEnd: entitlements.subscription?.cancelAtPeriodEnd ?? false,
     periodStart: entitlements.periodStart,
     periodEnd: entitlements.periodEnd,
+    subscriptionsEnabled: entitlements.subscriptionsEnabled !== false,
   };
 }
 
@@ -119,18 +134,39 @@ export async function getMyUsage(user) {
           isFree: Boolean(entitlements.plan.isFree),
           features: entitlements.features,
         }
-      : null,
-    effectiveFeatures,
+      : entitlements.subscriptionsEnabled === false
+        ? {
+            _id: 'open-access',
+            name: 'Open Access',
+            planKey: null,
+            isFree: true,
+            features: entitlements.features,
+          }
+        : null,
+    effectiveFeatures: (() => {
+      const { __openAccess: _open, ...publicFeatures } = effectiveFeatures;
+      return publicFeatures;
+    })(),
     status: entitlements.subscription?.status ?? null,
     billingInterval: entitlements.subscription?.billingInterval ?? 'month',
     cancelAtPeriodEnd: entitlements.subscription?.cancelAtPeriodEnd ?? false,
     periodStart: entitlements.periodStart,
     periodEnd: entitlements.periodEnd,
     usage,
+    subscriptionsEnabled: entitlements.subscriptionsEnabled !== false,
   };
 }
 
 export async function createCheckoutSession(user, planId, billingInterval = 'month') {
+  if (!(await isSubscriptionsEnabled())) {
+    throw new AppError(
+      'Subscriptions are currently disabled. The platform is running in free open-access mode.',
+      403,
+      undefined,
+      'SUBSCRIPTIONS_DISABLED',
+    );
+  }
+
   if (!isObjectId(planId)) {
     throw new AppError('Plan not found', 404);
   }

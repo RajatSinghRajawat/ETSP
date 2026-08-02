@@ -32,6 +32,7 @@ import {
   usePurchaseCheckoutMutation,
   type PurchaseType,
 } from '../../store/api/purchaseApi';
+import { useSubscriptionsEnabled } from '../../hooks/useSubscriptionsEnabled';
 
 type StoredUser = { role?: string } | null;
 
@@ -138,6 +139,7 @@ const Pricing = () => {
   const user = useMemo(readUser, []);
   const isLoggedIn = Boolean(localStorage.getItem('ets-access-token')) && Boolean(user?.role);
   const userRole = user?.role === 'employer' || user?.role === 'candidate' ? user.role : null;
+  const { subscriptionsEnabled, isLoading: billingLoading } = useSubscriptionsEnabled();
 
   const [audience, setAudience] = useState<PlanAudience>(userRole ?? 'candidate');
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('month');
@@ -145,11 +147,11 @@ const Pricing = () => {
   const [checkoutAddon, setCheckoutAddon] = useState<PurchaseType | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  const { data: plansData, isLoading } = useGetPlansQuery(audience);
+  const { data: plansData, isLoading } = useGetPlansQuery(audience, { skip: !subscriptionsEnabled });
   const { data: subscriptionData } = useGetMySubscriptionQuery(undefined, {
-    skip: !isLoggedIn || userRole !== audience,
+    skip: !isLoggedIn || userRole !== audience || !subscriptionsEnabled,
   });
-  const { data: addonsData } = useGetAddonsQuery();
+  const { data: addonsData } = useGetAddonsQuery(undefined, { skip: !subscriptionsEnabled });
   const [createCheckout] = useCreateCheckoutMutation();
   const [purchaseCheckout] = usePurchaseCheckoutMutation();
 
@@ -167,6 +169,35 @@ const Pricing = () => {
       return () => window.clearTimeout(timer);
     }
   }, [location.hash, addonsData]);
+
+  if (billingLoading) {
+    return (
+      <Box sx={{ py: 10, displayAlign: 'center' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!subscriptionsEnabled) {
+    return (
+      <Container maxWidth="sm" sx={{ py: { xs: 6, md: 10 } }}>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: 2 }}>
+          <CardContent>
+            <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+              Everything is free right now
+            </Typography>
+            <Typography color="text.secondary" sx={{ mb: 3 }}>
+              Subscriptions and paid add-ons are temporarily turned off. All employers and candidates
+              can use the full platform — jobs, chat, AI tools, resume builder, and more — at no charge.
+            </Typography>
+            <Button variant="contained" onClick={() => navigate('/')}>
+              Back to home
+            </Button>
+          </CardContent>
+        </Card>
+      </Container>
+    );
+  }
 
   const requireLogin = () => {
     if (!isLoggedIn) {

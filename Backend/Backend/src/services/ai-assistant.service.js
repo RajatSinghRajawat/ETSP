@@ -3,7 +3,7 @@ import { env } from '../config/env.js';
 import { AppError } from '../utils/app-error.js';
 import { logger } from '../utils/logger.js';
 
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+const openai = env.OPENAI_API_KEY ? new OpenAI({ apiKey: env.OPENAI_API_KEY }) : null;
 
 const SYSTEM_PROMPT = `You are an expert resume editor and veterinary career assistant for the "VetsLinked" platform.
 A candidate will provide raw, unstructured answers (often with spelling mistakes, grammar errors, mixed languages, or shorthand).

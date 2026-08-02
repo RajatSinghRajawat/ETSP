@@ -324,6 +324,10 @@ export interface StripeSettingsView {
   publishableKey: string;
   secretKeyMasked: string;
   webhookSecretSet: boolean;
+  /** When false, the public site runs free with all features unlocked. */
+  subscriptionsEnabled: boolean;
+  /** True when stored Stripe secrets cannot be decrypted (re-save keys). */
+  keysNeedReentry?: boolean;
 }
 
 export interface EmailSettingsView {
@@ -362,4 +366,49 @@ export interface ApplicationRow {
     photoUrl?: string;
   } | null;
   employerProfile?: { _id: string; companyName: string; email: string } | null;
+}
+
+export type LookupCategory =
+  | 'job_type'
+  | 'skill'
+  | 'education'
+  | 'salary_unit'
+  | 'employment_type'
+  | 'gender'
+  | 'experience_band'
+  | 'job_title'
+  | 'organization_type'
+  | 'team_size'
+  | 'workplace_model'
+  | 'hiring_priority'
+  | 'course_type'
+  | 'benefit'
+  | 'specialty';
+
+export type LookupStatus = 'pending' | 'approved' | 'rejected' | 'disabled';
+
+export interface LookupCategoryMeta {
+  key: LookupCategory;
+  label: string;
+}
+
+export interface LookupOption {
+  _id: string;
+  category: LookupCategory;
+  name: string;
+  value: string;
+  description?: string;
+  order: number;
+  status: LookupStatus;
+  isActive: boolean;
+  proposedByEmail?: string;
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LookupListResult {
+  items: LookupOption[];
+  pendingCount: number;
+  pagination: Pagination;
 }

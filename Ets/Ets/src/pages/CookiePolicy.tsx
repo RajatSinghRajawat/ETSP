@@ -1,15 +1,15 @@
-import { Lock } from '@mui/icons-material';
+import { Cookie } from '@mui/icons-material';
 import LegalPageView from '../components/common/LegalPageView';
 import { useLocalizedSiteContent } from '../hooks/useLocalizedSiteContent';
 
-const PrivacyPolicy: React.FC = () => {
+const CookiePolicy: React.FC = () => {
   const { content } = useLocalizedSiteContent();
   return (
     <LegalPageView
-      content={content?.privacy}
-      fallbackIcon={<Lock sx={{ fontSize: 52, mb: 2, opacity: 0.9 }} />}
+      content={content?.cookies}
+      fallbackIcon={<Cookie sx={{ fontSize: 52, mb: 2, opacity: 0.9 }} />}
     />
   );
 };
 
-export default PrivacyPolicy;
+export default CookiePolicy;

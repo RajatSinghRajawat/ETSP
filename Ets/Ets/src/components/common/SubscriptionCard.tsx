@@ -21,6 +21,7 @@ import {
   useGetMyUsageQuery,
   type UsageMeter,
 } from '../../store/api/subscriptionApi';
+import { useSubscriptionsEnabled } from '../../hooks/useSubscriptionsEnabled';
 
 function Meter({ label, meter }: { label: string; meter: UsageMeter }) {
   const unlimited = meter.limit === null;
@@ -55,6 +56,7 @@ const SubscriptionCard = () => {
   const [cancelSubscription, { isLoading: canceling }] = useCancelSubscriptionMutation();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const { subscriptionsEnabled } = useSubscriptionsEnabled();
 
   if (isLoading || !data) {
     return null;
@@ -63,6 +65,7 @@ const SubscriptionCard = () => {
   const { plan, status, cancelAtPeriodEnd, periodEnd, usage } = data.data;
   const isPaid = Boolean(plan && !plan.isFree);
   const renewDate = periodEnd ? new Date(periodEnd).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+  const freeMode = !subscriptionsEnabled || data.data.subscriptionsEnabled === false;
 
   const handleCancel = async () => {
     setCancelError(null);
@@ -85,18 +88,28 @@ const SubscriptionCard = () => {
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             <WorkspacePremiumIcon color="primary" />
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {plan ? plan.name : 'No plan'}
+              {freeMode ? 'Open Access' : plan ? plan.name : 'No plan'}
             </Typography>
-            {isPaid ? (
+            {freeMode ? (
+              <Chip size="small" color="success" label="All features free" />
+            ) : isPaid ? (
               <Chip size="small" color={status === 'past_due' ? 'warning' : 'primary'} label={status === 'past_due' ? 'Payment due' : 'Active'} />
             ) : (
               <Chip size="small" variant="outlined" label="Free plan" />
             )}
           </Stack>
-          <Button component={RouterLink} to="/pricing" size="small" variant={isPaid ? 'text' : 'contained'}>
-            {isPaid ? 'View plans' : 'Upgrade'}
-          </Button>
+          {!freeMode && (
+            <Button component={RouterLink} to="/pricing" size="small" variant={isPaid ? 'text' : 'contained'}>
+              {isPaid ? 'View plans' : 'Upgrade'}
+            </Button>
+          )}
         </Stack>
+
+        {freeMode && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Subscriptions are currently disabled. Every feature on the platform is unlocked at no charge.
+          </Alert>
+        )}
 
         {cancelAtPeriodEnd && renewDate && (
           <Alert severity="warning" sx={{ mb: 2 }}>
@@ -104,6 +117,7 @@ const SubscriptionCard = () => {
           </Alert>
         )}
 
+        {!freeMode && (
         <Stack spacing={2}>
           {usage.activeJobs && <Meter label="Active job posts" meter={usage.activeJobs} />}
           {usage.featuredJobs && usage.featuredJobs.limit > 0 && (
@@ -157,6 +171,7 @@ const SubscriptionCard = () => {
             </Box>
           )}
         </Stack>
+        )}
       </CardContent>
 
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>

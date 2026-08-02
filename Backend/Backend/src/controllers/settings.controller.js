@@ -6,11 +6,13 @@ import {
   getMsg91SettingsMasked,
   getSiteContent,
   getStripeSettingsMasked,
+  isSubscriptionsEnabled,
   updateEmailSettings,
   updateMsg91Settings,
   updateSiteContent,
   updateStripeSettings,
 } from '../services/settings.service.js';
+import { translateSiteContentToHindi } from '../services/site-content-translate.service.js';
 import { AppError } from '../utils/app-error.js';
 
 export async function getStripeSettingsHandler() {
@@ -20,6 +22,17 @@ export async function getStripeSettingsHandler() {
     success: true,
     message: 'Stripe settings fetched successfully',
     data,
+  };
+}
+
+/** Public flag so the marketing site can hide pricing / upgrade CTAs. */
+export async function getBillingStatusHandler() {
+  return {
+    success: true,
+    message: 'Billing status fetched successfully',
+    data: {
+      subscriptionsEnabled: await isSubscriptionsEnabled(),
+    },
   };
 }
 
@@ -135,6 +148,16 @@ export async function putSiteContentHandler(request) {
   return {
     success: true,
     message: 'Site content updated successfully',
+    data,
+  };
+}
+
+export async function translateSiteContentHandler(request) {
+  const data = await translateSiteContentToHindi(request.body ?? {});
+
+  return {
+    success: true,
+    message: 'Site content translated to Hindi successfully',
     data,
   };
 }

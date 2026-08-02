@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import ResumeBuilderModal from '../../components/common/ResumeBuilderModal';
+import LookupSelect from '../../components/common/LookupSelect';
 import {
   Alert,
   Autocomplete,
@@ -80,9 +81,6 @@ interface CandidateProfileCreateProps {
 
 const STORAGE_KEY = 'ets-candidate-profile-draft';
 const steps = ['Personal Information', 'Professional Information', 'Education', 'Preview'];
-const genderOptions = ['Male', 'Female', 'Non-binary', 'Prefer not to say', 'Other'];
-const employmentTypeOptions = ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship', 'Temporary'];
-const salaryFormatOptions = ['per annum', 'per month', 'per week', 'per day', 'per hour'];
 
 const stepMeta: Array<{ label: string; icon: React.ReactNode; description: string; color: string }> = [
   {
@@ -544,6 +542,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
         try {
           await createCandidateProfile({
             ...formData,
+            email: formData.email.trim().toLowerCase(),
             status: 'submitted',
           }).unwrap();
         } catch (err: unknown) {
@@ -554,6 +553,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
           // server's "already registered, please login" message instead.
           if (
             hasToken &&
+            hasExistingProfile &&
             (apiError?.status === 409 ||
               apiError?.data?.message?.includes('already have a candidate profile'))
           ) {
@@ -918,6 +918,13 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                         type="email"
                         value={formData.email}
                         onChange={(event) => updateField('email', event.target.value)}
+                        onBlur={() => updateField('email', formData.email.trim().toLowerCase())}
+                        disabled={hasExistingProfile}
+                        helperText={
+                          hasExistingProfile
+                            ? 'Email cannot be changed after registration'
+                            : 'One email can register only one candidate account'
+                        }
                         slotProps={adornment(<Email />)}
                       />
                     </Grid>
@@ -959,20 +966,13 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        select
+                      <LookupSelect
+                        category="gender"
                         label="Gender"
                         value={formData.gender}
-                        onChange={(event) => updateField('gender', event.target.value)}
-                        slotProps={adornment(<Wc />)}
-                      >
-                        {genderOptions.map((gender) => (
-                          <MenuItem key={gender} value={gender}>
-                            {gender}
-                          </MenuItem>
-                        ))}
-                      </TextField>
+                        onChange={(v) => updateField('gender', v)}
+                        valueMode="name"
+                      />
                     </Grid>
                     <Grid size={{ xs: 12 }}>
                       <TextField
@@ -1219,20 +1219,13 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    select
+                  <LookupSelect
+                    category="employment_type"
                     label="Employment Type"
                     value={formData.employmentType}
-                    onChange={(event) => updateField('employmentType', event.target.value)}
-                    slotProps={adornment(<WorkOutlined />)}
-                  >
-                    {employmentTypeOptions.map((employmentType) => (
-                      <MenuItem key={employmentType} value={employmentType}>
-                        {employmentType}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    onChange={(v) => updateField('employmentType', v)}
+                    valueMode="name"
+                  />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
@@ -1253,20 +1246,13 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 3 }}>
-                  <TextField
-                    fullWidth
-                    select
+                  <LookupSelect
+                    category="salary_unit"
                     label="Salary Format"
                     value={formData.salaryFormat}
-                    onChange={(event) => updateField('salaryFormat', event.target.value)}
-                    slotProps={adornment(<CalendarMonth />)}
-                  >
-                    {salaryFormatOptions.map((salaryFormat) => (
-                      <MenuItem key={salaryFormat} value={salaryFormat}>
-                        {salaryFormat}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    onChange={(v) => updateField('salaryFormat', v)}
+                    valueMode="name"
+                  />
                 </Grid>
 
                 <Grid size={{ xs: 12 }}>
@@ -1376,21 +1362,13 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                                   />
                                 </Grid>
                                 <Grid size={{ xs: 12, md: 4 }}>
-                                  <TextField
-                                    fullWidth
-                                    select
+                                  <LookupSelect
+                                    category="employment_type"
                                     label="Employment Type"
                                     value={experience.employmentType}
-                                    onChange={(event) =>
-                                      handleExperienceChange(index, 'employmentType', event.target.value)
-                                    }
-                                  >
-                                    {employmentTypeOptions.map((employmentType) => (
-                                      <MenuItem key={employmentType} value={employmentType}>
-                                        {employmentType}
-                                      </MenuItem>
-                                    ))}
-                                  </TextField>
+                                    onChange={(v) => handleExperienceChange(index, 'employmentType', v)}
+                                    valueMode="name"
+                                  />
                                 </Grid>
                                 <Grid size={{ xs: 12, md: 4 }}>
                                   <TextField
@@ -1492,20 +1470,13 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField
-                    fullWidth
-                    select
+                  <LookupSelect
+                    category="course_type"
                     label="Course Type"
                     value={formData.courseType}
-                    onChange={(event) => updateField('courseType', event.target.value)}
-                    slotProps={adornment(<Description />)}
-                  >
-                    {['Full Time', 'Part Time', 'Correspondence / Distance Learning'].map((type) => (
-                      <MenuItem key={type} value={type}>
-                        {type}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    onChange={(v) => updateField('courseType', v)}
+                    valueMode="name"
+                  />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
                   <TextField

@@ -83,6 +83,23 @@ function StripeSection() {
   const [secretKey, setSecretKey] = useState('');
   const [publishableKey, setPublishableKey] = useState('');
 
+  function handleToggle(enabled: boolean) {
+    updateSettings.mutate(
+      { subscriptionsEnabled: enabled },
+      {
+        onSuccess: () =>
+          toaster.create({
+            title: enabled
+              ? 'Subscriptions turned ON — pricing and plan limits are active'
+              : 'Subscriptions turned OFF — website is free (all features unlocked)',
+            type: 'success',
+          }),
+        onError: (err) =>
+          toaster.create({ title: 'Failed', description: extractErrorMessage(err), type: 'error' }),
+      },
+    );
+  }
+
   function handleSave() {
     const body: Record<string, string> = {};
     if (secretKey.trim()) body.secretKey = secretKey.trim();
@@ -106,17 +123,41 @@ function StripeSection() {
 
   if (isLoading) return <Flex py={8} justify="center"><Spinner /></Flex>;
 
+  const subscriptionsOn = settings?.subscriptionsEnabled !== false;
+
   return (
     <SectionCard
       title="Stripe (Payments)"
-      description="Subscription payments. Only the secret and publishable keys are needed — keys are verified with Stripe and stored encrypted. Leave a field blank to keep its current value."
+      description="Turn subscriptions OFF to make the whole website free — every user gets all features with no plan limits or Stripe checkout. Keys stay saved so you can turn payments back on later."
       badge={
-        <Badge colorPalette={settings?.configured ? 'green' : 'orange'} variant="subtle">
-          {settings?.configured ? 'Configured' : 'Not configured'}
-        </Badge>
+        <HStack gap={2}>
+          <Badge colorPalette={subscriptionsOn ? 'green' : 'red'} variant="subtle">
+            {subscriptionsOn ? 'Subscriptions ON' : 'Free mode'}
+          </Badge>
+          <Badge colorPalette={settings?.configured ? 'green' : 'orange'} variant="subtle">
+            {settings?.configured ? 'Keys configured' : 'Keys not set'}
+          </Badge>
+        </HStack>
+      }
+      toggle={
+        <ServiceToggle
+          enabled={subscriptionsOn}
+          onChange={handleToggle}
+          loading={updateSettings.isPending}
+        />
       }
     >
       <Stack gap={4}>
+        {!subscriptionsOn && (
+          <Text fontSize="sm" color="green.700" bg="green.50" px={3} py={2} borderRadius="md">
+            Free mode is active. Employers and candidates can use all features without paying. Pricing and upgrade prompts are hidden on the website.
+          </Text>
+        )}
+        {settings?.keysNeedReentry && (
+          <Text fontSize="sm" color="orange.800" bg="orange.50" px={3} py={2} borderRadius="md">
+            Saved Stripe keys cannot be decrypted (SETTINGS_ENCRYPTION_KEY may have changed). Re-enter and save the secret + publishable keys below. The free-mode toggle still works.
+          </Text>
+        )}
         <HStack gap={6} fontSize="sm" color="gray.600" flexWrap="wrap">
           <HStack><Text>Secret key:</Text><Code fontSize="xs">{settings?.secretKeyMasked || 'not set'}</Code></HStack>
           <HStack><Text>Publishable key:</Text><Code fontSize="xs" maxW="280px" truncate>{settings?.publishableKey || 'not set'}</Code></HStack>

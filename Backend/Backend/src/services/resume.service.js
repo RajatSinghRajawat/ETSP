@@ -4,7 +4,7 @@ import { CandidateProfile } from '../models/candidate-profile.model.js';
 import { Resume } from '../models/resume.model.js';
 import { AppError } from '../utils/app-error.js';
 
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+const openai = env.OPENAI_API_KEY ? new OpenAI({ apiKey: env.OPENAI_API_KEY }) : null;
 
 function buildPrompt(candidate) {
   const exp = (candidate.experiences ?? [])
@@ -194,6 +194,10 @@ export async function updateResumeByEmail(email, htmlContent) {
 export async function generateResume(candidateId) {
   const candidate = await CandidateProfile.findById(candidateId).lean();
   if (!candidate) throw new AppError('Candidate not found', 404);
+
+  if (!openai) {
+    throw new AppError('AI assistant is not configured. Please set OPENAI_API_KEY.', 503);
+  }
 
   const userPrompt = buildPrompt(candidate);
 

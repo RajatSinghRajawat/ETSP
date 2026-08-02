@@ -21,6 +21,7 @@ import {
   Typography,
 } from '@mui/material';
 import { indiaCityOptions, filterCityOptions } from '../../data/indiaCities';
+import LookupSelect from '../../components/common/LookupSelect';
 import {
   Add,
   CheckCircle,
@@ -56,8 +57,6 @@ const STORAGE_KEY = 'ets-employer-profile-draft';
 const steps = ['Company Identity', 'Hiring Setup', 'Preview'];
 const currentYear = new Date().getFullYear();
 const foundedYearOptions = Array.from({ length: 101 }, (_, index) => String(currentYear - index));
-const workplaceModelOptions = ['On-site', 'Hybrid', 'Remote', 'Field-based'];
-const hiringPriorityOptions = ['Standard', 'Urgent Hiring', 'Paid Promotion', 'Bulk Hiring'];
 
 type EmployerProfileErrors = Partial<Record<keyof EmployerProfileForm, string>>;
 
@@ -693,31 +692,14 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        select
+                      <LookupSelect
+                        category="organization_type"
                         label="Organization Type"
                         value={formData.organizationType}
-                        error={Boolean(formErrors.organizationType)}
-                        helperText={formErrors.organizationType || 'Select or type a custom organization type'}
-                        onChange={(event) => updateField('organizationType', event.target.value)}
-                      >
-                        <MenuItem value="">Select Organization Type</MenuItem>
-                        {['Clinic', 'Hospital', 'NGO / Animal Shelter', 'Research & Academia', 'Petcare Services', 'Pharma & Healthcare', 'Pet Boarding / Resort', 'Feed & Nutrition Company', 'Other / Custom'].map((type) => (
-                          <MenuItem key={type} value={type}>
-                            {type}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                      {formData.organizationType === 'Other / Custom' && (
-                        <TextField
-                          fullWidth
-                          size="small"
-                          sx={{ mt: 1.5 }}
-                          label="Enter Custom Organization Type"
-                          onChange={(e) => updateField('organizationType', e.target.value)}
-                        />
-                      )}
+                        onChange={(v) => updateField('organizationType', v)}
+                        valueMode="name"
+                        helperText={formErrors.organizationType}
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
@@ -782,22 +764,13 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
                       </TextField>
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }}>
-                      <TextField
-                        fullWidth
-                        select
+                      <LookupSelect
+                        category="team_size"
                         label="Team Size"
                         value={formData.teamSize}
-                        error={Boolean(formErrors.teamSize)}
+                        onChange={(v) => updateField('teamSize', v)}
                         helperText={formErrors.teamSize}
-                        onChange={(event) => updateField('teamSize', event.target.value)}
-                      >
-                        <MenuItem value="">Select Team Size</MenuItem>
-                        {['1-5', '6-10', '11-20', '21-50', '50+'].map((size) => (
-                          <MenuItem key={size} value={size}>
-                            {size} employees
-                          </MenuItem>
-                        ))}
-                      </TextField>
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }}>
                       <TextField
@@ -985,34 +958,22 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
             {activeStep === 1 && (
               <Grid container spacing={3}>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    select
+                  <LookupSelect
+                    category="workplace_model"
                     label="Workplace Model"
                     value={formData.workplaceModel}
-                    onChange={(event) => updateField('workplaceModel', event.target.value)}
-                  >
-                    {workplaceModelOptions.map((option) => (
-                      <MenuItem key={option} value={option}>
-                        {option}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    onChange={(v) => updateField('workplaceModel', v)}
+                    valueMode="name"
+                  />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    select
+                  <LookupSelect
+                    category="hiring_priority"
                     label="Hiring Priority"
                     value={formData.hiringUrgency}
-                    onChange={(event) => updateField('hiringUrgency', event.target.value)}
-                  >
-                    {hiringPriorityOptions.map((option) => (
-                      <MenuItem key={option} value={option}>
-                        {option}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    onChange={(v) => updateField('hiringUrgency', v)}
+                    valueMode="name"
+                  />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, height: '100%' }}>

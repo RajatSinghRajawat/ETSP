@@ -45,12 +45,24 @@ import {
   putMsg91SettingsHandler,
   putSiteContentHandler,
   putStripeSettingsHandler,
+  translateSiteContentHandler,
 } from '../controllers/settings.controller.js';
 import { getAdminPurchases } from '../controllers/purchase.controller.js';
 import {
   getAdminSubscriptions,
   postGrantSubscription,
 } from '../controllers/subscription.controller.js';
+import {
+  approveAdminLookupHandler,
+  createAdminLookupHandler,
+  deleteAdminLookupHandler,
+  disableAdminLookupHandler,
+  getAdminLookupHandler,
+  listAdminLookupsHandler,
+  listLookupCategoriesHandler,
+  rejectAdminLookupHandler,
+  updateAdminLookupHandler,
+} from '../controllers/lookup-option.controller.js';
 import { authenticate } from '../middlewares/auth.js';
 import { requireRole } from '../middlewares/rbac.js';
 import { validateBody } from '../middlewares/validate.js';
@@ -60,8 +72,14 @@ import {
   emailSettingsSchema,
   msg91SettingsSchema,
   siteContentSchema,
+  siteContentTranslateSchema,
   stripeSettingsSchema,
 } from '../validations/settings.validation.js';
+import {
+  createAdminLookupSchema,
+  rejectLookupSchema,
+  updateAdminLookupSchema,
+} from '../validations/lookup-option.validation.js';
 
 export async function adminRoutes(app) {
   app.addHook('preHandler', authenticate);
@@ -117,6 +135,16 @@ export async function adminRoutes(app) {
 
   app.get('/purchases', getAdminPurchases);
 
+  app.get('/lookups/categories', listLookupCategoriesHandler);
+  app.get('/lookups', listAdminLookupsHandler);
+  app.get('/lookups/:id', getAdminLookupHandler);
+  app.post('/lookups', { preHandler: validateBody(createAdminLookupSchema) }, createAdminLookupHandler);
+  app.patch('/lookups/:id', { preHandler: validateBody(updateAdminLookupSchema) }, updateAdminLookupHandler);
+  app.delete('/lookups/:id', deleteAdminLookupHandler);
+  app.patch('/lookups/:id/approve', approveAdminLookupHandler);
+  app.patch('/lookups/:id/reject', { preHandler: validateBody(rejectLookupSchema) }, rejectAdminLookupHandler);
+  app.patch('/lookups/:id/disable', disableAdminLookupHandler);
+
   app.get('/settings/stripe', getStripeSettingsHandler);
   app.put('/settings/stripe', { preHandler: validateBody(stripeSettingsSchema) }, putStripeSettingsHandler);
   app.get('/settings/email', getEmailSettingsHandler);
@@ -125,4 +153,9 @@ export async function adminRoutes(app) {
   app.put('/settings/msg91', { preHandler: validateBody(msg91SettingsSchema) }, putMsg91SettingsHandler);
   app.get('/settings/site-content', getSiteContentHandler);
   app.put('/settings/site-content', { preHandler: validateBody(siteContentSchema) }, putSiteContentHandler);
+  app.post(
+    '/settings/site-content/translate',
+    { preHandler: validateBody(siteContentTranslateSchema) },
+    translateSiteContentHandler,
+  );
 }

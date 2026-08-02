@@ -1,15 +1,15 @@
-import { Lock } from '@mui/icons-material';
+import { Description } from '@mui/icons-material';
 import LegalPageView from '../components/common/LegalPageView';
 import { useLocalizedSiteContent } from '../hooks/useLocalizedSiteContent';
 
-const PrivacyPolicy: React.FC = () => {
+const TermsOfService: React.FC = () => {
   const { content } = useLocalizedSiteContent();
   return (
     <LegalPageView
-      content={content?.privacy}
-      fallbackIcon={<Lock sx={{ fontSize: 52, mb: 2, opacity: 0.9 }} />}
+      content={content?.terms}
+      fallbackIcon={<Description sx={{ fontSize: 52, mb: 2, opacity: 0.9 }} />}
     />
   );
 };
 
-export default PrivacyPolicy;
+export default TermsOfService;

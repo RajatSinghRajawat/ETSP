@@ -39,6 +39,7 @@ import {
   useVerifyPhoneMutation,
 } from '../../store/api/candidateProfileApi';
 import { useGetMyUsageQuery } from '../../store/api/subscriptionApi';
+import { useSubscriptionsEnabled } from '../../hooks/useSubscriptionsEnabled';
 
 const apiMessage = (error: unknown, fallback: string) => {
   if (typeof error === 'object' && error !== null && 'data' in error) {
@@ -55,6 +56,7 @@ const apiMessage = (error: unknown, fallback: string) => {
 const ExcelMembershipCard = () => {
   const { data: profileData, refetch: refetchProfile } = useGetMyCandidateProfileQuery();
   const { data: usageData } = useGetMyUsageQuery();
+  const { subscriptionsEnabled } = useSubscriptionsEnabled();
   const [updateProfile] = useUpdateMyCandidateProfileMutation();
   const [verifyPhone, { isLoading: isSendingOtp }] = useVerifyPhoneMutation();
   const [verifyPhoneConfirm, { isLoading: isConfirmingOtp }] = useVerifyPhoneConfirmMutation();
@@ -69,12 +71,13 @@ const ExcelMembershipCard = () => {
 
   const profile = profileData?.data;
   const features = usageData?.data.effectiveFeatures;
+  const freeMode = !subscriptionsEnabled || usageData?.data.subscriptionsEnabled === false;
 
   if (!profile || !features) {
     return null;
   }
 
-  const isExcel = profile.subscriptionTier === 'excel';
+  const isExcel = freeMode || profile.subscriptionTier === 'excel';
   const follows = followsData?.data.items ?? [];
 
   const handleSendOtp = async () => {
@@ -131,10 +134,13 @@ const ExcelMembershipCard = () => {
               <Chip size="small" variant="outlined" label="Not active" />
             )}
           </Stack>
-          {!isExcel && (
+          {!isExcel && !freeMode && (
             <Button component={RouterLink} to="/pricing" size="small" variant="contained">
               Get EXCEL @ ₹199/mo
             </Button>
+          )}
+          {freeMode && (
+            <Chip size="small" color="success" label="Included free" />
           )}
         </Stack>
 

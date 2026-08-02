@@ -62,6 +62,7 @@ import {
   useGetSalaryUnitsQuery,
   useGetSkillsQuery,
 } from '../../store/api/lookupApi';
+import LookupSelect from '../../components/common/LookupSelect';
 
 type JobFormErrors = Partial<Record<keyof JobPayload, string>>;
 type SalaryRangeErrors = Partial<Record<'salaryMin' | 'salaryMax', string>>;
@@ -695,25 +696,14 @@ const PostJob: React.FC = () => {
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <FormControl fullWidth disabled={jobTypesLoading} error={Boolean(formErrors.type)}>
-                        <InputLabel>Job Type</InputLabel>
-                        <Select
-                          label="Job Type"
-                          value={formData.type}
-                          onChange={(event) => updateField('type', event.target.value)}
-                        >
-                          {jobTypeOptions.map((option) => (
-                            <MenuItem key={option._id} value={option.value}>
-                              {option.name}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {formErrors.type && (
-                          <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
-                            {formErrors.type}
-                          </Typography>
-                        )}
-                      </FormControl>
+                      <LookupSelect
+                        category="job_type"
+                        label="Job Type"
+                        value={formData.type}
+                        onChange={(v) => updateField('type', v)}
+                        required
+                        helperText={formErrors.type}
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                       <Autocomplete
@@ -736,24 +726,14 @@ const PostJob: React.FC = () => {
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <FormControl fullWidth error={Boolean(formErrors.experience)}>
-                        <InputLabel>Experience Required</InputLabel>
-                        <Select
-                          label="Experience Required"
-                          value={formData.experience}
-                          onChange={(event) => updateField('experience', event.target.value)}
-                        >
-                          <MenuItem value="0-2">0-2 years</MenuItem>
-                          <MenuItem value="2-5">2-5 years</MenuItem>
-                          <MenuItem value="5-10">5-10 years</MenuItem>
-                          <MenuItem value="10+">10+ years</MenuItem>
-                        </Select>
-                        {formErrors.experience && (
-                          <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
-                            {formErrors.experience}
-                          </Typography>
-                        )}
-                      </FormControl>
+                      <LookupSelect
+                        category="experience_band"
+                        label="Experience Required"
+                        value={formData.experience}
+                        onChange={(v) => updateField('experience', v)}
+                        required
+                        helperText={formErrors.experience}
+                      />
                     </Grid>
                   </Grid>
                 </FormSection>
@@ -790,20 +770,12 @@ const PostJob: React.FC = () => {
                       />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
-                      <FormControl fullWidth disabled={salaryUnitsLoading}>
-                        <InputLabel>Salary Unit</InputLabel>
-                        <Select
-                          label="Salary Unit"
-                          value={salaryRange.unit}
-                          onChange={(event) => updateSalaryRange('unit', event.target.value)}
-                        >
-                          {salaryUnitOptions.map((option) => (
-                            <MenuItem key={option._id} value={option.value}>
-                              {option.name}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                      <LookupSelect
+                        category="salary_unit"
+                        label="Salary Unit"
+                        value={salaryRange.unit}
+                        onChange={(v) => updateSalaryRange('unit', v)}
+                      />
                     </Grid>
                   </Grid>
                   <Box
@@ -927,25 +899,14 @@ const PostJob: React.FC = () => {
                 >
                   <Grid container spacing={2.5}>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <FormControl fullWidth disabled={educationsLoading} error={Boolean(formErrors.education)}>
-                        <InputLabel>Education</InputLabel>
-                        <Select
-                          label="Education"
-                          value={formData.education}
-                          onChange={(event) => updateField('education', event.target.value)}
-                        >
-                          {educationOptions.map((option) => (
-                            <MenuItem key={option._id} value={option.value}>
-                              {option.name}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {formErrors.education && (
-                          <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
-                            {formErrors.education}
-                          </Typography>
-                        )}
-                      </FormControl>
+                      <LookupSelect
+                        category="education"
+                        label="Education"
+                        value={formData.education}
+                        onChange={(v) => updateField('education', v)}
+                        required
+                        helperText={formErrors.education}
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                       <FormControl fullWidth>

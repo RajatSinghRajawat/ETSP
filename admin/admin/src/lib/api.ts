@@ -3,7 +3,7 @@ import { API_BASE_URL, TOKEN_STORAGE_KEY, USER_STORAGE_KEY } from './env';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 20000,
+  // timeout: 20000,
 });
 
 api.interceptors.request.use((config) => {

@@ -11,9 +11,11 @@ import Dashboard from './pages/Dashboard';
 import Employers from './pages/Employers';
 import Jobs from './pages/Jobs';
 import Login from './pages/Login';
+import Lookups from './pages/Lookups';
 import Plans from './pages/Plans';
 import Purchases from './pages/Purchases';
 import Settings from './pages/Settings';
+import SiteContent from './pages/SiteContent';
 import Subscriptions from './pages/Subscriptions';
 import Users from './pages/Users';
 import { system } from './theme';
@@ -45,6 +47,8 @@ export default function App() {
                 <Route path="employers" element={<Employers />} />
                 <Route path="jobs" element={<Jobs />} />
                 <Route path="applications" element={<Applications />} />
+                <Route path="lookups" element={<Lookups />} />
+                <Route path="site-content" element={<SiteContent />} />
                 <Route path="plans" element={<Plans />} />
                 <Route path="subscriptions" element={<Subscriptions />} />
                 <Route path="purchases" element={<Purchases />} />

@@ -19,6 +19,7 @@ import {
   type AutoApplyResult,
 } from '../../store/api/applicationApi';
 import { openUpgradePrompt } from '../../hooks/useAiEntitlement';
+import { useSubscriptionsEnabled } from '../../hooks/useSubscriptionsEnabled';
 
 /**
  * Candidate dashboard card for the AI auto-apply plan feature: jobs matching
@@ -31,18 +32,20 @@ const AutoApplyCard = () => {
   const [setAutoApply, { isLoading: isSaving }] = useSetAutoApplyMutation();
   const [lastResult, setLastResult] = useState<AutoApplyResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { subscriptionsEnabled } = useSubscriptionsEnabled();
 
   if (isLoading || !data) {
     return null;
   }
 
   const { enabled, allowedByPlan, planName } = data.data;
+  const canUse = allowedByPlan || !subscriptionsEnabled;
 
   const handleToggle = async (nextEnabled: boolean) => {
     setErrorMessage(null);
     setLastResult(null);
 
-    if (nextEnabled && !allowedByPlan) {
+    if (nextEnabled && !canUse) {
       openUpgradePrompt('AI auto job apply is not included in your current plan. Upgrade to unlock it.');
       return;
     }
@@ -68,11 +71,11 @@ const AutoApplyCard = () => {
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               AI Auto Apply
             </Typography>
-            {!allowedByPlan && <Chip size="small" variant="outlined" color="warning" label="Upgrade required" />}
-            {allowedByPlan && enabled && <Chip size="small" color="success" label="On" />}
+            {!canUse && <Chip size="small" variant="outlined" color="warning" label="Upgrade required" />}
+            {canUse && enabled && <Chip size="small" color="success" label="On" />}
           </Stack>
 
-          {allowedByPlan ? (
+          {canUse ? (
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               {isSaving && <CircularProgress size={18} />}
               <Switch
@@ -94,7 +97,7 @@ const AutoApplyCard = () => {
           new matching jobs are posted. Your plan's application limit is always respected.
         </Typography>
 
-        {!allowedByPlan && planName && (
+        {!canUse && planName && (
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
             Your current plan "{planName}" does not include this feature.
           </Typography>

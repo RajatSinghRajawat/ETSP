@@ -20,7 +20,9 @@ export async function createProfile(request, reply) {
     throw new AppError('Candidate profile creation requires candidate account token', 403);
   }
 
-  const email = request.user?.email || request.body?.email;
+  const email = String(request.user?.email || request.body?.email || '')
+    .trim()
+    .toLowerCase();
 
   const profile = await createCandidateProfile({
     ...request.body,

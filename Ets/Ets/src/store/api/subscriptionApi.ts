@@ -76,6 +76,8 @@ export type MySubscription = {
   cancelAtPeriodEnd: boolean;
   periodStart: string;
   periodEnd: string;
+  /** When false, site is in free open-access mode (admin kill-switch). */
+  subscriptionsEnabled?: boolean;
 };
 
 export type UsageMeter = { used: number; limit: number | null };
@@ -106,6 +108,7 @@ export type MyUsage = {
     directMessages?: { used: number; limit: number };
     resumeCredits?: { available: number };
   };
+  subscriptionsEnabled?: boolean;
 };
 
 export type CheckoutPayload = {

@@ -2,13 +2,14 @@ import { useTranslation } from 'react-i18next';
 import { Box, Container, Typography, Button, Grid, Link as MuiLink, IconButton } from '@mui/material';
 import { Facebook, Twitter, LinkedIn, Instagram, Smartphone } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
-import { useGetSiteContentQuery } from '../../../store/api/siteContentApi';
+import { useLocalizedSiteContent } from '../../../hooks/useLocalizedSiteContent';
 
 const Footer: React.FC = () => {
   const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
-  const { data: siteContent } = useGetSiteContentQuery();
-  const social = siteContent?.data.social;
+  const { content } = useLocalizedSiteContent();
+  const social = content?.social;
+  const contactPhone = content?.contact?.phone;
 
   // Only render the handles the admin has actually filled in, so the row never
   // shows an icon that links nowhere.
@@ -116,7 +117,7 @@ const Footer: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Typography variant="body2" sx={{ opacity: 0.7, fontSize: '0.9rem' }}>
-                Phone: +91 123 456 7890
+                {contactPhone ? `Phone: ${contactPhone}` : null}
               </Typography>
               <Box sx={{ mt: 1, p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <Typography variant="caption" sx={{ display: 'block', mb: 1, opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>
@@ -161,8 +162,6 @@ const Footer: React.FC = () => {
             © {currentYear}. {t('all_rights')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 3 }}>
-            {/* Only Privacy Policy has a page so far; the other two stay inert
-                rather than pointing at a route that does not exist. */}
             <MuiLink
               component={RouterLink}
               to="/privacy-policy"
@@ -171,16 +170,22 @@ const Footer: React.FC = () => {
             >
               {t('privacy_policy')}
             </MuiLink>
-            {['Terms of Service', 'Cookie Policy'].map((text) => (
-              <MuiLink
-                key={text}
-                href="#"
-                color="inherit"
-                sx={{ opacity: 0.5, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { opacity: 1 } }}
-              >
-                {text}
-              </MuiLink>
-            ))}
+            <MuiLink
+              component={RouterLink}
+              to="/terms"
+              color="inherit"
+              sx={{ opacity: 0.5, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { opacity: 1 } }}
+            >
+              Terms of Service
+            </MuiLink>
+            <MuiLink
+              component={RouterLink}
+              to="/cookie-policy"
+              color="inherit"
+              sx={{ opacity: 0.5, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { opacity: 1 } }}
+            >
+              Cookie Policy
+            </MuiLink>
           </Box>
         </Box>
       </Container>

@@ -7,6 +7,7 @@ import { Purchase } from '../models/purchase.model.js';
 import { AppError } from '../utils/app-error.js';
 import { logger } from '../utils/logger.js';
 import { getEmployerContext, getEntitlements, getPayPerJobPlan, normalizeFeatures } from './entitlement.service.js';
+import { isSubscriptionsEnabled } from './settings.service.js';
 import { getOrCreateStripeCustomer, getStripe } from './stripe.service.js';
 
 const isObjectId = (value) => /^[0-9a-fA-F]{24}$/.test(String(value));
@@ -118,6 +119,15 @@ async function assertPurchaseAllowed(user, type, jobId) {
  * minted for the confirm endpoint.
  */
 export async function createPurchaseCheckout(user, { type, jobId = null }) {
+  if (!(await isSubscriptionsEnabled())) {
+    throw new AppError(
+      'Purchases are currently disabled. The platform is running in free open-access mode.',
+      403,
+      undefined,
+      'SUBSCRIPTIONS_DISABLED',
+    );
+  }
+
   const { amountInr, job } = await assertPurchaseAllowed(user, type, jobId);
   const addon = ADDONS[type];
 

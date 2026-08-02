@@ -1,5 +1,6 @@
 import { JobApplication } from '../models/job-application.model.js';
 import { ProfileUnlock } from '../models/profile-unlock.model.js';
+import { isSubscriptionsEnabled } from './settings.service.js';
 
 /**
  * Server-side masking of candidate identity/contact data for employers.
@@ -10,6 +11,7 @@ import { ProfileUnlock } from '../models/profile-unlock.model.js';
  *    visibleExcelProfilesPerJob, by application date), everything else
  *    arrives masked.
  *  - Free-plan candidate applicants stay locked until unlocked with a credit.
+ *  - When subscriptions are disabled (open access), nothing is masked.
  */
 
 const MASKED_FIELDS = ['email', 'phone', 'address', 'pincode', 'photoUrl', 'aadhaarVerified'];
@@ -79,6 +81,11 @@ export function maskCandidate(candidate) {
  * job's applicant list (search results, detail pages, resume, chat)?
  */
 export function canEmployerViewCandidate({ effectiveFeatures, candidate, unlockedSet }) {
+  // Open-access mode stamps this sentinel from getEmployerContext.
+  if (effectiveFeatures?.__openAccess) {
+    return true;
+  }
+
   if (unlockedSet?.has(String(candidate._id))) {
     return true;
   }
@@ -136,6 +143,10 @@ async function getExcelSlotApplicationIds(jobIds, slots) {
  */
 export async function maskApplicationsForEmployer({ effectiveFeatures, employerProfileId, applications }) {
   if (!applications.length) {
+    return applications;
+  }
+
+  if (effectiveFeatures?.__openAccess || !(await isSubscriptionsEnabled())) {
     return applications;
   }
 

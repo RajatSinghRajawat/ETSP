@@ -1,4 +1,5 @@
 import { EmployerProfile } from '../models/employer-profile.model.js';
+import { CandidateProfile } from '../models/candidate-profile.model.js';
 import { User } from '../models/user.model.js';
 import { Job } from '../models/job.model.js';
 import { markImportedEmployerRegistered } from './imported-employer.service.js';
@@ -102,20 +103,46 @@ async function attachOpenJobs(profiles) {
 }
 
 export async function createEmployerProfile(input) {
-  const existingProfile = await EmployerProfile.findOne({ email: input.email }).lean();
+  const email = String(input.email ?? '')
+    .trim()
+    .toLowerCase();
+
+  if (!email) {
+    throw new AppError('Valid email is required', 400);
+  }
+
+  const payload = { ...input, email };
+
+  const [existingProfile, existingUser, candidateForEmail] = await Promise.all([
+    EmployerProfile.findOne({ email }).select('_id email').lean(),
+    User.findOne({ email }).select('_id email role').lean(),
+    CandidateProfile.findOne({ email }).select('_id email').lean(),
+  ]);
 
   // Registration is an anonymous endpoint, so a repeat email must be rejected
   // rather than overwriting whatever profile already sits on that address.
-  // Signed-in owners edit through updateMyEmployerProfile instead.
   if (existingProfile) {
     throw new AppError('This email is already registered. Please login instead.', 409);
   }
 
-  if (input.phoneNumber) {
+  if (candidateForEmail || existingUser?.role === 'candidate') {
+    throw new AppError(
+      'This email is already registered as a candidate. Please login or use a different email.',
+      409,
+    );
+  }
+
+  if (existingUser?.role === 'admin') {
+    throw new AppError('This email cannot be used for employer registration.', 409);
+  }
+
+  if (payload.phoneNumber) {
     const phoneProfile = await EmployerProfile.findOne({
-      phoneNumber: input.phoneNumber,
-      email: { $ne: input.email },
-    }).select('_id').lean();
+      phoneNumber: payload.phoneNumber,
+      email: { $ne: email },
+    })
+      .select('_id')
+      .lean();
 
     if (phoneProfile) {
       throw new AppError('Employer profile already exists with this phone number', 409);
@@ -124,12 +151,12 @@ export async function createEmployerProfile(input) {
 
   try {
     await User.updateOne(
-      { email: input.email },
-      { $setOnInsert: { email: input.email, role: 'employer', isActive: true } },
+      { email },
+      { $setOnInsert: { email, role: 'employer', isActive: true } },
       { upsert: true },
     );
 
-    const profile = await EmployerProfile.create(input);
+    const profile = await EmployerProfile.create(payload);
 
     try {
       await markImportedEmployerRegistered({
@@ -145,7 +172,12 @@ export async function createEmployerProfile(input) {
   } catch (error) {
     const duplicateMessage = getDuplicateEmployerMessage(error);
     if (duplicateMessage) {
-      throw new AppError(duplicateMessage, 409);
+      throw new AppError(
+        duplicateMessage.includes('email')
+          ? 'This email is already registered. Please login instead.'
+          : duplicateMessage,
+        409,
+      );
     }
 
     throw error;

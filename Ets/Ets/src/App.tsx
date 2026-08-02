@@ -7,6 +7,8 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import CookiePolicy from './pages/CookiePolicy';
 import Showcase from './pages/Showcase';
 import LoginPage from './pages/Login';
 import Signup from './pages/auth/Signup';
@@ -62,6 +64,8 @@ function App() {
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/showcase" element={<Showcase />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<Signup />} />
