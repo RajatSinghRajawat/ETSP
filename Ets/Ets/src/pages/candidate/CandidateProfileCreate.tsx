@@ -1181,41 +1181,13 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
             {activeStep === 1 && (
               <Grid container spacing={3}>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <Autocomplete
-                    freeSolo
-                    options={[
-                      'Veterinarian',
-                      'Veterinary Assistant',
-                      'Ward Boy',
-                      'Pet Trainer',
-                      'Pet Groomer',
-                      'Receptionist',
-                      'Floor Manager',
-                      'Sales Manager',
-                      'Inventory Incharge'
-                    ]}
-                    value={formData.currentJobTitle || ''}
-                    onInputChange={(_event, value) => updateField('currentJobTitle', value ?? '')}
-                    onChange={(_event, value) => updateField('currentJobTitle', value ?? '')}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        fullWidth
-                        label="Current Job Title"
-                        placeholder="Select or enter job title"
-                        InputProps={{
-                          ...(params.InputProps || {}),
-                          startAdornment: (
-                            <>
-                              <InputAdornment position="start">
-                                <Work sx={{ color: '#0c5283', fontSize: 20 }} />
-                              </InputAdornment>
-                              {params.InputProps?.startAdornment}
-                            </>
-                          ),
-                        }}
-                      />
-                    )}
+                  <LookupSelect
+                    category="job_title"
+                    label="Current Job Title"
+                    value={formData.currentJobTitle}
+                    onChange={(v) => updateField('currentJobTitle', v)}
+                    valueMode="name"
+                    helperText="Pick from the list, or use Add new… for admin approval"
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -1344,11 +1316,13 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                               </Box>
                               <Grid container spacing={2}>
                                 <Grid size={{ xs: 12, md: 6 }}>
-                                  <TextField
-                                    fullWidth
+                                  <LookupSelect
+                                    category="job_title"
                                     label="Job Title"
                                     value={experience.jobTitle}
-                                    onChange={(event) => handleExperienceChange(index, 'jobTitle', event.target.value)}
+                                    onChange={(v) => handleExperienceChange(index, 'jobTitle', v)}
+                                    valueMode="name"
+                                    helperText="Add new… sends the title for admin approval"
                                   />
                                 </Grid>
                                 <Grid size={{ xs: 12, md: 6 }}>
