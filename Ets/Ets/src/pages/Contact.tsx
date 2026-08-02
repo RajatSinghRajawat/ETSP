@@ -1,16 +1,21 @@
 import { Box, Container, Typography, TextField, Button, Grid, Card, CardContent } from '@mui/material';
 import { Email, Phone, LocationOn, AccessTime } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
+import { useGetSiteContentQuery } from '../store/api/siteContentApi';
 
 const Contact: React.FC = () => {
   const { t } = useTranslation();
+  const { data: siteContent } = useGetSiteContentQuery();
+  const contact = siteContent?.data.contact;
 
+  // Rendered from the admin-managed settings; entries the admin cleared are
+  // dropped rather than shown as empty cards.
   const contactInfo = [
-    { icon: <Email />, title: 'Email', value: 'support@vetjobs.com' },
-    { icon: <Phone />, title: 'Phone', value: '+91 123 456 7890' },
-    { icon: <LocationOn />, title: 'Address', value: 'Mumbai, Maharashtra, India' },
-    { icon: <AccessTime />, title: 'Working Hours', value: 'Mon - Sat, 9:00 AM - 6:00 PM' },
-  ];
+    { icon: <Email />, title: 'Email', value: contact?.email },
+    { icon: <Phone />, title: 'Phone', value: contact?.phone },
+    { icon: <LocationOn />, title: 'Address', value: contact?.address },
+    { icon: <AccessTime />, title: 'Working Hours', value: contact?.workingHours },
+  ].filter((info) => Boolean(info.value));
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>

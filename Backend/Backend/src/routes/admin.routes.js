@@ -39,9 +39,11 @@ import {
 import {
   getEmailSettingsHandler,
   getMsg91SettingsHandler,
+  getSiteContentHandler,
   getStripeSettingsHandler,
   putEmailSettingsHandler,
   putMsg91SettingsHandler,
+  putSiteContentHandler,
   putStripeSettingsHandler,
 } from '../controllers/settings.controller.js';
 import { getAdminPurchases } from '../controllers/purchase.controller.js';
@@ -57,6 +59,7 @@ import { grantSubscriptionSchema } from '../validations/subscription.validation.
 import {
   emailSettingsSchema,
   msg91SettingsSchema,
+  siteContentSchema,
   stripeSettingsSchema,
 } from '../validations/settings.validation.js';
 
@@ -120,4 +123,6 @@ export async function adminRoutes(app) {
   app.put('/settings/email', { preHandler: validateBody(emailSettingsSchema) }, putEmailSettingsHandler);
   app.get('/settings/msg91', getMsg91SettingsHandler);
   app.put('/settings/msg91', { preHandler: validateBody(msg91SettingsSchema) }, putMsg91SettingsHandler);
+  app.get('/settings/site-content', getSiteContentHandler);
+  app.put('/settings/site-content', { preHandler: validateBody(siteContentSchema) }, putSiteContentHandler);
 }

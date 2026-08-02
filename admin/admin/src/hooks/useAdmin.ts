@@ -595,6 +595,39 @@ export function useUpdateEmailSettings() {
   });
 }
 
+export interface SiteContent {
+  contact: { email: string; phone: string; address: string; workingHours: string };
+  social: { facebook: string; twitter: string; linkedin: string; instagram: string };
+  about: {
+    heroTitle: string;
+    heroSubtitle: string;
+    storyTitle: string;
+    storyBody: string;
+    stats: Array<{ value: string; label: string }>;
+  };
+}
+
+export function useSiteContent() {
+  return useQuery({
+    queryKey: ['admin', 'settings', 'site-content'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<SiteContent>>('/admin/settings/site-content');
+      return unwrap(res.data);
+    },
+  });
+}
+
+export function useUpdateSiteContent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Partial<SiteContent>) => {
+      const res = await api.put<ApiResponse<SiteContent>>('/admin/settings/site-content', body);
+      return unwrap(res.data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'settings', 'site-content'] }),
+  });
+}
+
 export function useMsg91Settings() {
   return useQuery({
     queryKey: ['admin', 'settings', 'msg91'],

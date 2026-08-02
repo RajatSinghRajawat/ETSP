@@ -2,10 +2,22 @@ import { useTranslation } from 'react-i18next';
 import { Box, Container, Typography, Button, Grid, Link as MuiLink, IconButton } from '@mui/material';
 import { Facebook, Twitter, LinkedIn, Instagram, Smartphone } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
+import { useGetSiteContentQuery } from '../../../store/api/siteContentApi';
 
 const Footer: React.FC = () => {
   const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
+  const { data: siteContent } = useGetSiteContentQuery();
+  const social = siteContent?.data.social;
+
+  // Only render the handles the admin has actually filled in, so the row never
+  // shows an icon that links nowhere.
+  const socialLinks = [
+    { Icon: Facebook, url: social?.facebook, label: 'Facebook' },
+    { Icon: Twitter, url: social?.twitter, label: 'Twitter' },
+    { Icon: LinkedIn, url: social?.linkedin, label: 'LinkedIn' },
+    { Icon: Instagram, url: social?.instagram, label: 'Instagram' },
+  ].filter((entry) => Boolean(entry.url));
 
   return (
     <Box 
@@ -33,12 +45,17 @@ const Footer: React.FC = () => {
               {t('footer_desc')}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              {[Facebook, Twitter, LinkedIn, Instagram].map((Icon, i) => (
-                <IconButton 
-                  key={i}
-                  size="small" 
-                  sx={{ 
-                    color: 'white', 
+              {socialLinks.map(({ Icon, url, label }) => (
+                <IconButton
+                  key={label}
+                  component="a"
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  size="small"
+                  sx={{
+                    color: 'white',
                     bgcolor: 'rgba(255,255,255,0.05)',
                     '&:hover': { bgcolor: 'primary.main', transform: 'translateY(-3px)' },
                     transition: 'all 0.3s'

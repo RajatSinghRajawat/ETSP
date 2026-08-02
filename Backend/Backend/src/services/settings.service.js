@@ -6,6 +6,7 @@ import { resetStripeClient } from './stripe.service.js';
 const STRIPE_KEY = 'stripe';
 const EMAIL_KEY = 'email';
 const MSG91_KEY = 'msg91';
+const SITE_CONTENT_KEY = 'site-content';
 
 // Listeners so dependent services (mailer, sms) can drop cached clients when
 // the admin saves new settings. Registered lazily to avoid import cycles.
@@ -190,4 +191,78 @@ export async function updateMsg91Settings({ enabled, authKey, senderId, template
   notifyChange(MSG91_KEY);
 
   return getMsg91SettingsMasked();
+}
+
+/* -------------------------- Public site content -------------------------- */
+
+/**
+ * Marketing copy the admin can edit without a redeploy: contact details, the
+ * social links in the footer, and the About page text. These are read by the
+ * public site, so nothing here is secret and none of it is encrypted.
+ *
+ * The defaults mirror what used to be hardcoded in the frontend, so a fresh
+ * install still renders the same pages before an admin touches anything.
+ */
+export const DEFAULT_SITE_CONTENT = {
+  contact: {
+    email: 'support@vetjobs.com',
+    phone: '+91 123 456 7890',
+    address: 'Mumbai, Maharashtra, India',
+    workingHours: 'Mon - Sat, 9:00 AM - 6:00 PM',
+  },
+  social: {
+    facebook: '',
+    twitter: '',
+    linkedin: '',
+    instagram: '',
+  },
+  about: {
+    heroTitle: 'About VetJobs',
+    heroSubtitle: "India's most trusted veterinary recruitment platform",
+    storyTitle: 'Our Story',
+    storyBody:
+      'We started with a simple goal: make it easier for veterinary professionals to find work they love, and for clinics to find people they can trust.',
+    stats: [
+      { value: '10,000+', label: 'Active Professionals' },
+      { value: '5,000+', label: 'Jobs Posted' },
+      { value: '2,000+', label: 'Partner Clinics' },
+      { value: '98%', label: 'Satisfaction Rate' },
+    ],
+  },
+};
+
+/** Merge stored values over the defaults so a partial save never blanks a page. */
+function mergeSiteContent(stored) {
+  const value = stored ?? {};
+
+  return {
+    contact: { ...DEFAULT_SITE_CONTENT.contact, ...(value.contact ?? {}) },
+    social: { ...DEFAULT_SITE_CONTENT.social, ...(value.social ?? {}) },
+    about: {
+      ...DEFAULT_SITE_CONTENT.about,
+      ...(value.about ?? {}),
+      // An explicitly saved empty list is respected; a missing one falls back.
+      stats: Array.isArray(value.about?.stats)
+        ? value.about.stats
+        : DEFAULT_SITE_CONTENT.about.stats,
+    },
+  };
+}
+
+export async function getSiteContent() {
+  return mergeSiteContent(await getSettingValue(SITE_CONTENT_KEY));
+}
+
+export async function updateSiteContent(input) {
+  const current = await getSiteContent();
+
+  const value = {
+    contact: { ...current.contact, ...(input.contact ?? {}) },
+    social: { ...current.social, ...(input.social ?? {}) },
+    about: { ...current.about, ...(input.about ?? {}) },
+  };
+
+  await upsertSettingValue(SITE_CONTENT_KEY, value);
+
+  return mergeSiteContent(value);
 }

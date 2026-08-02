@@ -4,9 +4,11 @@ import {
   getEmailSettings,
   getEmailSettingsMasked,
   getMsg91SettingsMasked,
+  getSiteContent,
   getStripeSettingsMasked,
   updateEmailSettings,
   updateMsg91Settings,
+  updateSiteContent,
   updateStripeSettings,
 } from '../services/settings.service.js';
 import { AppError } from '../utils/app-error.js';
@@ -113,6 +115,26 @@ export async function putMsg91SettingsHandler(request) {
   return {
     success: true,
     message: 'MSG91 settings updated successfully',
+    data,
+  };
+}
+
+export async function getSiteContentHandler() {
+  const data = await getSiteContent();
+
+  return {
+    success: true,
+    message: 'Site content fetched successfully',
+    data,
+  };
+}
+
+export async function putSiteContentHandler(request) {
+  const data = await updateSiteContent(request.body);
+
+  return {
+    success: true,
+    message: 'Site content updated successfully',
     data,
   };
 }

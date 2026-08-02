@@ -7,6 +7,7 @@ import { healthRoutes } from './health.routes.js';
 import { jobApplicationRoutes } from './job-application.routes.js';
 import { jobRoutes } from './job.routes.js';
 import { savedJobRoutes } from './saved-job.routes.js';
+import { siteContentRoutes } from './site-content.routes.js';
 import {
   educationRoutes,
   jobTypeRoutes,
@@ -38,4 +39,5 @@ export async function apiRoutes(app) {
   app.register(subscriptionRoutes, { prefix: '/subscriptions' });
   app.register(purchaseRoutes, { prefix: '/purchases' });
   app.register(webhookRoutes, { prefix: '/webhooks' });
+  app.register(siteContentRoutes, { prefix: '/site-content' });
 }
