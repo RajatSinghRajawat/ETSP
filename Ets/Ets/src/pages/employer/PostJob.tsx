@@ -58,9 +58,8 @@ import {
   useGetEducationsQuery,
   useGetJobTypesQuery,
   useGetSalaryUnitsQuery,
-  useGetSkillsQuery,
 } from '../../store/api/lookupApi';
-import LookupSelect from '../../components/common/LookupSelect';
+import LookupSelect, { LookupChipPicker } from '../../components/common/LookupSelect';
 
 type JobFormErrors = Partial<Record<keyof JobPayload, string>>;
 type SalaryRangeErrors = Partial<Record<'salaryMin' | 'salaryMax', string>>;
@@ -269,13 +268,11 @@ const PostJob: React.FC = () => {
     setPrefilled(true);
   }, [isEdit, prefilled, jobData]);
 
-  const { data: jobTypesData, isLoading: jobTypesLoading } = useGetJobTypesQuery();
-  const { data: skillsData, isLoading: skillsLoading } = useGetSkillsQuery();
-  const { data: educationsData, isLoading: educationsLoading } = useGetEducationsQuery();
-  const { data: salaryUnitsData, isLoading: salaryUnitsLoading } = useGetSalaryUnitsQuery();
+  const { data: jobTypesData } = useGetJobTypesQuery();
+  const { data: educationsData } = useGetEducationsQuery();
+  const { data: salaryUnitsData } = useGetSalaryUnitsQuery();
 
   const jobTypeOptions = useMemo(() => jobTypesData?.data ?? [], [jobTypesData]);
-  const skillOptions = useMemo(() => skillsData?.data ?? [], [skillsData]);
   const educationOptions = useMemo(() => educationsData?.data ?? [], [educationsData]);
   const salaryUnitOptions = useMemo(() => salaryUnitsData?.data ?? [], [salaryUnitsData]);
 
@@ -357,15 +354,6 @@ const PostJob: React.FC = () => {
     return Object.keys(nextErrors).length === 0 && Object.keys(nextSalaryErrors).length === 0;
   };
 
-  const handleSkillToggle = (skill: string) => {
-    updateField(
-      'skills',
-      formData.skills.includes(skill)
-        ? formData.skills.filter((item) => item !== skill)
-        : [...formData.skills, skill],
-    );
-  };
-
   const currentUser = getStoredUser();
   const isGuest = !currentUser;
   const isCandidate = currentUser?.role === 'candidate';
@@ -424,9 +412,11 @@ const PostJob: React.FC = () => {
 
   const jobTypeName = jobTypeOptions.find((option) => option.value === formData.type)?.name || formData.type;
   const educationName = educationOptions.find((option) => option.value === formData.education)?.name || formData.education;
-  const skillNames = formData.skills.map(
-    (value) => skillOptions.find((option) => option.value === value)?.name || value,
-  );
+  const skillNames = formData.skills;
+  const benefitNames = (formData.benefits || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
   const salaryLabel = getSalaryLabel();
   const statusMeta = STATUS_META[formData.status];
 
@@ -811,55 +801,16 @@ const PostJob: React.FC = () => {
                   />
 
                   <Box sx={{ mt: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1.5 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        Required Skills
-                      </Typography>
-                      <Chip
-                        size="small"
-                        label={`${formData.skills.length} selected`}
-                        sx={{
-                          fontWeight: 700,
-                          bgcolor: formData.skills.length ? 'rgba(10,182,162,0.12)' : 'action.hover',
-                          color: formData.skills.length ? '#0ab6a2' : 'text.secondary',
-                        }}
-                      />
-                    </Box>
-                    {skillsLoading ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CircularProgress size={16} />
-                        <Typography variant="caption" color="text.secondary">
-                          Loading skills...
-                        </Typography>
-                      </Box>
-                    ) : (
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        {skillOptions.map((option) => {
-                          const selected = formData.skills.includes(option.value);
-                          return (
-                            <Chip
-                              key={option._id}
-                              label={option.name}
-                              color={selected ? 'primary' : 'default'}
-                              variant={selected ? 'filled' : 'outlined'}
-                              clickable
-                              onClick={() => handleSkillToggle(option.value)}
-                              sx={{
-                                fontWeight: 600,
-                                borderRadius: 2,
-                                transition: 'transform 0.15s ease',
-                                '&:hover': { transform: 'translateY(-2px)' },
-                              }}
-                            />
-                          );
-                        })}
-                      </Box>
-                    )}
-                    {formErrors.skills && (
-                      <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                        {formErrors.skills}
-                      </Typography>
-                    )}
+                    <LookupChipPicker
+                      category="skill"
+                      label="Required Skills"
+                      values={formData.skills}
+                      valueMode="name"
+                      required
+                      error={Boolean(formErrors.skills)}
+                      helperText={formErrors.skills || 'Select one or more skills. Use Add new for admin approval.'}
+                      onChange={(next) => updateField('skills', next)}
+                    />
                   </Box>
                 </FormSection>
 
@@ -900,51 +851,13 @@ const PostJob: React.FC = () => {
                       </FormControl>
                     </Grid>
                     <Grid size={{ xs: 12 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                        Automated Benefits & Perks:
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                        {[
-                          'Health Insurance',
-                          'Paid Leave',
-                          'Flexible Hours',
-                          'Accommodation',
-                          'Performance Bonus',
-                          'PF & ESI',
-                          'Overtime Pay',
-                          'Transport Allowance'
-                        ].map((benefit) => {
-                          const currentBenefits = (formData.benefits || '').split(',').map((b) => b.trim()).filter(Boolean);
-                          const isSelected = currentBenefits.includes(benefit);
-                          return (
-                            <Chip
-                              key={benefit}
-                              label={benefit}
-                              clickable
-                              color={isSelected ? 'secondary' : 'default'}
-                              variant={isSelected ? 'filled' : 'outlined'}
-                              onClick={() => {
-                                let next: string[];
-                                if (isSelected) {
-                                  next = currentBenefits.filter((b) => b !== benefit);
-                                } else {
-                                  next = [...currentBenefits, benefit];
-                                }
-                                updateField('benefits', next.join(', '));
-                              }}
-                              sx={{ fontWeight: 600, borderRadius: 2 }}
-                            />
-                          );
-                        })}
-                      </Box>
-                      <TextField
-                        fullWidth
-                        label="Custom Benefits & Details"
-                        multiline
-                        minRows={3}
-                        placeholder="Health cover, flexible hours, learning stipend..."
-                        value={formData.benefits}
-                        onChange={(event) => updateField('benefits', event.target.value)}
+                      <LookupChipPicker
+                        category="benefit"
+                        label="Benefits & Perks"
+                        values={benefitNames}
+                        valueMode="name"
+                        helperText="Select multiple benefits. Use Add new to propose a perk for admin approval."
+                        onChange={(next) => updateField('benefits', next.join(', '))}
                       />
                     </Grid>
                   </Grid>

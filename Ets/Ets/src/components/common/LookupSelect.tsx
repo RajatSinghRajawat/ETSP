@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
+  Checkbox,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -22,6 +25,7 @@ import {
   useGetLookupsQuery,
   useProposeLookupMutation,
   type LookupCategory,
+  type LookupItem,
 } from '../../store/api/lookupApi';
 
 const ADD_NEW = '__add_new__';
@@ -202,62 +206,225 @@ export default function LookupSelect({
   );
 }
 
-/** Chip-picker style multi-select for skills / benefits / specialties. */
+/** Multi-select fed by admin lookups, with removable chips and "Add new…" propose. */
 export function LookupChipPicker({
   category,
   label,
   values,
   onChange,
   allowPropose = true,
+  valueMode = 'name',
+  helperText,
+  error = false,
+  required = false,
+  placeholder,
 }: {
   category: LookupCategory;
   label: string;
   values: string[];
   onChange: (next: string[]) => void;
   allowPropose?: boolean;
+  valueMode?: 'value' | 'name';
+  helperText?: string;
+  error?: boolean;
+  required?: boolean;
+  placeholder?: string;
 }) {
+  const isLoggedIn = Boolean(localStorage.getItem('ets-access-token'));
   const { data, isLoading } = useGetLookupsQuery({ category });
+  const [propose, { isLoading: proposing }] = useProposeLookupMutation();
   const options = data?.data ?? [];
-  const [pick, setPick] = useState('');
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const selectedOptions = useMemo((): LookupItem[] => {
+    return values.map((selected) => {
+      const match = options.find(
+        (o) =>
+          (valueMode === 'name' ? o.name : o.value) === selected ||
+          o.name === selected ||
+          o.value === selected,
+      );
+      return (
+        match ?? {
+          _id: `custom-${selected}`,
+          name: selected,
+          value: selected,
+          order: 0,
+          isActive: true,
+        }
+      );
+    });
+  }, [values, options, valueMode]);
+
+  const getKey = (item: { name: string; value: string }) =>
+    valueMode === 'name' ? item.name : item.value;
+
+  const handlePropose = async () => {
+    const name = newName.trim();
+    if (name.length < 2) {
+      setFeedback({ type: 'error', text: 'Enter at least 2 characters.' });
+      return;
+    }
+    if (!isLoggedIn) {
+      setFeedback({ type: 'error', text: 'Please log in to suggest a new option.' });
+      return;
+    }
+
+    try {
+      const res = await propose({ category, name }).unwrap();
+      setFeedback({ type: 'success', text: res.message || 'Submitted for admin approval.' });
+      if (res.data?.status === 'approved' && res.data.isActive !== false) {
+        const key = valueMode === 'name' ? res.data.name : res.data.value;
+        if (!values.includes(key)) onChange([...values, key]);
+        setDialogOpen(false);
+        setNewName('');
+      }
+    } catch (err) {
+      const apiError = err as { data?: { message?: string } };
+      setFeedback({
+        type: 'error',
+        text: apiError?.data?.message ?? 'Could not submit. Please try again.',
+      });
+    }
+  };
 
   return (
     <Box>
-      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-        {label}
-      </Typography>
-      <LookupSelect
-        category={category}
-        label={`Add ${label.toLowerCase()}`}
-        value={pick}
-        size="small"
-        allowPropose={allowPropose}
-        valueMode="name"
-        onChange={(v) => {
-          if (!v) return;
-          if (!values.includes(v)) onChange([...values, v]);
-          setPick('');
-        }}
-        emptyLabel={isLoading ? 'Loading…' : `Choose ${label.toLowerCase()}…`}
-      />
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
-        {values.map((v) => (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+          {label}
+          {required ? ' *' : ''}
+        </Typography>
+        <Chip
+          size="small"
+          label={`${values.length} selected`}
+          sx={{
+            fontWeight: 700,
+            bgcolor: values.length ? 'rgba(10,182,162,0.12)' : 'action.hover',
+            color: values.length ? '#0ab6a2' : 'text.secondary',
+          }}
+        />
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+        <Autocomplete
+          multiple
+          fullWidth
+          disableCloseOnSelect
+          loading={isLoading}
+          options={options}
+          value={selectedOptions}
+          getOptionLabel={(option) => option.name}
+          isOptionEqualToValue={(option, val) =>
+            getKey(option) === getKey(val) || option.name === val.name || option.value === val.value
+          }
+          onChange={(_event, next) => {
+            const keys = next.map((item) => getKey(item));
+            onChange([...new Set(keys)]);
+          }}
+          renderTags={(tagValue, getTagProps) =>
+            tagValue.map((option, index) => {
+              const { key, ...tagProps } = getTagProps({ index });
+              return (
+                <Chip
+                  key={key}
+                  label={option.name}
+                  size="small"
+                  color="primary"
+                  variant="filled"
+                  sx={{ fontWeight: 600, borderRadius: 2 }}
+                  {...tagProps}
+                />
+              );
+            })
+          }
+          renderOption={(props, option, { selected }) => (
+            <li {...props} key={option._id}>
+              <Checkbox size="small" checked={selected} sx={{ mr: 1 }} />
+              {option.name}
+            </li>
+          )}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label={`Select ${label.toLowerCase()}`}
+              placeholder={
+                values.length
+                  ? ''
+                  : placeholder || (isLoading ? 'Loading…' : `Choose one or more ${label.toLowerCase()}`)
+              }
+              error={error}
+              helperText={helperText}
+            />
+          )}
+        />
+        {allowPropose && (
           <Button
-            key={v}
-            size="small"
             variant="outlined"
-            onClick={() => onChange(values.filter((x) => x !== v))}
-            sx={{ textTransform: 'none' }}
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setFeedback(null);
+              setNewName('');
+              setDialogOpen(true);
+            }}
+            sx={{
+              flexShrink: 0,
+              height: 56,
+              px: 2,
+              textTransform: 'none',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            }}
           >
-            {v} ×
+            Add new
           </Button>
-        ))}
-        {!values.length && (
-          <Typography variant="caption" color="text.secondary">
-            No {label.toLowerCase()} selected yet.
-            {options.length ? ` ${options.length} options available.` : ''}
-          </Typography>
         )}
       </Box>
+
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Suggest a new {label.toLowerCase().replace(/s$/, '')}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Your suggestion goes to the admin for approval. It appears in this list only after it is
+            approved.
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            label="New value"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            disabled={proposing}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void handlePropose();
+              }
+            }}
+          />
+          {feedback && (
+            <Alert severity={feedback.type} sx={{ mt: 2 }}>
+              {feedback.text}
+            </Alert>
+          )}
+          {!isLoggedIn && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Log in to submit a suggestion.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDialogOpen(false)} color="inherit" disabled={proposing}>
+            Close
+          </Button>
+          <Button variant="contained" onClick={handlePropose} disabled={proposing || !isLoggedIn}>
+            {proposing ? 'Submitting…' : 'Submit for approval'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
