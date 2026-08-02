@@ -47,7 +47,7 @@ export async function getJobPosts(request) {
 }
 
 export async function getJobPost(request) {
-  const job = await getJobById(request.params.id);
+  const job = await getJobById(request.params.id, request.user);
 
   return {
     success: true,

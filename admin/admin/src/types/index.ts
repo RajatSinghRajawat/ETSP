@@ -115,6 +115,7 @@ export interface CandidateRow {
   educationLevel?: string;
   skills?: string[];
   status?: 'draft' | 'submitted';
+  approvalStatus?: 'rejected' | 'approved';
   aadhaarVerified?: boolean;
   photoUrl?: string;
   createdAt: string;
@@ -135,6 +136,7 @@ export interface EmployerRow {
   workplaceModel?: string;
   hiringUrgency?: string;
   status?: 'draft' | 'submitted';
+  approvalStatus?: 'rejected' | 'approved';
   emailVerified?: boolean;
   phoneVerified?: boolean;
   overview?: string;
@@ -189,6 +191,7 @@ export interface JobRow {
   education?: string;
   benefits?: string;
   status: 'draft' | 'active' | 'closed';
+  approvalStatus?: 'rejected' | 'approved';
   employerEmail: string;
   employerProfile: string;
   createdAt: string;

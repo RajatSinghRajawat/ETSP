@@ -8,15 +8,21 @@ import {
   getCandidates,
   getCandidate,
   removeCandidate,
+  approveCandidate,
+  rejectCandidate,
   getEmployers,
   getEmployer,
   removeEmployer,
+  approveEmployer,
+  rejectEmployer,
   importEmployersExcel,
   getImportedEmployers,
   removeImportedEmployer,
   getJobs,
   getJob,
   patchJob,
+  approveJob,
+  rejectJob,
   removeJob,
   getApplications,
   patchApplication,
@@ -33,9 +39,11 @@ import {
 import {
   getEmailSettingsHandler,
   getMsg91SettingsHandler,
+  getSiteContentHandler,
   getStripeSettingsHandler,
   putEmailSettingsHandler,
   putMsg91SettingsHandler,
+  putSiteContentHandler,
   putStripeSettingsHandler,
 } from '../controllers/settings.controller.js';
 import { getAdminPurchases } from '../controllers/purchase.controller.js';
@@ -51,6 +59,7 @@ import { grantSubscriptionSchema } from '../validations/subscription.validation.
 import {
   emailSettingsSchema,
   msg91SettingsSchema,
+  siteContentSchema,
   stripeSettingsSchema,
 } from '../validations/settings.validation.js';
 
@@ -69,6 +78,8 @@ export async function adminRoutes(app) {
   app.get('/candidates', getCandidates);
   app.get('/candidates/:id', getCandidate);
   app.delete('/candidates/:id', removeCandidate);
+  app.patch('/candidates/:id/approve', approveCandidate);
+  app.patch('/candidates/:id/reject', rejectCandidate);
 
   app.post('/candidates/:id/resume', buildResume);
   app.get('/candidates/:id/resume', fetchResume);
@@ -77,6 +88,8 @@ export async function adminRoutes(app) {
   app.get('/employers', getEmployers);
   app.get('/employers/:id', getEmployer);
   app.delete('/employers/:id', removeEmployer);
+  app.patch('/employers/:id/approve', approveEmployer);
+  app.patch('/employers/:id/reject', rejectEmployer);
 
   app.post('/imported-employers/upload', importEmployersExcel);
   app.get('/imported-employers', getImportedEmployers);
@@ -85,6 +98,8 @@ export async function adminRoutes(app) {
   app.get('/jobs', getJobs);
   app.get('/jobs/:id', getJob);
   app.patch('/jobs/:id', patchJob);
+  app.patch('/jobs/:id/approve', approveJob);
+  app.patch('/jobs/:id/reject', rejectJob);
   app.delete('/jobs/:id', removeJob);
 
   app.get('/applications', getApplications);
@@ -108,4 +123,6 @@ export async function adminRoutes(app) {
   app.put('/settings/email', { preHandler: validateBody(emailSettingsSchema) }, putEmailSettingsHandler);
   app.get('/settings/msg91', getMsg91SettingsHandler);
   app.put('/settings/msg91', { preHandler: validateBody(msg91SettingsSchema) }, putMsg91SettingsHandler);
+  app.get('/settings/site-content', getSiteContentHandler);
+  app.put('/settings/site-content', { preHandler: validateBody(siteContentSchema) }, putSiteContentHandler);
 }

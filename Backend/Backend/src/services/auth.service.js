@@ -78,28 +78,71 @@ class AuthService {
     }
   }
 
+  /**
+   * Which dashboard this login belongs to. The stored User.role cannot be
+   * trusted on its own: profile creation only writes the role via $setOnInsert,
+   * so an email that once had a candidate profile keeps role 'candidate' even
+   * after it is re-registered as an employer. The profiles that actually exist
+   * are the source of truth; User.role only decides it when both exist (a
+   * dual-role account that switches between them).
+   */
+  resolveRole(user, candidateProfile, employerProfile) {
+    if (user?.role === 'admin') {
+      return 'admin';
+    }
+
+    if (candidateProfile && !employerProfile) {
+      return 'candidate';
+    }
+
+    if (employerProfile && !candidateProfile) {
+      return 'employer';
+    }
+
+    return user?.role ?? (employerProfile ? 'employer' : 'candidate');
+  }
+
   async getRegisteredAccount(email) {
     const [user, candidateProfile, employerProfile] = await Promise.all([
       User.findOne({ email }).select('email role isActive').lean(),
-      CandidateProfile.findOne({ email }).select('email').lean(),
-      EmployerProfile.findOne({ email }).select('email').lean(),
+      CandidateProfile.findOne({ email }).select('email approvalStatus').lean(),
+      EmployerProfile.findOne({ email }).select('email approvalStatus').lean(),
     ]);
 
     if (user && !user.isActive) {
       throw new AppError('This account is inactive. Please contact support.', 403);
     }
 
+    // No account and no profile of either kind: either the email never
+    // registered, or an admin rejected it (rejection deletes both the profile
+    // and the account). Auto-creating an account here would hand both cases a
+    // working login, defeating the admin-approval gate below.
     if (!user && !candidateProfile && !employerProfile) {
-      const newUser = await User.create({ email, role: 'candidate', isActive: true });
-      return {
-        user: newUser,
-        role: 'candidate',
-      };
+      throw new AppError(
+        'No registration found for this email. Please register first and wait for admin approval.',
+        404,
+      );
+    }
+
+    const role = this.resolveRole(user, candidateProfile, employerProfile);
+
+    if (role === 'candidate' && candidateProfile && candidateProfile.approvalStatus !== 'approved') {
+      throw new AppError(
+        'Your candidate registration has not been approved by the admin yet. You will be able to login once it is verified.',
+        403,
+      );
+    }
+
+    if (role === 'employer' && employerProfile && employerProfile.approvalStatus !== 'approved') {
+      throw new AppError(
+        'Your employer registration has not been approved by the admin yet. You will be able to login once it is verified.',
+        403,
+      );
     }
 
     return {
       user,
-      role: user?.role ?? (employerProfile ? 'employer' : 'candidate'),
+      role,
     };
   }
 
@@ -209,6 +252,10 @@ class AuthService {
       let user = await User.findOne({ email: formattedEmail });
       if (!user) {
         user = await User.create({ email: formattedEmail, role, isActive: true });
+      } else if (user.role !== role) {
+        // The map is the source of truth for these fixed accounts, so reset a
+        // role that drifted (e.g. an earlier profile created it as candidate).
+        user.role = role;
       }
 
       return this.issueTokenForUser(user);
@@ -245,6 +292,10 @@ class AuthService {
     let user = await User.findOne({ email: formattedEmail });
     if (!user) {
       user = await User.create({ email: formattedEmail, role: registeredAccount.role });
+    } else if (user.role !== registeredAccount.role) {
+      // Heal a stale role left behind by $setOnInsert during registration, so
+      // the token and every later read agree with the profiles on file.
+      user.role = registeredAccount.role;
     }
 
     // A successful email OTP proves email ownership — feeds the EXCEL

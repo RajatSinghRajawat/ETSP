@@ -145,6 +145,34 @@ export function useDeleteCandidate() {
   });
 }
 
+export function useApproveCandidate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<CandidateRow>>(`/admin/candidates/${id}/approve`);
+      return unwrap(res.data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'candidates'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
+export function useRejectCandidate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<CandidateRow>>(`/admin/candidates/${id}/reject`);
+      return unwrap(res.data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'candidates'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
 export function useBuildResume() {
   const qc = useQueryClient();
   return useMutation({
@@ -211,6 +239,34 @@ export function useDeleteEmployer() {
     mutationFn: async (id: string) => {
       await api.delete(`/admin/employers/${id}`);
       return id;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'employers'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
+export function useApproveEmployer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<EmployerRow>>(`/admin/employers/${id}/approve`);
+      return unwrap(res.data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'employers'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
+export function useRejectEmployer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<EmployerRow>>(`/admin/employers/${id}/reject`);
+      return unwrap(res.data);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'employers'] });
@@ -289,6 +345,34 @@ export function useUpdateJob() {
   return useMutation({
     mutationFn: async ({ id, body }: { id: string; body: Partial<Pick<JobRow, 'status' | 'title' | 'location' | 'salary' | 'type' | 'experience'>> }) => {
       const res = await api.patch<ApiResponse<JobRow>>(`/admin/jobs/${id}`, body);
+      return unwrap(res.data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'jobs'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
+export function useApproveJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<JobRow>>(`/admin/jobs/${id}/approve`);
+      return unwrap(res.data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'jobs'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
+
+export function useRejectJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch<ApiResponse<JobRow>>(`/admin/jobs/${id}/reject`);
       return unwrap(res.data);
     },
     onSuccess: () => {
@@ -508,6 +592,39 @@ export function useUpdateEmailSettings() {
       return res.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'settings', 'email'] }),
+  });
+}
+
+export interface SiteContent {
+  contact: { email: string; phone: string; address: string; workingHours: string };
+  social: { facebook: string; twitter: string; linkedin: string; instagram: string };
+  about: {
+    heroTitle: string;
+    heroSubtitle: string;
+    storyTitle: string;
+    storyBody: string;
+    stats: Array<{ value: string; label: string }>;
+  };
+}
+
+export function useSiteContent() {
+  return useQuery({
+    queryKey: ['admin', 'settings', 'site-content'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<SiteContent>>('/admin/settings/site-content');
+      return unwrap(res.data);
+    },
+  });
+}
+
+export function useUpdateSiteContent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Partial<SiteContent>) => {
+      const res = await api.put<ApiResponse<SiteContent>>('/admin/settings/site-content', body);
+      return unwrap(res.data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'settings', 'site-content'] }),
   });
 }
 

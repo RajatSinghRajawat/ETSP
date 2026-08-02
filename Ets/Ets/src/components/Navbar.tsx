@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppBar, Toolbar, Box, Button, Tooltip, IconButton, Menu, MenuItem, Container, useMediaQuery, useTheme, Drawer, List, ListItem, ListItemText, ListItemButton, Avatar, Snackbar, Alert, CircularProgress } from '@mui/material';
-import { Language as LanguageIcon, Brightness4, Brightness7, Menu as MenuIcon, Close, Work, Business, Info, Phone, Home, AccountCircle, Dashboard, Logout, SwapHoriz, People, WorkspacePremium } from '@mui/icons-material';
+import { Language as LanguageIcon, Brightness4, Brightness7, Menu as MenuIcon, Close, Work, Business, Info, Phone, Home, AccountCircle, Dashboard, Logout, SwapHoriz, People, KeyboardArrowDown, PrivacyTip } from '@mui/icons-material';
 import HeaderChatButton from './common/HeaderChatButton';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import React from 'react';
@@ -59,6 +59,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState<null | HTMLElement>(null);
+  const [moreAnchorEl, setMoreAnchorEl] = useState<null | HTMLElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [switchingRole, setSwitchingRole] = useState<string | null>(null);
   const [switchError, setSwitchError] = useState('');
@@ -88,6 +89,14 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
 
   const handleProfileMenuClose = () => {
     setProfileAnchorEl(null);
+  };
+
+  const handleMoreMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setMoreAnchorEl(event.currentTarget);
+  };
+
+  const handleMoreMenuClose = () => {
+    setMoreAnchorEl(null);
   };
 
   const getProfilePath = () => {
@@ -144,7 +153,9 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
 
   const isEmployer = currentUser?.role === 'employer';
 
-  const navItems = [
+  // Only these three sit in the header bar; the rest live behind "More" so the
+  // bar stays uncluttered.
+  const mainNavItems = [
     { label: t('home'), path: '/', icon: <Home /> },
     ...(isEmployer
       ? [
@@ -155,9 +166,16 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
           { label: t('find_job'), path: '/find-job', icon: <Work /> },
           { label: t('employers'), path: '/employers', icon: <Business /> },
         ]),
+  ];
+
+  const moreNavItems = [
     { label: t('about'), path: '/about', icon: <Info /> },
     { label: t('contact'), path: '/contact', icon: <Phone /> },
+    { label: t('privacy_policy'), path: '/privacy-policy', icon: <PrivacyTip /> },
   ];
+
+  // The drawer has room for everything, so mobile keeps a flat list.
+  const navItems = [...mainNavItems, ...moreNavItems];
 
   const isActive = (path: string) => location.pathname === path;
   const userDisplayName =
@@ -254,13 +272,13 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
       >
         <Container maxWidth="lg">
           <Toolbar sx={{ minHeight: { xs: 64, md: 72 }, px: { xs: 0 } }}>
-            <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 1.5, mr: { xs: 1, md: 4 } }}>
+            <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 1.5, mr: { xs: 1, md: 4 }, ml: { xs: -0.5, md: -2 } }}>
               <Box component="img" src="/Logo.png" alt="Logo" sx={{ height: { xs: 38, md: 48 }, width: 'auto' }} />
             </Box>
 
             {!isMobile && (
               <Box sx={{ display: 'flex', gap: 0.5, flex: 1 }}>
-                {navItems.map((item) => (
+                {mainNavItems.map((item) => (
                   <Button
                     key={item.path}
                     component={Link}
@@ -293,6 +311,67 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                     {item.label}
                   </Button>
                 ))}
+
+                <Button
+                  onClick={handleMoreMenuOpen}
+                  endIcon={
+                    <KeyboardArrowDown
+                      sx={{
+                        transition: 'transform 0.2s ease',
+                        transform: moreAnchorEl ? 'rotate(180deg)' : 'none',
+                      }}
+                    />
+                  }
+                  sx={{
+                    color: 'text.primary',
+                    fontWeight: moreNavItems.some((item) => isActive(item.path)) ? 700 : 600,
+                    fontSize: '1rem',
+                    px: 2.2,
+                    py: 1,
+                    borderRadius: 2,
+                    position: 'relative',
+                    transition: 'all 0.3s ease',
+                    '&:hover': { bgcolor: 'rgba(0,0,0,0.05)' },
+                    '&:after': moreNavItems.some((item) => isActive(item.path))
+                      ? {
+                          content: '""',
+                          position: 'absolute',
+                          bottom: 0,
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: 20,
+                          height: 3,
+                          bgcolor: 'primary.main',
+                          borderRadius: 2,
+                        }
+                      : {},
+                  }}
+                >
+                  {t('more')}
+                </Button>
+
+                <Menu
+                  anchorEl={moreAnchorEl}
+                  open={Boolean(moreAnchorEl)}
+                  onClose={handleMoreMenuClose}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                  slotProps={{ paper: { sx: { mt: 1, minWidth: 210, borderRadius: 2 } } }}
+                >
+                  {moreNavItems.map((item) => (
+                    <MenuItem
+                      key={item.path}
+                      component={Link}
+                      to={item.path}
+                      onClick={handleMoreMenuClose}
+                      selected={isActive(item.path)}
+                      sx={{ py: 1.2, px: 2, fontWeight: isActive(item.path) ? 700 : 500 }}
+                    >
+                      <Box sx={{ mr: 1.5, display: 'flex', color: 'primary.main' }}>{item.icon}</Box>
+                      {item.label}
+                    </MenuItem>
+                  ))}
+                </Menu>
               </Box>
             )}
 

@@ -23,7 +23,11 @@ export async function saveJob(user, jobId) {
   }
 
   const candidate = await getCandidateForUser(user);
-  const job = await Job.findById(jobId).select('_id').lean();
+  // Only a live, approved job can be saved — otherwise a stale or guessed id
+  // would let a candidate bookmark something they cannot even open.
+  const job = await Job.findOne({ _id: jobId, status: 'active', approvalStatus: 'approved' })
+    .select('_id')
+    .lean();
 
   if (!job) {
     throw new AppError('Job not found', 404);
@@ -66,9 +70,10 @@ export async function getMySavedJobs(user) {
     .sort({ createdAt: -1 })
     .lean();
 
-  // Drop entries whose underlying job has since been removed.
+  // Drop entries whose underlying job has since been removed, or that an admin
+  // has since unpublished — a saved bookmark must not outlive the approval.
   return saved
-    .filter((entry) => entry.job)
+    .filter((entry) => entry.job && entry.job.approvalStatus === 'approved')
     .map((entry) => ({
       _id: entry._id,
       job: entry.job,

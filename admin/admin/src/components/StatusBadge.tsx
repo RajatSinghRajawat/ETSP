@@ -20,6 +20,7 @@ const PALETTE: Record<string, string> = {
   canceled: 'red',
   incomplete: 'gray',
   pending: 'orange',
+  approved: 'green',
   paid: 'green',
   expired: 'gray',
   failed: 'red',

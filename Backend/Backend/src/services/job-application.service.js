@@ -61,6 +61,7 @@ export async function createJobApplication(user, input) {
     Job.findOne({
       _id: input.jobId,
       status: 'active',
+      approvalStatus: 'approved',
       $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
     })
       .select('_id title employerProfile employerEmail screeningQuestions')

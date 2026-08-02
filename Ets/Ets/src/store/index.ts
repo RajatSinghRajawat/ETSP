@@ -10,6 +10,7 @@ import { resumeApi } from './api/resumeApi';
 import { aiAssistantApi } from './api/aiAssistantApi';
 import { subscriptionApi } from './api/subscriptionApi';
 import { purchaseApi } from './api/purchaseApi';
+import { siteContentApi } from './api/siteContentApi';
 
 export const store = configureStore({
   reducer: {
@@ -24,6 +25,7 @@ export const store = configureStore({
     [aiAssistantApi.reducerPath]: aiAssistantApi.reducer,
     [subscriptionApi.reducerPath]: subscriptionApi.reducer,
     [purchaseApi.reducerPath]: purchaseApi.reducer,
+    [siteContentApi.reducerPath]: siteContentApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -38,6 +40,7 @@ export const store = configureStore({
       aiAssistantApi.middleware,
       subscriptionApi.middleware,
       purchaseApi.middleware,
+      siteContentApi.middleware,
     ),
 });
 

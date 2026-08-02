@@ -32,6 +32,7 @@ import {
   Business,
   CalendarMonth,
   CheckCircle,
+  Delete,
   Description,
   Email,
   EmojiEvents,
@@ -547,9 +548,14 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
           }).unwrap();
         } catch (err: unknown) {
           const apiError = err as { status?: number; data?: { message?: string } };
+          // A 409 means the email/phone is already taken. Only the signed-in
+          // owner of that profile may fall through to an update — for an
+          // anonymous visitor this is a duplicate registration, so surface the
+          // server's "already registered, please login" message instead.
           if (
-            apiError?.status === 409 ||
-            apiError?.data?.message?.includes('already have a candidate profile')
+            hasToken &&
+            (apiError?.status === 409 ||
+              apiError?.data?.message?.includes('already have a candidate profile'))
           ) {
             const { email: _omitEmail, phone: _omitPhone, ...updatable } = formData;
             void _omitEmail;

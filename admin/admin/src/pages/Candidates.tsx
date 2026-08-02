@@ -18,7 +18,7 @@ import {
   Wrap,
 } from '@chakra-ui/react';
 import { useState } from 'react';
-import { FiEye, FiFileText, FiMoreVertical, FiTrash2 } from 'react-icons/fi';
+import { FiCheck, FiEye, FiFileText, FiMoreVertical, FiTrash2, FiXCircle } from 'react-icons/fi';
 import { ConfirmDelete } from '../components/ConfirmDelete';
 import { Detail, DetailDrawer } from '../components/DetailDrawer';
 import { PageHeader } from '../components/PageHeader';
@@ -26,7 +26,13 @@ import { Pagination } from '../components/Pagination';
 import { ResumeModal } from '../components/ResumeModal';
 import { StatusBadge } from '../components/StatusBadge';
 import { toaster } from '../components/Toaster';
-import { useCandidate, useCandidates, useDeleteCandidate } from '../hooks/useAdmin';
+import {
+  useApproveCandidate,
+  useCandidate,
+  useCandidates,
+  useDeleteCandidate,
+  useRejectCandidate,
+} from '../hooks/useAdmin';
 import { extractErrorMessage } from '../lib/api';
 import { formatDate, formatDateTime } from '../lib/format';
 import type { CandidateRow } from '../types';
@@ -38,6 +44,7 @@ export default function Candidates() {
   const [location, setLocation] = useState('');
   const [viewId, setViewId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CandidateRow | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<CandidateRow | null>(null);
   const [resumeCandidate, setResumeCandidate] = useState<CandidateRow | null>(null);
 
   const { data, isLoading, error } = useCandidates({
@@ -49,6 +56,8 @@ export default function Candidates() {
   });
   const candidate = useCandidate(viewId);
   const deleteCandidate = useDeleteCandidate();
+  const approveCandidate = useApproveCandidate();
+  const rejectCandidate = useRejectCandidate();
 
   function handleConfirmDelete() {
     if (!deleteTarget) return;
@@ -56,6 +65,24 @@ export default function Candidates() {
       onSuccess: () => {
         toaster.create({ title: 'Candidate deleted', type: 'success' });
         setDeleteTarget(null);
+      },
+      onError: (err) => toaster.create({ title: 'Failed', description: extractErrorMessage(err), type: 'error' }),
+    });
+  }
+
+  function handleApprove(row: CandidateRow) {
+    approveCandidate.mutate(row._id, {
+      onSuccess: () => toaster.create({ title: 'Candidate approved — they can now login', type: 'success' }),
+      onError: (err) => toaster.create({ title: 'Failed', description: extractErrorMessage(err), type: 'error' }),
+    });
+  }
+
+  function handleConfirmReject() {
+    if (!rejectTarget) return;
+    rejectCandidate.mutate(rejectTarget._id, {
+      onSuccess: () => {
+        toaster.create({ title: 'Candidate rejected — login blocked', type: 'success' });
+        setRejectTarget(null);
       },
       onError: (err) => toaster.create({ title: 'Failed', description: extractErrorMessage(err), type: 'error' }),
     });
@@ -109,6 +136,7 @@ export default function Candidates() {
                 <Table.ColumnHeader>Job title</Table.ColumnHeader>
                 <Table.ColumnHeader>Location</Table.ColumnHeader>
                 <Table.ColumnHeader>Status</Table.ColumnHeader>
+                <Table.ColumnHeader>Approval</Table.ColumnHeader>
                 <Table.ColumnHeader>Created</Table.ColumnHeader>
                 <Table.ColumnHeader textAlign="end">Actions</Table.ColumnHeader>
               </Table.Row>
@@ -131,6 +159,7 @@ export default function Candidates() {
                   <Table.Cell>{c.currentJobTitle ?? '—'}</Table.Cell>
                   <Table.Cell>{c.currentLocation ?? '—'}</Table.Cell>
                   <Table.Cell><StatusBadge value={c.status} /></Table.Cell>
+                  <Table.Cell><StatusBadge value={c.approvalStatus ?? 'rejected'} /></Table.Cell>
                   <Table.Cell color="gray.500">{formatDate(c.createdAt)}</Table.Cell>
                   <Table.Cell textAlign="end">
                     <HStack gap={1} justify="flex-end">
@@ -159,6 +188,15 @@ export default function Candidates() {
                               <Menu.Item value="resume" onClick={() => setResumeCandidate(c)}>
                                 <FiFileText style={{ marginRight: 8 }} /> Build Resume
                               </Menu.Item>
+                              {c.approvalStatus !== 'approved' ? (
+                                <Menu.Item value="approve" color="green.600" onClick={() => handleApprove(c)}>
+                                  <FiCheck style={{ marginRight: 8 }} /> Approve registration
+                                </Menu.Item>
+                              ) : (
+                                <Menu.Item value="reject" color="red.600" onClick={() => setRejectTarget(c)}>
+                                  <FiXCircle style={{ marginRight: 8 }} /> Revoke approval
+                                </Menu.Item>
+                              )}
                               <Menu.Item value="delete" color="red.600" onClick={() => setDeleteTarget(c)}>
                                 <FiTrash2 style={{ marginRight: 8 }} /> Delete
                               </Menu.Item>
@@ -252,6 +290,17 @@ export default function Candidates() {
         loading={deleteCandidate.isPending}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
+      />
+
+      <ConfirmDelete
+        open={Boolean(rejectTarget)}
+        title="Reject registration"
+        description={`Reject ${rejectTarget?.firstName ?? ''} ${rejectTarget?.lastName ?? ''}'s registration? They will not be able to login. Their profile stays on file, so you can approve them again later.`}
+        confirmLabel="Reject"
+        irreversible={false}
+        loading={rejectCandidate.isPending}
+        onCancel={() => setRejectTarget(null)}
+        onConfirm={handleConfirmReject}
       />
 
       <ResumeModal

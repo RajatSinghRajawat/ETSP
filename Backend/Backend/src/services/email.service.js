@@ -96,6 +96,56 @@ class EmailService {
     const text = `Your VetJobs Login OTP is: ${otp}`;
     return this.sendEmail({ to: email, subject, html, text });
   }
+
+  async sendApprovalEmail(email, { firstName = '', role = 'candidate' } = {}) {
+    const greetingName = firstName ? firstName : 'there';
+    const roleLabel = role === 'employer' ? 'employer' : 'candidate';
+    const subject = 'Your VetJobs registration has been approved';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #f4f4f4; padding: 20px; text-align: center;">
+          <h2 style="margin: 0; color: #333;">Registration Approved</h2>
+        </div>
+        <div style="padding: 20px; text-align: center;">
+          <p style="font-size: 16px; color: #555;">Hi ${greetingName},</p>
+          <p style="font-size: 16px; color: #555;">
+            Good news — your ${roleLabel} registration on VetJobs has been reviewed and approved by our team.
+          </p>
+          <p style="font-size: 16px; color: #555;">
+            You can now log in using your registered email and OTP.
+          </p>
+        </div>
+      </div>
+    `;
+    const text = `Hi ${greetingName}, your ${roleLabel} registration on VetJobs has been approved. You can now log in using your registered email and OTP.`;
+    return this.sendEmail({ to: email, subject, html, text });
+  }
+
+  async sendRejectionEmail(email, { firstName = '', role = 'candidate' } = {}) {
+    const greetingName = firstName ? firstName : 'there';
+    const roleLabel = role === 'employer' ? 'employer' : 'candidate';
+    const subject = 'Update on your VetJobs registration';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #f4f4f4; padding: 20px; text-align: center;">
+          <h2 style="margin: 0; color: #333;">Registration Not Approved</h2>
+        </div>
+        <div style="padding: 20px; text-align: center;">
+          <p style="font-size: 16px; color: #555;">Hi ${greetingName},</p>
+          <p style="font-size: 16px; color: #555;">
+            After reviewing your ${roleLabel} registration on VetJobs, our team was not able to
+            approve it at this time, so you will not be able to log in for now.
+          </p>
+          <p style="font-size: 16px; color: #555;">
+            Your details are still on file. If you believe this was a mistake or you can share
+            more information, please contact our support team and we will take another look.
+          </p>
+        </div>
+      </div>
+    `;
+    const text = `Hi ${greetingName}, after reviewing your ${roleLabel} registration on VetJobs our team was not able to approve it at this time, so you will not be able to log in for now. Your details are still on file — please contact support if you believe this was a mistake.`;
+    return this.sendEmail({ to: email, subject, html, text });
+  }
 }
 
 export const emailService = new EmailService();

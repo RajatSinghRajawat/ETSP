@@ -1,14 +1,14 @@
 import { Box, Container, Typography, Grid, Card, CardContent, Avatar, Button } from '@mui/material';
 import { Verified, Pets, Speed, Support, EmojiEvents } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import { useGetSiteContentQuery } from '../store/api/siteContentApi';
 
 const About: React.FC = () => {
-  const stats = [
-    { value: '10,000+', label: 'Active Professionals' },
-    { value: '5,000+', label: 'Jobs Posted' },
-    { value: '2,000+', label: 'Partner Clinics' },
-    { value: '98%', label: 'Satisfaction Rate' }
-  ];
+  // Hero copy, the story heading/body and the stat tiles come from the
+  // admin-managed site content so they can be reworded without a deploy.
+  const { data: siteContent } = useGetSiteContentQuery();
+  const about = siteContent?.data.about;
+  const stats = about?.stats ?? [];
 
   const values = [
     { icon: <Verified sx={{ fontSize: 40, color: '#0c5283' }} />, title: 'Trust & Verification', desc: 'Every professional and employer goes through our rigorous verification process to ensure authenticity.' },
@@ -72,10 +72,10 @@ const About: React.FC = () => {
             ABOUT US
           </Typography>
           <Typography variant="h2" sx={{ fontWeight: 800, mb: 3 }}>
-            Revolutionizing Veterinary Hiring
+            {about?.heroTitle}
           </Typography>
           <Typography variant="h6" sx={{ opacity: 0.9, maxWidth: 700, mx: 'auto', mb: 4, lineHeight: 1.8 }}>
-            VetJobs is India's leading veterinary job portal, connecting talented professionals with top animal hospitals, clinics, and pet care organizations.
+            {about?.heroSubtitle}
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, flexWrap: 'wrap' }}>
             <Button
@@ -146,10 +146,10 @@ const About: React.FC = () => {
       <Box sx={{ bgcolor: 'background.paper', py: 8 }}>
         <Container maxWidth="lg">
           <Typography variant="h3" sx={{ fontWeight: 800, textAlign: 'center', mb: 2, color: 'primary.main' }}>
-            Our Impact
+            {about?.storyTitle}
           </Typography>
           <Typography variant="body1" sx={{ textAlign: 'center', mb: 6, color: 'text.secondary', maxWidth: 600, mx: 'auto' }}>
-            Numbers that reflect our commitment to transforming veterinary hiring in India
+            {about?.storyBody}
           </Typography>
 
           <Grid container spacing={4}>

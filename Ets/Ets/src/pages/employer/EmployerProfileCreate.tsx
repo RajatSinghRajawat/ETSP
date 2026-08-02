@@ -13,6 +13,7 @@ import {
   Grid,
   MenuItem,
   Paper,
+  Stack,
   Step,
   StepLabel,
   Stepper,
@@ -30,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
+import { Toast } from '../../components/common';
 import { PageHeader } from '../../components/common/PageHeader';
 import {
   defaultEmployerProfile,
@@ -94,6 +96,11 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
   const [benefitInput, setBenefitInput] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saved' | 'submitted'>('idle');
   const [submitError, setSubmitError] = useState('');
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error',
+  });
   const [logoUploadError, setLogoUploadError] = useState('');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
   const [formErrors, setFormErrors] = useState<EmployerProfileErrors>({});
@@ -397,7 +404,9 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
       localStorage.removeItem(STORAGE_KEY);
       setSaveState('submitted');
     } catch (error) {
-      setSubmitError(getApiErrorMessage(error));
+      const msg = getApiErrorMessage(error);
+      setSubmitError(msg);
+      setToast({ open: true, message: `❌ ${msg}`, severity: 'error' });
     }
   };
 
@@ -543,7 +552,7 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
                 ? 'Your company profile has been updated successfully.'
                 : 'Your employer profile and account have been registered! You can now log in with your email to access your Employer Dashboard and post jobs.'}
             </Typography>
-            <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap">
+            <Stack direction="row" spacing={2} sx={{ justifyContent: 'center', flexWrap: 'wrap' }}>
               {!showSidebar && (
                 <Button
                   variant="contained"
@@ -1263,6 +1272,13 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
           </Box>
         </Paper>
       </Box>
+
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        severity={toast.severity}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
     </Box>
   );
 };

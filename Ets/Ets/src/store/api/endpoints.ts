@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
   employerProfileLogo: `${API_VERSION}/employer-profiles/logo`,
   employerProfilePrefill: `${API_VERSION}/employer-profiles/prefill`,
   employerProfileById: (id: string) => `${API_VERSION}/employer-profiles/${id}`,
+  siteContent: `${API_VERSION}/site-content`,
   jobs: `${API_VERSION}/jobs`,
   myJobs: `${API_VERSION}/jobs/my`,
   jobById: (id: string) => `${API_VERSION}/jobs/${id}`,

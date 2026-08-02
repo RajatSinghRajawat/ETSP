@@ -11,6 +11,9 @@ interface ConfirmDeleteProps {
   open: boolean;
   title: string;
   description: string;
+  confirmLabel?: string;
+  /** Set false for reversible actions so the permanence warning is dropped. */
+  irreversible?: boolean;
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -20,6 +23,8 @@ export function ConfirmDelete({
   open,
   title,
   description,
+  confirmLabel = 'Delete',
+  irreversible = true,
   loading,
   onConfirm,
   onCancel,
@@ -36,13 +41,15 @@ export function ConfirmDelete({
             <Dialog.Body>
               <Stack gap={2}>
                 <Text color="gray.600" fontSize="sm">{description}</Text>
-                <Text color="red.600" fontSize="xs" fontWeight="semibold">This action cannot be undone.</Text>
+                {irreversible && (
+                  <Text color="red.600" fontSize="xs" fontWeight="semibold">This action cannot be undone.</Text>
+                )}
               </Stack>
             </Dialog.Body>
             <Dialog.Footer>
               <HStack gap={3}>
                 <Button variant="ghost" onClick={onCancel} disabled={loading}>Cancel</Button>
-                <Button colorPalette="red" onClick={onConfirm} loading={loading}>Delete</Button>
+                <Button colorPalette="red" onClick={onConfirm} loading={loading}>{confirmLabel}</Button>
               </HStack>
             </Dialog.Footer>
           </Dialog.Content>

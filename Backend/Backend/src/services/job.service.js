@@ -26,11 +26,19 @@ function toPositiveNumber(value, fallback) {
   return Math.floor(parsed);
 }
 
-// Public listings only ever show live jobs: active AND not past validity.
+// Public listings only ever show live jobs: active, admin-approved AND not
+// past validity.
 const notExpiredFilter = () => ({ $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] });
 
+/** The gate every candidate-facing job query must apply. */
+export const liveJobFilter = () => ({
+  status: 'active',
+  approvalStatus: 'approved',
+  ...notExpiredFilter(),
+});
+
 function buildPublicJobFilters(query = {}) {
-  const filters = { status: 'active', $and: [notExpiredFilter()] };
+  const filters = { status: 'active', approvalStatus: 'approved', $and: [notExpiredFilter()] };
 
   if (query.search) {
     const keyword = new RegExp(escapeRegex(String(query.search).trim()), 'i');
@@ -259,16 +267,27 @@ export async function getJobs(query, user) {
   };
 }
 
-export async function getJobById(id) {
+export async function getJobById(id, user = null) {
   if (!id.match(/^[0-9a-fA-F]{24}$/)) {
     throw new AppError('Job not found', 404);
   }
 
-  const job = await Job.findOne({ _id: id, status: 'active', ...notExpiredFilter() }).lean();
+  const job = await Job.findOne({ _id: id, ...liveJobFilter() }).lean();
 
-  if (!job) {
-    throw new AppError('Job not found', 404);
+  if (job) {
+    return job;
   }
 
-  return job;
+  // The gate above is for candidates. The employer who posted the job still
+  // has to open it to review and edit it while it waits on approval, and an
+  // admin needs to see it to make that decision.
+  if (user) {
+    const owned = await Job.findOne({ _id: id }).lean();
+
+    if (owned && (user.role === 'admin' || owned.employerEmail === user.email)) {
+      return owned;
+    }
+  }
+
+  throw new AppError('Job not found', 404);
 }

@@ -12,7 +12,9 @@ import { jobSchema } from '../validations/job.validation.js';
 export async function jobRoutes(app) {
   app.get('/my', { preHandler: authenticate }, getMyJobPosts);
   app.get('/', { preHandler: authenticateOptional }, getJobPosts);
-  app.get('/:id', getJobPost);
+  // Optional auth so the posting employer (and admins) can still open a job
+  // that is waiting on approval; anonymous visitors only see approved ones.
+  app.get('/:id', { preHandler: authenticateOptional }, getJobPost);
   app.post('/', {
     preHandler: [authenticate, validateBody(jobSchema)],
   }, createJobPost);

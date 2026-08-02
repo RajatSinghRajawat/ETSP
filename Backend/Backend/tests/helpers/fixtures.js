@@ -146,7 +146,7 @@ function uniqueSuffix() {
   return `${userCounter}${Math.floor(Math.random() * 900000) + 100000}`;
 }
 
-export async function createEmployer(email = null) {
+export async function createEmployer(email = null, overrides = {}) {
   const suffix = uniqueSuffix();
   const resolvedEmail = email ?? `employer${suffix}@fixture.test`;
 
@@ -161,6 +161,10 @@ export async function createEmployer(email = null) {
     teamSize: '1-10',
     headquarters: 'Jaipur',
     overview: 'Fixture employer used by integration tests.',
+    // Fixtures represent already-onboarded accounts by default; tests that
+    // specifically exercise the approval gate can override this.
+    approvalStatus: 'approved',
+    ...overrides,
   });
 
   return {
@@ -185,6 +189,9 @@ export async function createCandidate(email = null, overrides = {}) {
     educationLevel: 'Graduate',
     currentJobTitle: 'Veterinary Doctor',
     organizationName: 'Fixture Org',
+    // Fixtures represent already-onboarded accounts by default; tests that
+    // specifically exercise the approval gate can override this.
+    approvalStatus: 'approved',
     ...overrides,
   });
 

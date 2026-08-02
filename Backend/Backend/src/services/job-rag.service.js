@@ -128,7 +128,7 @@ export async function reindexAllJobs() {
     throw new AppError('AI search is not configured. Please set OPENAI_API_KEY.', 503);
   }
 
-  const jobs = await Job.find({ status: 'active' }).lean();
+  const jobs = await Job.find({ status: 'active', approvalStatus: 'approved' }).lean();
   let indexed = 0;
   let skipped = 0;
 
@@ -263,6 +263,9 @@ export async function searchJobsBySemantics({ query, candidateEmail } = {}) {
   const filters = parseQueryFilters(rawFilters);
 
   // Pull a tractable candidate set with light metadata filters first; rerank in-memory.
+  // Embeddings carry no approval flag — the gate is applied when the matching
+  // jobs are hydrated below, so it survives an approval flipping either way
+  // without needing the index rebuilt.
   const candidateQuery = { status: 'active' };
   if (filters.location) {
     candidateQuery.location = new RegExp(filters.location.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
@@ -302,7 +305,11 @@ export async function searchJobsBySemantics({ query, candidateEmail } = {}) {
     };
   }
 
-  const jobs = await Job.find({ _id: { $in: finalMatches.map((m) => m.jobId) } }).lean();
+  const jobs = await Job.find({
+    _id: { $in: finalMatches.map((m) => m.jobId) },
+    status: 'active',
+    approvalStatus: 'approved',
+  }).lean();
   const jobsById = new Map(jobs.map((job) => [String(job._id), job]));
   const orderedJobs = finalMatches
     .map((match) => jobsById.get(String(match.jobId)))

@@ -72,6 +72,16 @@ const candidateProfileSchema = new mongoose.Schema(
       default: 'submitted',
       index: true,
     },
+    // Admin verification gate: a new registration starts 'rejected' (i.e. not
+    // cleared to log in) and stays locked out until an admin sets this to
+    // 'approved'. An explicit admin rejection deletes the profile outright,
+    // so 'rejected' only ever means "not approved yet".
+    approvalStatus: {
+      type: String,
+      enum: ['rejected', 'approved'],
+      default: 'rejected',
+      index: true,
+    },
   },
   {
     timestamps: true,
