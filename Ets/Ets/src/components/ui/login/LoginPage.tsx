@@ -34,7 +34,7 @@ import { Toast } from '../../common';
 import LoginAnimation from './LoginAnimation';
 import { axiosInstance } from '../../../store/api/axiosInstance';
 import { API_ENDPOINTS } from '../../../store/api/endpoints';
-import { PHONE_LENGTH, isValidPhone, sanitizePhone } from '../../../utils/phone';
+import { isValidPhone, phoneHtmlInputProps, sanitizePhone } from '../../../utils/phone';
 
 type LoginStep = 'method' | 'phone_otp' | 'email_otp';
 type LoginMethod = 'phone' | 'email';
@@ -340,9 +340,7 @@ const LoginPage: React.FC = () => {
                 </InputAdornment>
               ),
             },
-            htmlInput: isEmail
-              ? undefined
-              : { maxLength: PHONE_LENGTH, inputMode: 'numeric', pattern: '[0-9]*', autoComplete: 'tel' },
+            htmlInput: isEmail ? undefined : phoneHtmlInputProps,
           }}
           sx={{ mb: 2, ...fieldSx }}
         />

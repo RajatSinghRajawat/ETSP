@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Box, Container, Typography, TextField, Button, Grid, Card, CardContent } from '@mui/material';
+import { Box, Container, Typography, TextField, Button, Grid, Card, CardContent, InputAdornment } from '@mui/material';
 import { Email, Phone, LocationOn, AccessTime } from '@mui/icons-material';
 import { useLocalizedSiteContent } from '../hooks/useLocalizedSiteContent';
-import { PHONE_LENGTH, sanitizePhone, validatePhone } from '../utils/phone';
+import { phoneHtmlInputProps, sanitizePhone, validatePhone } from '../utils/phone';
 
 const Contact: React.FC = () => {
   const { content } = useLocalizedSiteContent();
@@ -51,7 +51,14 @@ const Contact: React.FC = () => {
                     error={Boolean(validatePhone(phone))}
                     helperText={validatePhone(phone) || '10 digits, without +91'}
                     slotProps={{
-                      htmlInput: { maxLength: PHONE_LENGTH, inputMode: 'numeric', pattern: '[0-9]*', autoComplete: 'tel' },
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Box component="span" sx={{ color: 'text.secondary', fontWeight: 600 }}>+91</Box>
+                          </InputAdornment>
+                        ),
+                      },
+                      htmlInput: phoneHtmlInputProps,
                     }}
                   />
                   <TextField fullWidth label="Subject" placeholder="How can we help?" />

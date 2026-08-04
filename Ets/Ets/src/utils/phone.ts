@@ -7,19 +7,21 @@
 export const PHONE_LENGTH = 10;
 
 /**
- * Strips everything that is not a digit, drops a leading +91/91/0 that users
- * habitually type, and caps the result at 10 digits.
+ * Strips everything that is not a digit, drops a country/STD prefix when the
+ * length makes it unambiguous, and caps the result at 10 digits.
+ *
+ * The length checks are exact on purpose: "9198765432" is itself a valid
+ * 10-digit mobile number, so a prefix is only removed when the input is
+ * literally 12 digits starting with 91 (or 11 starting with 0). This matters
+ * most for pasted values like "+91 98765 43210".
  */
 export function sanitizePhone(input: string): string {
   let digits = String(input ?? '').replace(/\D/g, '');
 
-  // "+91 98765 43210" / "919876543210" -> "9876543210"
-  if (digits.length > PHONE_LENGTH && digits.startsWith('91')) {
+  if (digits.length === PHONE_LENGTH + 2 && digits.startsWith('91')) {
     digits = digits.slice(2);
-  }
-  // Legacy STD style "09876543210"
-  if (digits.length > PHONE_LENGTH && digits.startsWith('0')) {
-    digits = digits.replace(/^0+/, '');
+  } else if (digits.length === PHONE_LENGTH + 1 && digits.startsWith('0')) {
+    digits = digits.slice(1);
   }
 
   return digits.slice(0, PHONE_LENGTH);
@@ -46,18 +48,20 @@ export function validatePhone(value: string, { required = false } = {}): string 
 }
 
 /**
- * Props to spread onto a phone `TextField` — numeric keypad on mobile,
- * digits only, hard 10-character cap.
+ * Attributes for the underlying `<input>` of a phone field.
+ *
+ * Deliberately no `maxLength`: the browser enforces it on paste too, which
+ * would truncate "+91 98765 43210" to "+91 98765" before sanitizePhone ever
+ * sees it. The 10-digit cap is applied in sanitizePhone instead.
  */
+export const phoneHtmlInputProps = {
+  inputMode: 'numeric' as const,
+  pattern: '[0-9]*',
+  autoComplete: 'tel',
+};
+
+/** Props to spread onto a phone `TextField`. */
 export const phoneInputProps = {
   type: 'tel' as const,
-  inputMode: 'numeric' as const,
-  slotProps: {
-    htmlInput: {
-      maxLength: PHONE_LENGTH,
-      inputMode: 'numeric' as const,
-      pattern: '[0-9]*',
-      autoComplete: 'tel',
-    },
-  },
+  slotProps: { htmlInput: phoneHtmlInputProps },
 };

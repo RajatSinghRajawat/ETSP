@@ -11,6 +11,7 @@ import {
   CircularProgress,
   Divider,
   Grid,
+  InputAdornment,
   MenuItem,
   Paper,
   Stack,
@@ -32,7 +33,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
-import { phoneInputProps, sanitizePhone, validatePhone } from '../../utils/phone';
+import { phoneHtmlInputProps, sanitizePhone, validatePhone } from '../../utils/phone';
 import notify from '../../utils/toast';
 import { Toast } from '../../components/common';
 import { PageHeader } from '../../components/common/PageHeader';
@@ -751,7 +752,17 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
                         error={Boolean(formErrors.phoneNumber)}
                         helperText={formErrors.phoneNumber || '10 digits, without +91'}
                         onChange={(event) => handleNumericFieldChange('phoneNumber', event.target.value)}
-                        {...phoneInputProps}
+                        type="tel"
+                        slotProps={{
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Box component="span" sx={{ color: 'text.secondary', fontWeight: 600 }}>+91</Box>
+                              </InputAdornment>
+                            ),
+                          },
+                          htmlInput: phoneHtmlInputProps,
+                        }}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>

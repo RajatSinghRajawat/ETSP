@@ -87,11 +87,14 @@ export default function ShareButton({
   const shareUrl = toAbsolute(url);
   const shareText = text || title;
 
-  const openMenu = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
   const closeMenu = () => setAnchorEl(null);
 
   const handleClick = async (event: React.MouseEvent<HTMLElement>) => {
     if (stopPropagation) event.stopPropagation();
+
+    // Grab the anchor now: React nulls `currentTarget` once the handler
+    // returns, so it is gone by the time an awaited navigator.share settles.
+    const anchor = event.currentTarget;
 
     if (navigator.share) {
       try {
@@ -100,11 +103,11 @@ export default function ShareButton({
       } catch (err) {
         // User dismissed the sheet — not an error worth surfacing.
         if ((err as DOMException)?.name === 'AbortError') return;
-        // Anything else: fall back to the menu.
+        // Anything else (e.g. NotAllowedError on desktop): show the menu.
       }
     }
 
-    openMenu(event);
+    setAnchorEl(anchor);
   };
 
   const handleCopy = async () => {

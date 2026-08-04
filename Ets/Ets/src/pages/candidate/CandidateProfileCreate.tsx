@@ -58,7 +58,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
-import { PHONE_LENGTH, sanitizePhone, validatePhone } from '../../utils/phone';
+import { phoneHtmlInputProps, sanitizePhone, validatePhone } from '../../utils/phone';
 import notify from '../../utils/toast';
 import { PageHeader } from '../../components/common/PageHeader';
 import {
@@ -945,8 +945,17 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                         error={Boolean(validatePhone(formData.phone))}
                         helperText={validatePhone(formData.phone) || '10 digits, without +91'}
                         slotProps={{
-                          ...adornment(<Phone />),
-                          htmlInput: { maxLength: PHONE_LENGTH, inputMode: 'numeric', pattern: '[0-9]*', autoComplete: 'tel' },
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Phone sx={{ color: '#0c5283', mr: 0.5 }} />
+                                <Box component="span" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                                  +91
+                                </Box>
+                              </InputAdornment>
+                            ),
+                          },
+                          htmlInput: phoneHtmlInputProps,
                         }}
                       />
                     </Grid>
