@@ -27,6 +27,8 @@ import {
   Work,
 } from '@mui/icons-material';
 import { JobCard } from '../../components/common/JobCard';
+import ShareButton from '../../components/common/ShareButton';
+import notify from '../../utils/toast';
 import { useGetJobQuery, useGetJobsQuery } from '../../store/api/jobApi';
 import {
   useCreateApplicationMutation,
@@ -109,6 +111,7 @@ const JobDetails: React.FC = () => {
 
     if (screeningQuestions.some((entry) => !screeningAnswers[entry.question]?.trim())) {
       setApplyError('Please answer all screening questions before applying.');
+      notify.warning('Please answer all screening questions before applying.');
       return;
     }
 
@@ -122,17 +125,18 @@ const JobDetails: React.FC = () => {
         })),
       }).unwrap();
       setApplyMessage(response.message);
+      notify.success(response.message || 'Application submitted successfully.');
       setCoverLetter('');
       setScreeningAnswers({});
       refetchUsage();
     } catch (error) {
       const fallback = 'Unable to submit application. Please login as a candidate and try again.';
-      if (typeof error === 'object' && error !== null && 'data' in error) {
-        setApplyError((error as { data?: { message?: string } }).data?.message ?? fallback);
-        return;
-      }
-
-      setApplyError(fallback);
+      const message =
+        typeof error === 'object' && error !== null && 'data' in error
+          ? ((error as { data?: { message?: string } }).data?.message ?? fallback)
+          : fallback;
+      setApplyError(message);
+      notify.error(message);
     }
   };
 
@@ -198,9 +202,34 @@ const JobDetails: React.FC = () => {
               <Chip label="Urgent Hiring" size="small" sx={{ bgcolor: '#ef4444', color: 'white', fontWeight: 700 }} />
             )}
           </Stack>
-          <Typography variant="h3" sx={{ fontWeight: 800, mb: 1 }}>
-            {job.title}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+            <Typography
+              variant="h3"
+              sx={{
+                fontWeight: 800,
+                flex: 1,
+                minWidth: 0,
+                fontSize: { xs: '1.6rem', sm: '2.25rem', md: '3rem' },
+                wordBreak: 'break-word',
+              }}
+            >
+              {job.title}
+            </Typography>
+            <ShareButton
+              url={`/jobs/${job._id}`}
+              title={`${job.title} at ${job.companyName}`}
+              text={`${job.title} at ${job.companyName} — ${job.location}. Apply on VetsLinked:`}
+              label="Share this job"
+              size="medium"
+              sx={{
+                flexShrink: 0,
+                mt: 0.5,
+                color: '#fff',
+                bgcolor: alpha('#ffffff', 0.16),
+                '&:hover': { bgcolor: alpha('#ffffff', 0.28) },
+              }}
+            />
+          </Box>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3, flexWrap: 'wrap', gap: 1 }}>
             <Typography variant="h6" sx={{ fontWeight: 400, opacity: 0.9 }}>
               {job.companyName}

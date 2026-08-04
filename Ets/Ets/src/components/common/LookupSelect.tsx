@@ -1,18 +1,15 @@
 import { useMemo, useState } from 'react';
 import {
-  Alert,
   Autocomplete,
   Box,
-  Button,
   Checkbox,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
+  Divider,
   FormControl,
   FormHelperText,
+  IconButton,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
@@ -21,14 +18,14 @@ import {
   Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import CheckIcon from '@mui/icons-material/Check';
 import {
   useGetLookupsQuery,
   useProposeLookupMutation,
   type LookupCategory,
   type LookupItem,
 } from '../../store/api/lookupApi';
-
-const ADD_NEW = '__add_new__';
+import notify from '../../utils/toast';
 
 type LookupSelectProps = {
   category: LookupCategory;
@@ -48,8 +45,9 @@ type LookupSelectProps = {
 };
 
 /**
- * Select fed by admin-managed lookup options, with an "Add new…" entry that
- * submits a proposal for admin approval (does not publish immediately).
+ * Select fed by the shared lookup catalogue. Missing values can be added inline
+ * from the bottom of the dropdown — no dialog, no sign-in — and become
+ * immediately selectable.
  */
 export default function LookupSelect({
   category,
@@ -66,13 +64,9 @@ export default function LookupSelect({
   allowPropose = true,
   emptyLabel = 'Select…',
 }: LookupSelectProps) {
-  const isLoggedIn = Boolean(localStorage.getItem('ets-access-token'));
   const { data, isLoading } = useGetLookupsQuery({ category });
   const [propose, { isLoading: proposing }] = useProposeLookupMutation();
-
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const options = useMemo(() => data?.data ?? [], [data]);
 
@@ -82,131 +76,127 @@ export default function LookupSelect({
   const valueInOptions = Boolean(value && options.some((o) => optionKey(o) === value));
 
   const handleSelect = (event: SelectChangeEvent<string>) => {
-    const next = event.target.value;
-    if (next === ADD_NEW) {
-      setFeedback(null);
-      setNewName('');
-      setDialogOpen(true);
-      return;
-    }
-    onChange(next);
+    onChange(event.target.value);
   };
 
-  const handlePropose = async () => {
+  const handleAdd = async () => {
     const name = newName.trim();
     if (name.length < 2) {
-      setFeedback({ type: 'error', text: 'Enter at least 2 characters.' });
-      return;
-    }
-    if (!isLoggedIn) {
-      setFeedback({ type: 'error', text: 'Please log in to suggest a new option.' });
+      notify.warning('Enter at least 2 characters.');
       return;
     }
 
     try {
       const res = await propose({ category, name }).unwrap();
-      setFeedback({ type: 'success', text: res.message || 'Submitted for admin approval.' });
-      // If it was already approved, select it immediately.
-      if (res.data?.status === 'approved' && res.data.isActive !== false) {
-        onChange(optionKey(res.data));
-        setDialogOpen(false);
+      const created = res.data;
+      if (created) {
+        onChange(optionKey(created));
+        notify.success(res.message || `"${created.name}" added.`);
       }
+      setNewName('');
     } catch (err) {
-      const apiError = err as { data?: { message?: string } };
-      setFeedback({
-        type: 'error',
-        text: apiError?.data?.message ?? 'Could not submit. Please try again.',
-      });
+      notify.apiError(err, `Could not add "${name}".`);
     }
   };
 
   return (
-    <>
-      <FormControl
-        fullWidth={fullWidth}
-        required={required}
-        disabled={disabled || isLoading}
-        size={size}
-        error={error}
+    <FormControl
+      fullWidth={fullWidth}
+      required={required}
+      disabled={disabled || isLoading}
+      size={size}
+      error={error}
+    >
+      <InputLabel>{label}</InputLabel>
+      <Select
+        label={label}
+        value={value || ''}
+        onChange={handleSelect}
+        // Keeps the menu open while the inline "add" field is being typed into.
+        MenuProps={{ autoFocus: false, slotProps: { paper: { sx: { maxHeight: 360 } } } }}
+        renderValue={(selected) => {
+          if (!selected) return emptyLabel;
+          const match = options.find((o) => optionKey(o) === selected);
+          return match?.name ?? selected;
+        }}
       >
-        <InputLabel>{label}</InputLabel>
-        <Select
-          label={label}
-          value={value || ''}
-          onChange={handleSelect}
-          renderValue={(selected) => {
-            if (!selected) return emptyLabel;
-            const match = options.find((o) => optionKey(o) === selected);
-            return match?.name ?? selected;
-          }}
-        >
-          <MenuItem value="">
-            <em>{emptyLabel}</em>
+        <MenuItem value="">
+          <em>{emptyLabel}</em>
+        </MenuItem>
+        {isLoading && (
+          <MenuItem disabled value="__loading__">
+            <CircularProgress size={16} sx={{ mr: 1 }} /> Loading…
           </MenuItem>
-          {isLoading && (
-            <MenuItem disabled value="__loading__">
-              <CircularProgress size={16} sx={{ mr: 1 }} /> Loading…
-            </MenuItem>
-          )}
-          {/* Keep current value selectable when editing a legacy/custom entry. */}
-          {value && !valueInOptions && (
-            <MenuItem value={value}>{value}</MenuItem>
-          )}
-          {options.map((opt) => (
-            <MenuItem key={opt._id} value={optionKey(opt)}>
-              {opt.name}
-            </MenuItem>
-          ))}
-          {allowPropose && (
-            <MenuItem value={ADD_NEW} sx={{ color: 'primary.main', fontWeight: 600 }}>
-              <AddIcon fontSize="small" sx={{ mr: 1 }} />
-              Add new…
-            </MenuItem>
-          )}
-        </Select>
-        {helperText && <FormHelperText>{helperText}</FormHelperText>}
-      </FormControl>
+        )}
+        {/* Keep current value selectable when editing a legacy/custom entry. */}
+        {value && !valueInOptions && <MenuItem value={value}>{value}</MenuItem>}
+        {options.map((opt) => (
+          <MenuItem key={opt._id} value={optionKey(opt)}>
+            {opt.name}
+          </MenuItem>
+        ))}
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Suggest a new {label.toLowerCase()}</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Your suggestion is sent to the admin for approval. It will appear in this list only after
-            it is approved.
-          </Typography>
-          <TextField
-            autoFocus
-            fullWidth
-            label="New value"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            disabled={proposing}
-          />
-          {feedback && (
-            <Alert severity={feedback.type} sx={{ mt: 2 }}>
-              {feedback.text}
-            </Alert>
-          )}
-          {!isLoggedIn && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              Log in to submit a suggestion.
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDialogOpen(false)} color="inherit" disabled={proposing}>
-            Close
-          </Button>
-          <Button variant="contained" onClick={handlePropose} disabled={proposing || !isLoggedIn}>
-            {proposing ? 'Submitting…' : 'Submit for approval'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
+        {allowPropose && <Divider sx={{ my: 0.5 }} />}
+        {allowPropose && (
+          // Not a real option — a text field living in the menu. All keyboard and
+          // pointer events are stopped so MUI's Select never treats them as a
+          // selection or type-ahead.
+          <Box
+            sx={{ px: 1.5, py: 1 }}
+            onKeyDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+              Not in the list? Add it
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              autoComplete="off"
+              placeholder={`New ${label.toLowerCase()}`}
+              value={newName}
+              disabled={proposing}
+              onChange={(event) => setNewName(event.target.value)}
+              onKeyDown={(event) => {
+                event.stopPropagation();
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  void handleAdd();
+                }
+              }}
+              sx={{ mt: 0.5 }}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        edge="end"
+                        size="small"
+                        color="primary"
+                        aria-label={`Add ${label}`}
+                        disabled={proposing || newName.trim().length < 2}
+                        onClick={() => void handleAdd()}
+                      >
+                        {proposing ? <CircularProgress size={16} /> : <CheckIcon fontSize="small" />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+          </Box>
+        )}
+      </Select>
+      {helperText && <FormHelperText>{helperText}</FormHelperText>}
+    </FormControl>
   );
 }
 
-/** Multi-select fed by admin lookups, with removable chips and "Add new…" propose. */
+/**
+ * Multi-select fed by the same catalogue. Typing a value that does not exist
+ * offers an inline "Add …" row in the dropdown; picking it saves and selects
+ * the new option straight away.
+ */
 export function LookupChipPicker({
   category,
   label,
@@ -230,14 +220,13 @@ export function LookupChipPicker({
   required?: boolean;
   placeholder?: string;
 }) {
-  const isLoggedIn = Boolean(localStorage.getItem('ets-access-token'));
   const { data, isLoading } = useGetLookupsQuery({ category });
   const [propose, { isLoading: proposing }] = useProposeLookupMutation();
-  const options = data?.data ?? [];
+  const options = useMemo(() => data?.data ?? [], [data]);
+  const [inputValue, setInputValue] = useState('');
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const getKey = (item: { name: string; value: string }) =>
+    valueMode === 'name' ? item.name : item.value;
 
   const selectedOptions = useMemo((): LookupItem[] => {
     return values.map((selected) => {
@@ -259,36 +248,34 @@ export function LookupChipPicker({
     });
   }, [values, options, valueMode]);
 
-  const getKey = (item: { name: string; value: string }) =>
-    valueMode === 'name' ? item.name : item.value;
+  const trimmedInput = inputValue.trim();
+  const hasExactMatch = options.some(
+    (o) => o.name.toLowerCase() === trimmedInput.toLowerCase(),
+  );
+  const canAdd = allowPropose && trimmedInput.length >= 2 && !hasExactMatch;
 
-  const handlePropose = async () => {
-    const name = newName.trim();
-    if (name.length < 2) {
-      setFeedback({ type: 'error', text: 'Enter at least 2 characters.' });
-      return;
-    }
-    if (!isLoggedIn) {
-      setFeedback({ type: 'error', text: 'Please log in to suggest a new option.' });
-      return;
-    }
-
+  const handleAdd = async (name: string) => {
     try {
       const res = await propose({ category, name }).unwrap();
-      setFeedback({ type: 'success', text: res.message || 'Submitted for admin approval.' });
-      if (res.data?.status === 'approved' && res.data.isActive !== false) {
-        const key = valueMode === 'name' ? res.data.name : res.data.value;
+      const created = res.data;
+      if (created) {
+        const key = getKey(created);
         if (!values.includes(key)) onChange([...values, key]);
-        setDialogOpen(false);
-        setNewName('');
+        notify.success(res.message || `"${created.name}" added.`);
       }
+      setInputValue('');
     } catch (err) {
-      const apiError = err as { data?: { message?: string } };
-      setFeedback({
-        type: 'error',
-        text: apiError?.data?.message ?? 'Could not submit. Please try again.',
-      });
+      notify.apiError(err, `Could not add "${name}".`);
     }
+  };
+
+  // Synthetic row rendered at the end of the dropdown when the typed text is new.
+  const addOption: LookupItem = {
+    _id: '__add_new__',
+    name: trimmedInput,
+    value: '__add_new__',
+    order: 99999,
+    isActive: true,
   };
 
   return (
@@ -309,122 +296,87 @@ export function LookupChipPicker({
         />
       </Box>
 
-      <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-        <Autocomplete
-          multiple
-          fullWidth
-          disableCloseOnSelect
-          loading={isLoading}
-          options={options}
-          value={selectedOptions}
-          getOptionLabel={(option) => option.name}
-          isOptionEqualToValue={(option, val) =>
-            getKey(option) === getKey(val) || option.name === val.name || option.value === val.value
+      <Autocomplete
+        multiple
+        fullWidth
+        disableCloseOnSelect
+        loading={isLoading || proposing}
+        options={canAdd ? [...options, addOption] : options}
+        value={selectedOptions}
+        inputValue={inputValue}
+        onInputChange={(_event, next, reason) => {
+          if (reason !== 'reset') setInputValue(next);
+        }}
+        getOptionLabel={(option) => option.name}
+        isOptionEqualToValue={(option, val) =>
+          getKey(option) === getKey(val) || option.name === val.name || option.value === val.value
+        }
+        filterOptions={(opts, state) => {
+          const keyword = state.inputValue.trim().toLowerCase();
+          return opts.filter(
+            (o) => o.value === '__add_new__' || o.name.toLowerCase().includes(keyword),
+          );
+        }}
+        onChange={(_event, next) => {
+          const addRow = next.find((item) => item.value === '__add_new__');
+          if (addRow) {
+            void handleAdd(addRow.name);
+            return;
           }
-          onChange={(_event, next) => {
-            const keys = next.map((item) => getKey(item));
-            onChange([...new Set(keys)]);
-          }}
-          renderTags={(tagValue, getTagProps) =>
-            tagValue.map((option, index) => {
-              const { key, ...tagProps } = getTagProps({ index });
-              return (
-                <Chip
-                  key={key}
-                  label={option.name}
-                  size="small"
-                  color="primary"
-                  variant="filled"
-                  sx={{ fontWeight: 600, borderRadius: 2 }}
-                  {...tagProps}
-                />
-              );
-            })
+          onChange([...new Set(next.map((item) => getKey(item)))]);
+        }}
+        renderTags={(tagValue, getTagProps) =>
+          tagValue.map((option, index) => {
+            const { key, ...tagProps } = getTagProps({ index });
+            return (
+              <Chip
+                key={key}
+                label={option.name}
+                size="small"
+                color="primary"
+                variant="filled"
+                sx={{ fontWeight: 600, borderRadius: 2 }}
+                {...tagProps}
+              />
+            );
+          })
+        }
+        renderOption={(props, option, { selected }) => {
+          const { key, ...liProps } = props as React.HTMLAttributes<HTMLLIElement> & { key?: string };
+          if (option.value === '__add_new__') {
+            return (
+              <li {...liProps} key="__add_new__">
+                <AddIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography sx={{ fontWeight: 700, color: 'primary.main' }}>
+                  Add "{option.name}"
+                </Typography>
+              </li>
+            );
           }
-          renderOption={(props, option, { selected }) => (
-            <li {...props} key={option._id}>
+          return (
+            <li {...liProps} key={key ?? option._id}>
               <Checkbox size="small" checked={selected} sx={{ mr: 1 }} />
               {option.name}
             </li>
-          )}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label={`Select ${label.toLowerCase()}`}
-              placeholder={
-                values.length
-                  ? ''
-                  : placeholder || (isLoading ? 'Loading…' : `Choose one or more ${label.toLowerCase()}`)
-              }
-              error={error}
-              helperText={helperText}
-            />
-          )}
-        />
-        {allowPropose && (
-          <Button
-            variant="outlined"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setFeedback(null);
-              setNewName('');
-              setDialogOpen(true);
-            }}
-            sx={{
-              flexShrink: 0,
-              height: 56,
-              px: 2,
-              textTransform: 'none',
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Add new
-          </Button>
-        )}
-      </Box>
-
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Suggest a new {label.toLowerCase().replace(/s$/, '')}</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Your suggestion goes to the admin for approval. It appears in this list only after it is
-            approved.
-          </Typography>
+          );
+        }}
+        noOptionsText={
+          allowPropose ? 'Type at least 2 characters to add a new one' : 'No matches'
+        }
+        renderInput={(params) => (
           <TextField
-            autoFocus
-            fullWidth
-            label="New value"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            disabled={proposing}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                void handlePropose();
-              }
-            }}
+            {...params}
+            label={`Select ${label.toLowerCase()}`}
+            placeholder={
+              values.length
+                ? ''
+                : placeholder || (isLoading ? 'Loading…' : `Choose or type to add a new ${label.toLowerCase()}`)
+            }
+            error={error}
+            helperText={helperText}
           />
-          {feedback && (
-            <Alert severity={feedback.type} sx={{ mt: 2 }}>
-              {feedback.text}
-            </Alert>
-          )}
-          {!isLoggedIn && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              Log in to submit a suggestion.
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDialogOpen(false)} color="inherit" disabled={proposing}>
-            Close
-          </Button>
-          <Button variant="contained" onClick={handlePropose} disabled={proposing || !isLoggedIn}>
-            {proposing ? 'Submitting…' : 'Submit for approval'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        )}
+      />
     </Box>
   );
 }

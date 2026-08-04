@@ -34,6 +34,7 @@ import { Toast } from '../../common';
 import LoginAnimation from './LoginAnimation';
 import { axiosInstance } from '../../../store/api/axiosInstance';
 import { API_ENDPOINTS } from '../../../store/api/endpoints';
+import { PHONE_LENGTH, isValidPhone, sanitizePhone } from '../../../utils/phone';
 
 type LoginStep = 'method' | 'phone_otp' | 'email_otp';
 type LoginMethod = 'phone' | 'email';
@@ -84,8 +85,8 @@ const LoginPage: React.FC = () => {
   const handleSendOtp = async () => {
     setAuthError('');
 
-    if (method === 'phone' && phone.length < 10) {
-      showToast('Please enter a valid phone number', 'error');
+    if (method === 'phone' && !isValidPhone(phone)) {
+      showToast('Please enter a valid 10 digit mobile number', 'error');
       return;
     }
     if (method === 'email' && !email.includes('@')) {
@@ -281,7 +282,7 @@ const LoginPage: React.FC = () => {
     const setValue = isEmail ? setEmail : setPhone;
     const placeholder = isEmail ? t('email_placeholder') : t('phone_placeholder');
     const title = isEmail ? t('email_login') : t('phone_login');
-    const isValid = isEmail ? email.includes('@') : phone.length >= 10;
+    const isValid = isEmail ? email.includes('@') : isValidPhone(phone);
     const showOtpField = step === `${mode}_otp` && method === mode && isValid;
 
     return (
@@ -327,7 +328,7 @@ const LoginPage: React.FC = () => {
           placeholder={placeholder}
           value={value}
           onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            const next = isEmail ? e.target.value : e.target.value.replace(/\D/g, '');
+            const next = isEmail ? e.target.value : sanitizePhone(e.target.value);
             setValue(next);
             setAuthError('');
           }}
@@ -339,6 +340,9 @@ const LoginPage: React.FC = () => {
                 </InputAdornment>
               ),
             },
+            htmlInput: isEmail
+              ? undefined
+              : { maxLength: PHONE_LENGTH, inputMode: 'numeric', pattern: '[0-9]*', autoComplete: 'tel' },
           }}
           sx={{ mb: 2, ...fieldSx }}
         />

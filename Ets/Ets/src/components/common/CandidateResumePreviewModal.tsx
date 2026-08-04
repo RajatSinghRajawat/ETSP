@@ -109,7 +109,7 @@ const CandidateResumePreviewModal: React.FC<CandidateResumePreviewModalProps> = 
           </Box>
         </Stack>
 
-        <Stack direction="row" spacing={1.5} alignItems="center">
+        <Stack direction="row" spacing={{ xs: 0.5, sm: 1.5 }} alignItems="center" sx={{ flexShrink: 0 }}>
           <Button
             variant="contained"
             startIcon={isDownloading ? <CircularProgress size={16} color="inherit" /> : <Download />}
@@ -118,9 +118,11 @@ const CandidateResumePreviewModal: React.FC<CandidateResumePreviewModalProps> = 
             sx={{
               fontWeight: 700,
               textTransform: 'none',
+              whiteSpace: 'nowrap',
               borderRadius: 2.5,
-              px: 2.5,
+              px: { xs: 1.5, sm: 2.5 },
               py: 1,
+              fontSize: { xs: '0.78rem', sm: '0.875rem' },
               background: 'linear-gradient(135deg, #0ab6a2 0%, #0c5283 100%)',
               boxShadow: '0 10px 22px -8px rgba(10,182,162,0.5)',
               '&:hover': {

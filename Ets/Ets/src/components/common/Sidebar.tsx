@@ -1,5 +1,32 @@
-import { Box, List, ListItem, ListItemIcon, ListItemText, ListItemButton, Typography, Avatar } from '@mui/material';
-import { Dashboard, Work, Description, Person, Business, People, Campaign, Pets, BookmarkBorder } from '@mui/icons-material';
+import { useEffect, useState } from 'react';
+import {
+  Box,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  ListItemButton,
+  Typography,
+  Avatar,
+  Drawer,
+  IconButton,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import {
+  Dashboard,
+  Work,
+  Description,
+  Person,
+  Business,
+  People,
+  Campaign,
+  Pets,
+  BookmarkBorder,
+  Menu as MenuIcon,
+  Close,
+  SupportAgent,
+} from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
@@ -8,9 +35,20 @@ interface SidebarProps {
   userRole?: string;
 }
 
+const SIDEBAR_WIDTH = 272;
+const PANEL_BG = 'linear-gradient(185deg, #0c5283 0%, #0a466e 55%, #083a5c 100%)';
+
 const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '' }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Route changes close the drawer so the new page is not hidden behind it.
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   const employerMenu = [
     { label: 'Dashboard', icon: <Dashboard />, path: '/employer/dashboard' },
@@ -19,6 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
     { label: 'Employees', icon: <People />, path: '/employer/employees' },
     { label: 'Applications', icon: <Description />, path: '/employer/applications' },
     { label: 'Employers Directory', icon: <Description />, path: '/employers' },
+    { label: 'Support', icon: <SupportAgent />, path: '/employer/support' },
   ];
 
   const candidateMenu = [
@@ -27,6 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
     { label: 'Saved Jobs', icon: <BookmarkBorder />, path: '/candidate/saved-jobs' },
     { label: 'My Profile', icon: <Person />, path: '/candidate/profile' },
     { label: 'Browse Employers', icon: <Business />, path: '/employers' },
+    { label: 'Support', icon: <SupportAgent />, path: '/candidate/support' },
   ];
 
   const adminMenu = [
@@ -40,31 +80,18 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
 
   const menu = type === 'employer' ? employerMenu : type === 'candidate' ? candidateMenu : adminMenu;
   const roleLabel = userRole || (type === 'employer' ? 'Employer' : type === 'candidate' ? 'Candidate' : 'Admin');
+  const initial = userName.charAt(0).toUpperCase();
 
-  return (
-    <Box
-      sx={{
-        width: 272,
-        flexShrink: 0,
-        height: '100vh',
-        position: 'sticky',
-        top: 0,
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        color: '#fff',
-        background: 'linear-gradient(185deg, #0c5283 0%, #0a466e 55%, #083a5c 100%)',
-        boxShadow: '4px 0 24px -10px rgba(12,82,131,0.5)',
-        '&::-webkit-scrollbar': { width: 6 },
-        '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 3 },
-      }}
-    >
+  // Shared panel body — identical on desktop (sticky column) and mobile (drawer).
+  const panel = (
+    <>
       {/* Brand */}
       <Box sx={{ px: 3, pt: 3, pb: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Box
           sx={{
             width: 42,
             height: 42,
+            flexShrink: 0,
             borderRadius: 2.5,
             display: 'flex',
             alignItems: 'center',
@@ -78,6 +105,15 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
         <Typography sx={{ fontWeight: 800, fontSize: 20, letterSpacing: 0.3 }}>
           VetsLinked
         </Typography>
+        {isMobile && (
+          <IconButton
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+            sx={{ ml: 'auto', color: 'rgba(255,255,255,0.8)' }}
+          >
+            <Close />
+          </IconButton>
+        )}
       </Box>
 
       {/* User card */}
@@ -98,12 +134,13 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
             sx={{
               width: 44,
               height: 44,
+              flexShrink: 0,
               fontWeight: 800,
               bgcolor: 'rgba(255,255,255,0.2)',
               border: '2px solid rgba(255,255,255,0.4)',
             }}
           >
-            {userName.charAt(0).toUpperCase()}
+            {initial}
           </Avatar>
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700, color: '#fff' }}>
@@ -144,7 +181,10 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
           return (
             <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  setMobileOpen(false);
+                  navigate(item.path);
+                }}
                 sx={{
                   borderRadius: 2.5,
                   py: 1.1,
@@ -212,11 +252,107 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
           <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', display: 'block' }}>
             Need help?
           </Typography>
-          <Typography variant="caption" sx={{ color: '#fff', fontWeight: 700 }}>
+          <Typography variant="caption" sx={{ color: '#fff', fontWeight: 700, wordBreak: 'break-word' }}>
             support@vetslinked.com
           </Typography>
         </Box>
       </Box>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        {/* Compact bar that replaces the column below md; opens the drawer. */}
+        <Box
+          sx={{
+            position: 'sticky',
+            top: { xs: '56px', sm: '64px' },
+            zIndex: theme.zIndex.appBar - 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.25,
+            px: 1.5,
+            py: 1,
+            color: '#fff',
+            background: PANEL_BG,
+            boxShadow: '0 6px 18px -10px rgba(12,82,131,0.8)',
+          }}
+        >
+          <IconButton
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open dashboard menu"
+            sx={{ color: '#fff', p: 1 }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Avatar
+            sx={{
+              width: 34,
+              height: 34,
+              flexShrink: 0,
+              fontSize: 15,
+              fontWeight: 800,
+              bgcolor: 'rgba(255,255,255,0.2)',
+              border: '1.5px solid rgba(255,255,255,0.4)',
+            }}
+          >
+            {initial}
+          </Avatar>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+              {userName}
+            </Typography>
+            <Typography variant="caption" noWrap sx={{ color: 'rgba(255,255,255,0.75)' }}>
+              {roleLabel}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Drawer
+          anchor="left"
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            // Sits above the fixed navbar so the drawer header stays reachable.
+            zIndex: theme.zIndex.appBar + 1,
+            '& .MuiDrawer-paper': {
+              width: { xs: '84vw', sm: SIDEBAR_WIDTH },
+              maxWidth: SIDEBAR_WIDTH,
+              display: 'flex',
+              flexDirection: 'column',
+              color: '#fff',
+              background: PANEL_BG,
+              backgroundImage: PANEL_BG,
+            },
+          }}
+        >
+          {panel}
+        </Drawer>
+      </>
+    );
+  }
+
+  return (
+    <Box
+      sx={{
+        width: SIDEBAR_WIDTH,
+        flexShrink: 0,
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        color: '#fff',
+        background: PANEL_BG,
+        boxShadow: '4px 0 24px -10px rgba(12,82,131,0.5)',
+        '&::-webkit-scrollbar': { width: 6 },
+        '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 3 },
+      }}
+    >
+      {panel}
     </Box>
   );
 };

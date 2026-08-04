@@ -8,6 +8,7 @@ import { jobApplicationRoutes } from './job-application.routes.js';
 import { jobRoutes } from './job.routes.js';
 import { savedJobRoutes } from './saved-job.routes.js';
 import { siteContentRoutes } from './site-content.routes.js';
+import { supportTicketRoutes } from './support-ticket.routes.js';
 import { billingStatusRoutes } from './billing-status.routes.js';
 import { lookupOptionRoutes } from './lookup-option.routes.js';
 import {
@@ -30,6 +31,7 @@ export async function apiRoutes(app) {
   app.register(jobRoutes, { prefix: '/jobs' });
   app.register(jobApplicationRoutes, { prefix: '/applications' });
   app.register(savedJobRoutes, { prefix: '/saved-jobs' });
+  app.register(supportTicketRoutes, { prefix: '/support-tickets' });
   app.register(chatRoutes, { prefix: '/chat' });
   app.register(jobTypeRoutes, { prefix: '/job-types' });
   app.register(skillRoutes, { prefix: '/skills' });

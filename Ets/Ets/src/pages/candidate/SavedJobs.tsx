@@ -26,6 +26,7 @@ import Sidebar from '../../components/common/Sidebar';
 import { PageHeader } from '../../components/common/PageHeader';
 import { useGetMyCandidateProfileQuery } from '../../store/api/candidateProfileApi';
 import { useGetMySavedJobsQuery, useUnsaveJobMutation } from '../../store/api/savedJobApi';
+import notify from '../../utils/toast';
 
 function formatSavedDate(value: string) {
   const date = new Date(value);
@@ -46,10 +47,10 @@ const SavedJobs: React.FC = () => {
   const savedJobs = data?.data.items ?? [];
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
       <Sidebar type="candidate" userName={candidateName} userRole={candidateRole} />
 
-      <Box sx={{ flex: 1, p: { xs: 2, md: 4 }, bgcolor: '#f4f8fc' }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: '#f4f8fc' }}>
         <PageHeader title="Saved Jobs" subtitle="Jobs you've bookmarked to revisit and apply later." />
 
         {isError && (
@@ -122,9 +123,14 @@ const SavedJobs: React.FC = () => {
 
                   <Tooltip title="Remove from saved">
                     <IconButton
-                      onClick={(event) => {
+                      onClick={async (event) => {
                         event.stopPropagation();
-                        unsaveJob(job._id);
+                        try {
+                          await unsaveJob(job._id).unwrap();
+                          notify.success('Removed from saved jobs.');
+                        } catch (err) {
+                          notify.apiError(err, 'Could not remove this job.');
+                        }
                       }}
                       disabled={isUnsaving}
                       aria-label="Remove from saved jobs"

@@ -11,6 +11,7 @@ import { aiAssistantApi } from './api/aiAssistantApi';
 import { subscriptionApi } from './api/subscriptionApi';
 import { purchaseApi } from './api/purchaseApi';
 import { siteContentApi } from './api/siteContentApi';
+import { supportTicketApi } from './api/supportTicketApi';
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ export const store = configureStore({
     [subscriptionApi.reducerPath]: subscriptionApi.reducer,
     [purchaseApi.reducerPath]: purchaseApi.reducer,
     [siteContentApi.reducerPath]: siteContentApi.reducer,
+    [supportTicketApi.reducerPath]: supportTicketApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -41,6 +43,7 @@ export const store = configureStore({
       subscriptionApi.middleware,
       purchaseApi.middleware,
       siteContentApi.middleware,
+      supportTicketApi.middleware,
     ),
 });
 

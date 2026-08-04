@@ -20,6 +20,9 @@ const lookupOptionSchema = new mongoose.Schema(
       index: true,
     },
     isActive: { type: Boolean, default: true, index: true },
+    // Added from a public form rather than the admin catalogue — lets the admin
+    // panel filter and prune crowd-sourced entries.
+    userSubmitted: { type: Boolean, default: false, index: true },
     proposedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     proposedByEmail: { type: String, trim: true, default: '', maxlength: 200 },
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

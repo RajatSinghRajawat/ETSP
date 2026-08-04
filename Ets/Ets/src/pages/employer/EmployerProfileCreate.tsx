@@ -32,6 +32,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
+import { phoneInputProps, sanitizePhone, validatePhone } from '../../utils/phone';
+import notify from '../../utils/toast';
 import { Toast } from '../../components/common';
 import { PageHeader } from '../../components/common/PageHeader';
 import {
@@ -249,8 +251,9 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
       }
     });
 
-    if (formData.phoneNumber && !/^\d{8,20}$/.test(formData.phoneNumber)) {
-      nextErrors.phoneNumber = 'Enter 8 to 20 digits';
+    const phoneError = validatePhone(formData.phoneNumber);
+    if (phoneError) {
+      nextErrors.phoneNumber = phoneError;
     }
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -295,7 +298,8 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
   };
 
   const handleNumericFieldChange = (field: 'phoneNumber' | 'activeJobs', value: string) => {
-    updateField(field, value.replace(/\D/g, ''));
+    // Phone gets the 10-digit rules; other numeric fields just lose non-digits.
+    updateField(field, field === 'phoneNumber' ? sanitizePhone(value) : value.replace(/\D/g, ''));
   };
 
   const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -376,6 +380,7 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
 
     if (!validateProfile(2)) {
       setSubmitError('Please fix the highlighted fields before submitting.');
+      notify.warning('Please fix the highlighted fields before submitting.');
       return;
     }
 
@@ -392,6 +397,7 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
 
         await updateEmployerProfile(editableProfile).unwrap();
         setSaveState('submitted');
+        notify.success('Company profile updated successfully.');
         return;
       }
 
@@ -402,9 +408,11 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
 
       localStorage.removeItem(STORAGE_KEY);
       setSaveState('submitted');
+      notify.success('Company profile submitted successfully.');
     } catch (error) {
       const msg = getApiErrorMessage(error);
       setSubmitError(msg);
+      notify.error(msg);
       setToast({ open: true, message: `❌ ${msg}`, severity: 'error' });
     }
   };
@@ -420,10 +428,10 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
   const profileLoadMessage = getApiErrorMessage(profileLoadError);
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh', bgcolor: 'background.default' }}>
       {showSidebar && <Sidebar type="employer" userName={formData.companyName || 'Employer'} userRole="Employer" />}
 
-      <Box sx={{ flex: 1, p: { xs: 2, md: 4 } }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 } }}>
         <PageHeader
           title={headerTitle}
           subtitle={headerSubtitle}
@@ -605,7 +613,7 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
               <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
                 <TextField
                   size="small"
-                  sx={{ flex: 1, minWidth: 260 }}
+                  sx={{ flex: '1 1 220px', minWidth: 0 }}
                   label="Contact Number / WhatsApp No. / Email"
                   value={prefillInput}
                   onChange={(event) => {
@@ -669,7 +677,19 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
           </Box>
 
           <Box sx={{ p: { xs: 2, md: 3 } }}>
-            <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+            {/* alternativeLabel stacks the caption under the icon so 3 steps fit a phone width. */}
+            <Stepper
+              activeStep={activeStep}
+              alternativeLabel
+              sx={{
+                mb: 4,
+                '& .MuiStepLabel-label': {
+                  fontSize: { xs: 11, sm: 13, md: 14 },
+                  mt: { xs: 0.5, md: 1 },
+                },
+                '& .MuiStepConnector-root': { top: { xs: 10, md: 12 } },
+              }}
+            >
               {steps.map((label) => (
                 <Step key={label}>
                   <StepLabel>{label}</StepLabel>
@@ -725,12 +745,13 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
                       <TextField
                         fullWidth
                         label="Phone Number"
-                        inputMode="numeric"
+                        placeholder="10 digit mobile number"
                         disabled={showSidebar}
                         value={formData.phoneNumber}
                         error={Boolean(formErrors.phoneNumber)}
-                        helperText={formErrors.phoneNumber}
+                        helperText={formErrors.phoneNumber || '10 digits, without +91'}
                         onChange={(event) => handleNumericFieldChange('phoneNumber', event.target.value)}
+                        {...phoneInputProps}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>

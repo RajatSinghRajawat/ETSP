@@ -27,12 +27,16 @@ import EmployerApplications from './pages/employer/EmployerApplications';
 import EmployerApplicationDetails from './pages/employer/EmployerApplicationDetails';
 import CandidateDashboard from './pages/candidate/CandidateDashboard';
 import SavedJobs from './pages/candidate/SavedJobs';
+import CandidateSupport from './pages/support/CandidateSupport';
+import EmployerSupport from './pages/support/EmployerSupport';
 import NotFound from './pages/NotFound';
 import Pricing from './pages/billing/Pricing';
 import BillingSuccess from './pages/billing/BillingSuccess';
 import ChatBotWidget from './components/common/ChatBotWidget';
 import UpgradeDialog from './components/common/UpgradeDialog';
 import { ChatProvider } from './context/ChatContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
 function App() {
@@ -55,8 +59,11 @@ function App() {
             component="main"
             sx={{
               minHeight: '100vh',
-              pt: { xs: '64px', md: '72px' },
+              pt: { xs: '56px', sm: '64px', md: '72px' },
               bgcolor: 'background.default',
+              // `clip`, not `hidden` — `hidden` would make this a scroll container
+              // and break the sticky sidebar / mobile sidebar bar inside it.
+              overflowX: 'clip',
             }}
           >
             <Routes>
@@ -87,6 +94,8 @@ function App() {
               <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
               <Route path="/candidate/saved-jobs" element={<SavedJobs />} />
               <Route path="/candidate/profile" element={<CandidateProfileCreate showSidebar />} />
+              <Route path="/candidate/support" element={<CandidateSupport />} />
+              <Route path="/employer/support" element={<EmployerSupport />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/billing/success" element={<BillingSuccess />} />
               <Route path="*" element={<NotFound />} />
@@ -94,6 +103,19 @@ function App() {
           </Box>
           <ChatBotWidget />
           <UpgradeDialog />
+          {/* Sits above the fixed navbar (zIndex 1201) and the chat drawer. */}
+          <ToastContainer
+            position="top-right"
+            autoClose={4000}
+            newestOnTop
+            closeOnClick
+            pauseOnFocusLoss={false}
+            draggable
+            pauseOnHover
+            theme="colored"
+            style={{ zIndex: 2000 }}
+            toastStyle={{ borderRadius: 12, fontWeight: 600 }}
+          />
         </Box>
         </ChatProvider>
       </Router>

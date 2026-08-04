@@ -85,9 +85,9 @@ const EmployerEmployees: React.FC = () => {
       };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
       <Sidebar type="employer" userName={companyName} userRole="Employer" />
-      <Box sx={{ flex: 1, p: { xs: 2, md: 4 }, bgcolor: 'background.default' }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: 'background.default' }}>
         <PageHeader title="Employees" subtitle="Browse candidate profiles available for hiring and outreach." />
 
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
@@ -157,7 +157,16 @@ const EmployerEmployees: React.FC = () => {
                 <Grid size={{ xs: 12 }}>
                   <Alert
                     severity="info"
-                    sx={{ borderRadius: 2.5 }}
+                    sx={{
+                      borderRadius: 2.5,
+                      flexWrap: 'wrap',
+                      '& .MuiAlert-action': {
+                        width: { xs: '100%', sm: 'auto' },
+                        ml: { xs: 0, sm: 'auto' },
+                        pl: { xs: 0, sm: 2 },
+                        pt: { xs: 1, sm: 0.5 },
+                      },
+                    }}
                     action={
                       <Button color="inherit" size="small" onClick={() => navigate('/pricing')}>
                         View plans
@@ -280,7 +289,7 @@ const EmployerEmployees: React.FC = () => {
         )}
 
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <Pagination count={pagination?.totalPages ?? 1} page={page} onChange={(_, nextPage) => setPage(nextPage)} color="primary" />
+          <Pagination count={pagination?.totalPages ?? 1} page={page} onChange={(_, nextPage) => setPage(nextPage)} color="primary" siblingCount={0} sx={{ '& .MuiPagination-ul': { flexWrap: 'wrap', justifyContent: 'center' } }} />
         </Box>
       </Box>
     </Box>

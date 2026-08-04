@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { Business, ChatBubbleOutlineOutlined as ChatBubbleOutline, Favorite, FavoriteBorder, LocationOn, Star, TrendingUp, Verified } from '@mui/icons-material';
 import { JobCard } from '../../components/common/JobCard';
+import ShareButton from '../../components/common/ShareButton';
 import { useGetEmployerProfileQuery } from '../../store/api/employerProfileApi';
 import { useGetJobsQuery } from '../../store/api/jobApi';
 import {
@@ -88,17 +89,48 @@ const EmployerProfileView: React.FC = () => {
           <Grid container spacing={4} sx={{ alignItems: 'center' }}>
             <Grid size={{ xs: 12, md: 8 }}>
               <Box sx={{ display: 'flex', gap: 2.5, alignItems: 'center', flexWrap: 'wrap', mb: 3 }}>
-                <Avatar src={employer.logoUrl || undefined} sx={{ width: 92, height: 92, borderRadius: 3, bgcolor: 'primary.dark', fontSize: 34, fontWeight: 800 }}>
+                <Avatar
+                  src={employer.logoUrl || undefined}
+                  sx={{
+                    width: { xs: 64, md: 92 },
+                    height: { xs: 64, md: 92 },
+                    flexShrink: 0,
+                    borderRadius: 3,
+                    bgcolor: 'primary.dark',
+                    fontSize: { xs: 26, md: 34 },
+                    fontWeight: 800,
+                  }}
+                >
                   {employer.companyName.charAt(0)}
                 </Avatar>
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Typography variant="h3" sx={{ fontWeight: 800 }}>
+                <Box sx={{ minWidth: 0, flex: '1 1 240px' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, minWidth: 0 }}>
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: { xs: '1.6rem', sm: '2.25rem', md: '3rem' },
+                        wordBreak: 'break-word',
+                        minWidth: 0,
+                      }}
+                    >
                       {employer.companyName}
                     </Typography>
-                    <Verified sx={{ color: '#d1fae5' }} />
+                    <Verified sx={{ color: '#d1fae5', flexShrink: 0 }} />
+                    <ShareButton
+                      url={`/employer/profile/${employer._id}`}
+                      title={employer.companyName}
+                      text={`${employer.companyName} is hiring on VetsLinked — see their open roles:`}
+                      label="Share this company"
+                      sx={{
+                        flexShrink: 0,
+                        color: '#fff',
+                        bgcolor: 'rgba(255,255,255,0.16)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.28)' },
+                      }}
+                    />
                   </Box>
-                  <Typography variant="h6" sx={{ opacity: 0.9, mb: 1 }}>
+                  <Typography variant="h6" sx={{ opacity: 0.9, mb: 1, fontSize: { xs: '0.95rem', md: '1.25rem' } }}>
                     {employer.organizationType} hiring across veterinary and care operations
                   </Typography>
                   <Typography variant="body1" sx={{ opacity: 0.85, maxWidth: 720 }}>
@@ -108,11 +140,12 @@ const EmployerProfileView: React.FC = () => {
               </Box>
 
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                <Chip label={employer.headquarters} sx={{ bgcolor: 'rgba(255,255,255,0.16)', color: 'white' }} />
-                <Chip label={`${employer.openJobs ?? 0} open jobs`} sx={{ bgcolor: 'rgba(255,255,255,0.16)', color: 'white' }} />
-                <Chip label={employer.teamSize} sx={{ bgcolor: 'rgba(255,255,255,0.16)', color: 'white' }} />
+                <Chip label={employer.headquarters} sx={{ maxWidth: '100%', bgcolor: 'rgba(255,255,255,0.16)', color: 'white' }} />
+                <Chip label={`${employer.openJobs ?? 0} open jobs`} sx={{ maxWidth: '100%', bgcolor: 'rgba(255,255,255,0.16)', color: 'white' }} />
+                <Chip label={employer.teamSize} sx={{ maxWidth: '100%', bgcolor: 'rgba(255,255,255,0.16)', color: 'white' }} />
                 {myRole === 'candidate' && (
                   <>
+                    {/* Both CTAs go full width below sm — their labels are too long to sit side by side. */}
                     <Button
                       startIcon={<ChatBubbleOutline />}
                       onClick={() =>
@@ -125,6 +158,7 @@ const EmployerProfileView: React.FC = () => {
                         color: '#0c5283',
                         borderRadius: 2,
                         px: 2,
+                        width: { xs: '100%', sm: 'auto' },
                         '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' },
                       }}
                     >
@@ -144,6 +178,7 @@ const EmployerProfileView: React.FC = () => {
                         border: '1px solid rgba(255,255,255,0.5)',
                         borderRadius: 2,
                         px: 2,
+                        width: { xs: '100%', sm: 'auto' },
                         '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
                       }}
                     >

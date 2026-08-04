@@ -83,9 +83,9 @@ const EmployerApplicationDetails: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
       <Sidebar type="employer" userName={companyName} userRole="Employer" />
-      <Box sx={{ flex: 1, p: { xs: 2, md: 4 }, bgcolor: 'background.default' }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: 'background.default' }}>
         <PageHeader title="Application Details" subtitle="Review candidate profile, job context and cover letter." />
         <Button startIcon={<ArrowBack />} onClick={() => navigate('/employer/applications')} sx={{ mb: 3 }}>
           Back to Applications
@@ -99,15 +99,32 @@ const EmployerApplicationDetails: React.FC = () => {
             <Grid size={{ xs: 12, lg: 7 }}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
                 <CardContent>
-                  <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'flex-start' }}>
+                  {/* Action button wraps to its own full-width row below sm. */}
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                      gap: { xs: 1.5, md: 2 },
+                      mb: 3,
+                      alignItems: 'flex-start',
+                    }}
+                  >
                     <Avatar
                       src={application.candidateProfile.photoUrl || undefined}
-                      sx={{ width: 76, height: 76, bgcolor: 'primary.main' }}
+                      sx={{
+                        width: { xs: 56, md: 76 },
+                        height: { xs: 56, md: 76 },
+                        flexShrink: 0,
+                        bgcolor: 'primary.main',
+                      }}
                     >
                       {application.candidateProfile.firstName.charAt(0)}
                     </Avatar>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="h5" sx={{ fontWeight: 900 }}>
+                    <Box sx={{ flex: '1 1 160px', minWidth: 0 }}>
+                      <Typography
+                        variant="h5"
+                        sx={{ fontWeight: 900, fontSize: { xs: '1.15rem', md: '1.5rem' }, wordBreak: 'break-word' }}
+                      >
                         {application.candidateProfile.firstName} {application.candidateProfile.lastName}
                         {application.candidateProfile.excelMember && !isLocked && (
                           <Chip label="EXCEL" size="small" color="warning" sx={{ ml: 1, fontWeight: 700 }} />
@@ -128,7 +145,15 @@ const EmployerApplicationDetails: React.FC = () => {
                         startIcon={<LockOpen />}
                         disabled={isUnlocking}
                         onClick={handleUnlock}
-                        sx={{ fontWeight: 700, textTransform: 'none', borderRadius: 2.5, px: 2.2, py: 1 }}
+                        sx={{
+                          fontWeight: 700,
+                          textTransform: 'none',
+                          borderRadius: 2.5,
+                          px: 2.2,
+                          py: 1,
+                          flexShrink: 0,
+                          width: { xs: '100%', sm: 'auto' },
+                        }}
                       >
                         {isUnlocking ? 'Unlocking…' : 'Unlock (1 credit)'}
                       </Button>
@@ -143,6 +168,8 @@ const EmployerApplicationDetails: React.FC = () => {
                         borderRadius: 2.5,
                         px: 2.2,
                         py: 1,
+                        flexShrink: 0,
+                        width: { xs: '100%', sm: 'auto' },
                         background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
                         boxShadow: '0 8px 20px -8px rgba(12,82,131,0.45)',
                         '&:hover': {

@@ -57,6 +57,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
+import notify from '../../utils/toast';
 import AutoApplyCard from '../../components/common/AutoApplyCard';
 import ExcelMembershipCard from '../../components/common/ExcelMembershipCard';
 import SubscriptionCard from '../../components/common/SubscriptionCard';
@@ -268,6 +269,7 @@ const CandidateDashboard: React.FC = () => {
       }
     } catch {
       setSaveError('Experiences must be valid JSON array data.');
+      notify.warning('Experiences must be valid JSON array data.');
       return;
     }
 
@@ -289,8 +291,11 @@ const CandidateDashboard: React.FC = () => {
       }).unwrap();
       setDraftEdits({});
       setSaveMessage('Candidate profile updated successfully.');
+      notify.success('Candidate profile updated successfully.');
     } catch (updateError) {
-      setSaveError(getApiErrorMessage(updateError, 'Unable to update candidate profile.'));
+      const message = getApiErrorMessage(updateError, 'Unable to update candidate profile.');
+      setSaveError(message);
+      notify.error(message);
     }
   };
 
@@ -348,10 +353,10 @@ const CandidateDashboard: React.FC = () => {
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
       <Sidebar type="candidate" userName={candidateName} userRole={candidateRole} />
 
-      <Box sx={{ flex: 1, p: { xs: 2, md: 4 }, bgcolor: '#f4f8fc' }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: '#f4f8fc' }}>
         <PageHeader title="Dashboard" subtitle={`Welcome back, ${candidateName}. Manage your profile and job activity.`} />
 
         {/* Plan & usage */}
@@ -445,12 +450,12 @@ const CandidateDashboard: React.FC = () => {
               <Box
                 sx={{
                   position: 'relative',
-                  p: { xs: 3, md: 4 },
+                  p: { xs: 2, sm: 3, md: 4 },
                   background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
                   color: '#fff',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 3,
+                  gap: { xs: 2, md: 3 },
                   flexWrap: 'wrap',
                 }}
               >
@@ -468,9 +473,10 @@ const CandidateDashboard: React.FC = () => {
                 <Avatar
                   src={draft.photoUrl || undefined}
                   sx={{
-                    width: 84,
-                    height: 84,
-                    fontSize: 34,
+                    width: { xs: 60, sm: 84 },
+                    height: { xs: 60, sm: 84 },
+                    flexShrink: 0,
+                    fontSize: { xs: 24, sm: 34 },
                     fontWeight: 800,
                     bgcolor: 'rgba(255,255,255,0.22)',
                     border: '3px solid rgba(255,255,255,0.6)',
@@ -478,18 +484,18 @@ const CandidateDashboard: React.FC = () => {
                 >
                   {candidateName.charAt(0)}
                 </Avatar>
-                <Box sx={{ position: 'relative', flex: 1, minWidth: 200 }}>
-                  <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                <Box sx={{ position: 'relative', flex: '1 1 180px', minWidth: 0 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: '1.25rem', sm: '1.5rem' }, wordBreak: 'break-word' }}>
                     {candidateName}
                   </Typography>
-                  <Typography sx={{ opacity: 0.9, fontWeight: 500 }}>{candidateRole}</Typography>
+                  <Typography sx={{ opacity: 0.9, fontWeight: 500, fontSize: { xs: '0.875rem', sm: '1rem' } }}>{candidateRole}</Typography>
                   <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: 'wrap', rowGap: 1 }}>
                     {profile?.email && (
                       <Chip
                         icon={<Email sx={{ color: '#fff !important', fontSize: 16 }} />}
                         label={profile.email}
                         size="small"
-                        sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 600 }}
+                        sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 600, maxWidth: '100%' }}
                       />
                     )}
                     {profile?.currentLocation && (
@@ -497,12 +503,16 @@ const CandidateDashboard: React.FC = () => {
                         icon={<LocationOn sx={{ color: '#fff !important', fontSize: 16 }} />}
                         label={profile.currentLocation}
                         size="small"
-                        sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 600 }}
+                        sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 600, maxWidth: '100%' }}
                       />
                     )}
                   </Stack>
                 </Box>
-                <Stack direction={{ xs: 'row', md: 'column' }} spacing={1.5} sx={{ position: 'relative' }}>
+                <Stack
+                  direction={{ xs: 'column', sm: 'row', md: 'column' }}
+                  spacing={1.5}
+                  sx={{ position: 'relative', width: { xs: '100%', sm: 'auto' } }}
+                >
                   <Button
                     startIcon={<Person />}
                     variant="contained"
@@ -633,13 +643,14 @@ const CandidateDashboard: React.FC = () => {
                   </Grid>
                 </Grid>
 
-                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+                <Box sx={{ mt: 3, display: 'flex', justifyContent: { xs: 'stretch', sm: 'flex-end' } }}>
                   <Button
                     startIcon={isSaving ? <CircularProgress size={18} color="inherit" /> : <Save />}
                     variant="contained"
                     onClick={handleSave}
                     disabled={isSaving}
                     sx={{
+                      width: { xs: '100%', sm: 'auto' },
                       px: 4,
                       py: 1.3,
                       borderRadius: 2.5,
@@ -736,8 +747,12 @@ const CandidateDashboard: React.FC = () => {
                     sx={{
                       borderRadius: 3,
                       mb: 1.5,
-                      px: 2,
+                      px: { xs: 1.5, sm: 2 },
                       py: 1.5,
+                      // Status chip sits on its own row below sm instead of overlapping the text.
+                      display: 'flex',
+                      flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                      gap: 1,
                       border: '1px solid',
                       borderColor: 'rgba(12,82,131,0.10)',
                       cursor: 'pointer',
@@ -745,21 +760,28 @@ const CandidateDashboard: React.FC = () => {
                       '&:hover': { borderColor: '#0ab6a2', bgcolor: 'rgba(10,182,162,0.04)', transform: 'translateX(4px)' },
                     }}
                     onClick={() => navigate(`/jobs/${application.job._id}`)}
-                    secondaryAction={
-                      <Chip
-                        label={application.status}
-                        color={statusColor[application.status]}
-                        size="small"
-                        sx={{ textTransform: 'capitalize', fontWeight: 700 }}
-                      />
-                    }
                   >
-                    <Avatar sx={{ mr: 2, fontWeight: 800, background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)' }}>
+                    <Avatar
+                      sx={{
+                        mr: { xs: 1.5, sm: 2 },
+                        flexShrink: 0,
+                        fontWeight: 800,
+                        background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
+                      }}
+                    >
                       {application.job.companyName.charAt(0)}
                     </Avatar>
                     <ListItemText
-                      primary={<Typography sx={{ fontWeight: 700 }}>{application.job.title}</Typography>}
+                      sx={{ minWidth: 0, my: 0 }}
+                      primary={<Typography sx={{ fontWeight: 700, wordBreak: 'break-word' }}>{application.job.title}</Typography>}
                       secondary={`${application.job.companyName} · ${application.job.location} · Applied ${formatAppliedDate(application.createdAt)}`}
+                      slotProps={{ secondary: { sx: { wordBreak: 'break-word' } } }}
+                    />
+                    <Chip
+                      label={application.status}
+                      color={statusColor[application.status]}
+                      size="small"
+                      sx={{ textTransform: 'capitalize', fontWeight: 700, flexShrink: 0, ml: { xs: 'auto', sm: 1 } }}
                     />
                   </ListItem>
                 ))}

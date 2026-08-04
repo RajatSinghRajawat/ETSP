@@ -186,7 +186,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
   const userInitial = userDisplayName.charAt(0).toUpperCase();
 
   const drawer = (
-    <Box sx={{ width: 280, height: '100%', bgcolor: 'background.paper', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ width: '100%', height: '100%', bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
       <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box component="img" src="/Logo.png" alt="Logo" sx={{ height: 36, width: 'auto' }} />
@@ -270,10 +270,21 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
           zIndex: (muiTheme) => muiTheme.zIndex.drawer + 1,
         }}
       >
-        <Container maxWidth="lg">
-          <Toolbar sx={{ minHeight: { xs: 64, md: 72 }, px: { xs: 0 } }}>
-            <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 1.5, mr: { xs: 1, md: 4 }, ml: { xs: -0.5, md: -2 } }}>
-              <Box component="img" src="/Logo.png" alt="Logo" sx={{ height: { xs: 38, md: 48 }, width: 'auto' }} />
+        <Container maxWidth="lg" sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+          <Toolbar disableGutters sx={{ minHeight: { xs: 56, sm: 64, md: 72 }, gap: 1 }}>
+            <Box
+              component={Link}
+              to="/"
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                textDecoration: 'none',
+                flexShrink: 0,
+                mr: { xs: 0, md: 4 },
+                ml: { xs: 0, md: -2 },
+              }}
+            >
+              <Box component="img" src="/Logo.png" alt="Logo" sx={{ height: { xs: 32, sm: 40, md: 48 }, width: 'auto', display: 'block' }} />
             </Box>
 
             {!isMobile && (
@@ -375,7 +386,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
               </Box>
             )}
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 1 }, ml: 'auto', flexShrink: 0 }}>
               {!isMobile && (
                 <>
                   <Tooltip title={t('language')}>
@@ -512,9 +523,10 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                     <IconButton
                       onClick={handleLanguageMenuOpen}
                       size="small"
-                      sx={{ color: 'text.primary' }}
+                      aria-label={t('language')}
+                      sx={{ color: 'text.primary', p: 0.75 }}
                     >
-                      <LanguageIcon />
+                      <LanguageIcon sx={{ fontSize: 22 }} />
                     </IconButton>
                   </Tooltip>
                   <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleLanguageMenuClose}>
@@ -528,8 +540,16 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                       to="/login"
                       variant="outlined"
                       size="small"
-                      startIcon={<AccountCircle />}
-                      sx={{ py: 0.5, px: 1, fontSize: '0.8rem', minWidth: 'auto' }}
+                      startIcon={<AccountCircle sx={{ fontSize: '18px !important' }} />}
+                      sx={{
+                        py: 0.4,
+                        px: { xs: 1, sm: 1.5 },
+                        fontSize: { xs: '0.75rem', sm: '0.8rem' },
+                        minWidth: 'auto',
+                        whiteSpace: 'nowrap',
+                        textTransform: 'none',
+                        '& .MuiButton-startIcon': { mr: 0.5 },
+                      }}
                     >
                       {t('login')}
                     </Button>
@@ -537,12 +557,15 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
 
                   <IconButton
                     onClick={() => setMobileOpen(true)}
+                    edge="end"
+                    aria-label="menu"
                     sx={{
                       color: 'text.primary',
+                      p: 0.75,
                       transition: 'color 0.3s ease'
                     }}
                   >
-                    <MenuIcon />
+                    <MenuIcon sx={{ fontSize: 26 }} />
                   </IconButton>
                 </>
               )}
@@ -557,8 +580,11 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
         onClose={() => setMobileOpen(false)}
         ModalProps={{ keepMounted: true }}
         sx={{
+          // Above the fixed AppBar, otherwise the drawer header hides behind it.
+          zIndex: (muiTheme) => muiTheme.zIndex.drawer + 2,
           '& .MuiDrawer-paper': {
-            width: 280,
+            width: { xs: '82vw', sm: 280 },
+            maxWidth: 300,
             bgcolor: 'background.paper'
           }
         }}

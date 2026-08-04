@@ -30,11 +30,18 @@ function Meter({ label, meter }: { label: string; meter: UsageMeter }) {
 
   return (
     <Box>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', mb: 0.5 }}>
+      <Stack
+        direction="row"
+        sx={{ justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 1, mb: 0.5 }}
+      >
         <Typography variant="body2" color="text.secondary">
           {label}
         </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 600 }} color={exhausted ? 'error.main' : 'text.primary'}>
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}
+          color={exhausted ? 'error.main' : 'text.primary'}
+        >
           {unlimited ? `${meter.used} used · Unlimited` : `${meter.used} of ${meter.limit} used`}
         </Typography>
       </Stack>
@@ -80,12 +87,12 @@ const SubscriptionCard = () => {
 
   return (
     <Card elevation={1} sx={{ borderRadius: 3 }}>
-      <CardContent sx={{ p: 3 }}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
         <Stack
           direction="row"
           sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}
         >
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5, minWidth: 0 }}>
             <WorkspacePremiumIcon color="primary" />
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               {freeMode ? 'Open Access' : plan ? plan.name : 'No plan'}

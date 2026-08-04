@@ -121,9 +121,9 @@ const ExcelMembershipCard = () => {
 
   return (
     <Card elevation={1} sx={{ borderRadius: 3 }}>
-      <CardContent sx={{ p: 3 }}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
         <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5, minWidth: 0 }}>
             <WorkspacePremium color={isExcel ? 'warning' : 'disabled'} />
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               EXCEL Membership
@@ -172,7 +172,12 @@ const ExcelMembershipCard = () => {
               <Chip size="small" color="success" label="Verified" />
             ) : features.verifiedBadgeEnabled ? (
               profile.phoneVerified ? (
-                <Chip size="small" variant="outlined" label={profile.emailVerified ? 'Almost there' : 'Sign in via email OTP to verify email'} />
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={profile.emailVerified ? 'Almost there' : 'Sign in via email OTP to verify email'}
+                  sx={{ maxWidth: '100%' }}
+                />
               ) : (
                 <Button size="small" variant="outlined" disabled={isSendingOtp} onClick={handleSendOtp}>
                   {isSendingOtp ? 'Sending…' : 'Verify phone'}
@@ -244,26 +249,17 @@ const ExcelMembershipCard = () => {
                 <ListItem
                   key={follow._id}
                   disableGutters
-                  secondaryAction={
-                    <Button
-                      size="small"
-                      color="inherit"
-                      onClick={() =>
-                        follow.employerProfile?._id && unfollowEmployer(follow.employerProfile._id)
-                      }
-                    >
-                      Unfollow
-                    </Button>
-                  }
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
                 >
-                  <ListItemAvatar>
+                  <ListItemAvatar sx={{ minWidth: 44 }}>
                     <Avatar src={follow.employerProfile?.logoUrl || undefined} sx={{ width: 32, height: 32 }}>
                       <Business fontSize="small" />
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
+                    sx={{ minWidth: 0, my: 0 }}
                     primary={
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, wordBreak: 'break-word' }}>
                         {follow.employerProfile?.companyName ?? 'Employer'}
                       </Typography>
                     }
@@ -275,6 +271,17 @@ const ExcelMembershipCard = () => {
                       ) : undefined
                     }
                   />
+                  {/* Inline instead of secondaryAction — MUI only reserves ~56px there. */}
+                  <Button
+                    size="small"
+                    color="inherit"
+                    sx={{ flexShrink: 0 }}
+                    onClick={() =>
+                      follow.employerProfile?._id && unfollowEmployer(follow.employerProfile._id)
+                    }
+                  >
+                    Unfollow
+                  </Button>
                 </ListItem>
               ))}
             </List>

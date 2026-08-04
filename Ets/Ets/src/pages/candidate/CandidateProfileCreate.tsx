@@ -58,6 +58,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
+import { PHONE_LENGTH, sanitizePhone, validatePhone } from '../../utils/phone';
+import notify from '../../utils/toast';
 import { PageHeader } from '../../components/common/PageHeader';
 import {
   candidateLocationSuggestions,
@@ -574,9 +576,11 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
         message: '🎉 Candidate profile submitted successfully!',
         severity: 'success',
       });
+      notify.success('Candidate profile submitted successfully!');
     } catch (error) {
       const msg = getApiErrorMessage(error);
       setSubmitError(msg);
+      notify.error(msg);
       setToast({
         open: true,
         message: `❌ ${msg}`,
@@ -594,10 +598,10 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
   const profileImageUrl = profileImagePreviewUrl || formData.photoUrl;
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh', bgcolor: 'background.default' }}>
       {showSidebar && <Sidebar type="candidate" userName={candidateName} userRole={candidateRole} />}
 
-      <Box sx={{ flex: 1, p: { xs: 2, md: 4 } }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 } }}>
         <PageHeader
           title={headerTitle}
           subtitle={headerSubtitle}
@@ -821,11 +825,13 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                 },
                 '& .MuiStepLabel-label': {
                   fontWeight: 600,
-                  fontSize: 13,
-                  mt: 1,
+                  fontSize: { xs: 10.5, sm: 12, md: 13 },
+                  lineHeight: 1.25,
+                  mt: { xs: 0.5, md: 1 },
                   '&.Mui-active': { color: '#0c5283' },
                   '&.Mui-completed': { color: '#0ab6a2' },
                 },
+                '& .MuiStepLabel-iconContainer': { pr: 0 },
               }}
             >
               {steps.map((label) => (
@@ -932,9 +938,16 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                       <TextField
                         fullWidth
                         label="Contact Number"
+                        placeholder="10 digit mobile number"
+                        type="tel"
                         value={formData.phone}
-                        onChange={(event) => updateField('phone', event.target.value)}
-                        slotProps={adornment(<Phone />)}
+                        onChange={(event) => updateField('phone', sanitizePhone(event.target.value))}
+                        error={Boolean(validatePhone(formData.phone))}
+                        helperText={validatePhone(formData.phone) || '10 digits, without +91'}
+                        slotProps={{
+                          ...adornment(<Phone />),
+                          htmlInput: { maxLength: PHONE_LENGTH, inputMode: 'numeric', pattern: '[0-9]*', autoComplete: 'tel' },
+                        }}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
@@ -1298,8 +1311,8 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                       <Grid container spacing={2}>
                         {formData.experiences.map((experience, index) => (
                           <Grid size={{ xs: 12 }} key={`experience-${index}`}>
-                            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, position: 'relative' }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Paper variant="outlined" sx={{ p: { xs: 1.75, sm: 2.5 }, borderRadius: 3, position: 'relative' }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                                   Experience {index + 1}
                                 </Typography>
@@ -1596,7 +1609,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                 <Grid size={{ xs: 12 }}>
                   <Box
                     sx={{
-                      p: 3,
+                      p: { xs: 2, md: 3 },
                       borderRadius: 3,
                       background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
                       display: 'flex',
@@ -1606,7 +1619,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                       flexWrap: 'wrap',
                     }}
                   >
-                    <Box>
+                    <Box sx={{ minWidth: 0, flex: '1 1 220px' }}>
                       <Typography variant="h6" sx={{ fontWeight: 800, color: 'white', mb: 0.5 }}>
                         Build Your Veterinary Resume with AI
                       </Typography>
@@ -1625,6 +1638,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                         color: '#0c5283',
                         fontWeight: 700,
                         flexShrink: 0,
+                        width: { xs: '100%', sm: 'auto' },
                         '&:hover': { bgcolor: '#f0f0f0' },
                       }}
                     >
@@ -1639,12 +1653,12 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                         <Avatar
                           src={profileImageUrl || undefined}
-                          sx={{ width: 64, height: 64, bgcolor: 'primary.main' }}
+                          sx={{ width: 64, height: 64, flexShrink: 0, bgcolor: 'primary.main' }}
                         >
                           {candidateName.charAt(0)}
                         </Avatar>
-                        <Box>
-                          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="h6" sx={{ fontWeight: 800, wordBreak: 'break-word' }}>
                             {candidateName}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
@@ -1726,10 +1740,23 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
             )}
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mt: 4, flexWrap: 'wrap' }}>
-              <Button variant="outlined" disabled={activeStep === 0} onClick={() => setActiveStep((step) => step - 1)}>
+              <Button
+                variant="outlined"
+                disabled={activeStep === 0}
+                onClick={() => setActiveStep((step) => step - 1)}
+                sx={{ order: { xs: 2, sm: 0 }, width: { xs: '100%', sm: 'auto' } }}
+              >
                 Previous
               </Button>
-              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 1.5,
+                  flexWrap: 'wrap',
+                  width: { xs: '100%', sm: 'auto' },
+                  '& > *': { flex: { xs: '1 1 130px', sm: '0 0 auto' } },
+                }}
+              >
                 <Button variant="outlined" onClick={saveProfile}>
                   Save Draft
                 </Button>

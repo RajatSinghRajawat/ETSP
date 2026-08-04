@@ -129,10 +129,10 @@ const EmployerDashboard: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
       <Sidebar type="employer" userName={companyName} userRole="Employer" />
 
-      <Box sx={{ flex: 1, p: { xs: 2, md: 4 }, bgcolor: 'background.default' }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: 'background.default' }}>
         {/* Hero */}
         <Card
           elevation={0}
@@ -167,23 +167,42 @@ const EmployerDashboard: React.FC = () => {
               bgcolor: alpha('#ffffff', 0.06),
             }}
           />
-          <CardContent sx={{ p: { xs: 3, md: 4 }, position: 'relative' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 }, position: 'relative' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: { xs: 'stretch', sm: 'center' },
+                gap: { xs: 2, md: 3 },
+                flexWrap: 'wrap',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, md: 2.5 }, minWidth: 0, flex: '1 1 260px' }}>
                 <Avatar
                   src={profile?.logoUrl || undefined}
-                  sx={{ width: 64, height: 64, bgcolor: alpha('#ffffff', 0.18), color: 'white', fontWeight: 800, fontSize: 26 }}
+                  sx={{
+                    width: { xs: 48, md: 64 },
+                    height: { xs: 48, md: 64 },
+                    flexShrink: 0,
+                    bgcolor: alpha('#ffffff', 0.18),
+                    color: 'white',
+                    fontWeight: 800,
+                    fontSize: { xs: 20, md: 26 },
+                  }}
                 >
                   {companyName.charAt(0)}
                 </Avatar>
-                <Box>
-                  <Typography variant="overline" sx={{ opacity: 0.85, letterSpacing: 1.5 }}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="overline" sx={{ opacity: 0.85, letterSpacing: 1.5, fontSize: { xs: 10, md: 12 } }}>
                     Employer Dashboard
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
+                  <Typography
+                    variant="h4"
+                    sx={{ fontWeight: 800, lineHeight: 1.2, fontSize: { xs: '1.25rem', sm: '1.6rem', md: '2.125rem' }, wordBreak: 'break-word' }}
+                  >
                     Welcome back, {companyName}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+                  <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5, fontSize: { xs: '0.8rem', md: '0.875rem' } }}>
                     Track hiring performance and manage live jobs.
                   </Typography>
                 </Box>
@@ -197,6 +216,8 @@ const EmployerDashboard: React.FC = () => {
                   color: 'primary.main',
                   fontWeight: 800,
                   px: 3,
+                  flexShrink: 0,
+                  width: { xs: '100%', sm: 'auto' },
                   '&:hover': { bgcolor: alpha('#ffffff', 0.9) },
                 }}
               >
@@ -348,6 +369,7 @@ const EmployerDashboard: React.FC = () => {
                       sx={{
                         fontWeight: 900,
                         mb: 1.5,
+                        fontSize: { xs: '2.5rem', md: '3.75rem' },
                         background: BRAND_GRADIENT,
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
@@ -402,8 +424,9 @@ const EmployerDashboard: React.FC = () => {
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 2,
-                        p: 2,
+                        flexWrap: { xs: 'wrap', md: 'nowrap' },
+                        gap: { xs: 1.25, md: 2 },
+                        p: { xs: 1.5, md: 2 },
                         borderRadius: 3,
                         border: '1px solid',
                         borderColor: 'divider',
@@ -411,7 +434,7 @@ const EmployerDashboard: React.FC = () => {
                         '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.light' },
                       }}
                     >
-                      <Avatar sx={{ bgcolor: alpha('#0c5283', 0.1), color: 'primary.main' }}>
+                      <Avatar sx={{ bgcolor: alpha('#0c5283', 0.1), color: 'primary.main', flexShrink: 0 }}>
                         <Work fontSize="small" />
                       </Avatar>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -435,38 +458,50 @@ const EmployerDashboard: React.FC = () => {
                           )}
                         </Box>
                       </Box>
-                      {job.isFeatured && (
-                        <Chip label="Featured" size="small" color="secondary" sx={{ fontWeight: 600 }} />
-                      )}
-                      {job.isUrgent ? (
-                        <Chip label="Urgent" size="small" color="warning" sx={{ fontWeight: 600 }} />
-                      ) : (
-                        job.status === 'active' && (
-                          <Button
-                            size="small"
-                            color="warning"
-                            disabled={buyingUrgentJobId === job._id}
-                            onClick={() => handleBuyUrgent(job._id)}
-                            sx={{ flexShrink: 0, textTransform: 'none', fontWeight: 700 }}
-                          >
-                            Urgent tag ₹199
-                          </Button>
-                        )
-                      )}
-                      <Chip
-                        label={job.status}
-                        size="small"
-                        color={statusColor[job.status]}
-                        sx={{ textTransform: 'capitalize', fontWeight: 600 }}
-                      />
-                      <Button
-                        size="small"
-                        startIcon={<Visibility sx={{ fontSize: 16 }} />}
-                        onClick={() => navigate(`/jobs/${job._id}`)}
-                        sx={{ flexShrink: 0 }}
+                      {/* Wraps onto its own row below md so nothing gets squashed. */}
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: 1,
+                          flexShrink: 0,
+                          width: { xs: '100%', md: 'auto' },
+                        }}
                       >
-                        View
-                      </Button>
+                        {job.isFeatured && (
+                          <Chip label="Featured" size="small" color="secondary" sx={{ fontWeight: 600 }} />
+                        )}
+                        {job.isUrgent ? (
+                          <Chip label="Urgent" size="small" color="warning" sx={{ fontWeight: 600 }} />
+                        ) : (
+                          job.status === 'active' && (
+                            <Button
+                              size="small"
+                              color="warning"
+                              disabled={buyingUrgentJobId === job._id}
+                              onClick={() => handleBuyUrgent(job._id)}
+                              sx={{ flexShrink: 0, textTransform: 'none', fontWeight: 700 }}
+                            >
+                              Urgent tag ₹199
+                            </Button>
+                          )
+                        )}
+                        <Chip
+                          label={job.status}
+                          size="small"
+                          color={statusColor[job.status]}
+                          sx={{ textTransform: 'capitalize', fontWeight: 600 }}
+                        />
+                        <Button
+                          size="small"
+                          startIcon={<Visibility sx={{ fontSize: 16 }} />}
+                          onClick={() => navigate(`/jobs/${job._id}`)}
+                          sx={{ flexShrink: 0, ml: { xs: 'auto', md: 0 } }}
+                        >
+                          View
+                        </Button>
+                      </Box>
                     </Box>
                   ))}
                   {!isJobsLoading && jobs.length === 0 && (
@@ -500,8 +535,9 @@ const EmployerDashboard: React.FC = () => {
                         sx={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 2,
-                          p: 2,
+                          flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                          gap: { xs: 1.25, md: 2 },
+                          p: { xs: 1.5, md: 2 },
                           borderRadius: 3,
                           border: '1px solid',
                           borderColor: 'divider',
@@ -509,7 +545,7 @@ const EmployerDashboard: React.FC = () => {
                           '&:hover': { bgcolor: 'action.hover', borderColor: 'secondary.light' },
                         }}
                       >
-                        <Avatar sx={{ bgcolor: alpha('#0ab6a2', 0.15), color: 'secondary.main', fontWeight: 700 }}>
+                        <Avatar sx={{ bgcolor: alpha('#0ab6a2', 0.15), color: 'secondary.main', fontWeight: 700, flexShrink: 0 }}>
                           {application.candidateProfile.firstName.charAt(0)}
                           {application.candidateProfile.lastName.charAt(0)}
                         </Avatar>

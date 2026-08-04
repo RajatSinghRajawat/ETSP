@@ -412,3 +412,46 @@ export interface LookupListResult {
   pendingCount: number;
   pagination: Pagination;
 }
+
+export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+export type TicketPriority = 'low' | 'normal' | 'high';
+export type TicketCategory =
+  | 'account'
+  | 'billing'
+  | 'jobs'
+  | 'applications'
+  | 'technical'
+  | 'other';
+
+export interface TicketMessage {
+  _id: string;
+  body: string;
+  authorRole: 'user' | 'admin';
+  authorName?: string;
+  authorEmail?: string;
+  createdAt: string;
+}
+
+export interface SupportTicket {
+  _id: string;
+  reference: string;
+  subject: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  userEmail: string;
+  userName?: string;
+  userRole?: string;
+  messages: TicketMessage[];
+  lastMessageAt: string;
+  unreadForUser: boolean;
+  closedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupportTicketListResult {
+  items: SupportTicket[];
+  openCount: number;
+  pagination: Pagination;
+}

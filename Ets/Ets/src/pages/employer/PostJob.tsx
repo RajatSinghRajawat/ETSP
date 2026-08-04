@@ -60,6 +60,7 @@ import {
   useGetSalaryUnitsQuery,
 } from '../../store/api/lookupApi';
 import LookupSelect, { LookupChipPicker } from '../../components/common/LookupSelect';
+import notify from '../../utils/toast';
 
 type JobFormErrors = Partial<Record<keyof JobPayload, string>>;
 type SalaryRangeErrors = Partial<Record<'salaryMin' | 'salaryMax', string>>;
@@ -104,6 +105,20 @@ const modernFieldSx = {
     '&.Mui-focused fieldset': { borderColor: '#0ab6a2', borderWidth: 2 },
   },
   '& .MuiInputLabel-root.Mui-focused': { color: '#0ab6a2' },
+} as const;
+
+// Alerts that carry action buttons: below sm the buttons drop to their own full-width row
+// instead of crushing the message text.
+const actionAlertSx = {
+  mb: 3,
+  borderRadius: 3,
+  flexWrap: 'wrap',
+  '& .MuiAlert-action': {
+    width: { xs: '100%', sm: 'auto' },
+    ml: { xs: 0, sm: 'auto' },
+    pl: { xs: 0, sm: 2 },
+    pt: { xs: 1, sm: 0.5 },
+  },
 } as const;
 
 const STATUS_META: Record<JobPayload['status'], { label: string; color: string }> = {
@@ -362,6 +377,7 @@ const PostJob: React.FC = () => {
   const handleSubmit = async (statusOverride?: JobPayload['status']) => {
     if (!validateForm()) {
       setSubmitError(`Please fix the highlighted fields before ${isEdit ? 'updating' : 'posting'}.`);
+      notify.warning(`Please fix the highlighted fields before ${isEdit ? 'updating' : 'posting'}.`);
       return;
     }
 
@@ -378,6 +394,7 @@ const PostJob: React.FC = () => {
       if (isEdit && id) {
         const response = await updateJob({ id, job: payload }).unwrap();
         setSuccessMessage(response.message);
+        notify.success(response.message || 'Job updated successfully.');
         setTimeout(() => navigate(`/jobs/${id}`), 800);
         return;
       }
@@ -392,8 +409,11 @@ const PostJob: React.FC = () => {
       setFormErrors({});
       setSalaryErrors({});
       setSuccessMessage(response.message);
+      notify.success(response.message || 'Job posted successfully.');
     } catch (error) {
-      setSubmitError(getApiErrorMessage(error, isEdit ? 'Unable to update job.' : 'Unable to post job.'));
+      const message = getApiErrorMessage(error, isEdit ? 'Unable to update job.' : 'Unable to post job.');
+      setSubmitError(message);
+      notify.error(message);
     }
   };
 
@@ -421,10 +441,10 @@ const PostJob: React.FC = () => {
   const statusMeta = STATUS_META[formData.status];
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
       <Sidebar type="employer" userName={companyName} />
 
-      <Box sx={{ flex: 1, p: { xs: 2, md: 4 }, bgcolor: 'background.default' }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: 'background.default' }}>
         <PageHeader
           title={isEdit ? 'Edit Job' : 'Post a New Job'}
           subtitle={isEdit ? 'Update the details of your job opening' : 'Fill in the details to post a new job opening'}
@@ -437,9 +457,9 @@ const PostJob: React.FC = () => {
         {isGuest && (
           <Alert
             severity="warning"
-            sx={{ mb: 3, borderRadius: 3 }}
+            sx={actionAlertSx}
             action={
-              <Stack direction="row" spacing={1}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                 <Button color="inherit" size="small" onClick={() => navigate('/login')}>
                   Login as Employer
                 </Button>
@@ -456,9 +476,9 @@ const PostJob: React.FC = () => {
         {isCandidate && (
           <Alert
             severity="warning"
-            sx={{ mb: 3, borderRadius: 3 }}
+            sx={actionAlertSx}
             action={
-              <Stack direction="row" spacing={1}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                 <Button color="inherit" size="small" onClick={() => navigate('/signup/employer')}>
                   Create Employer Profile
                 </Button>
@@ -472,7 +492,7 @@ const PostJob: React.FC = () => {
         {hasNoEmployerProfile && (
           <Alert
             severity="warning"
-            sx={{ mb: 3, borderRadius: 3 }}
+            sx={actionAlertSx}
             action={
               <Button color="inherit" size="small" onClick={() => navigate('/signup/employer')}>
                 Set Up Profile
@@ -493,10 +513,10 @@ const PostJob: React.FC = () => {
         {!isEdit && activeJobsMeter && activeJobsMeter.limit !== null && (
           <Alert
             severity={quotaExhausted ? 'warning' : 'info'}
-            sx={{ mb: 3, borderRadius: 3 }}
+            sx={actionAlertSx}
             action={
               quotaExhausted && jobCreditsAvailable === 0 ? (
-                <Stack direction="row" spacing={1}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                   <Button
                     color="inherit"
                     size="small"
@@ -770,7 +790,16 @@ const PostJob: React.FC = () => {
                   title="Role Description"
                   caption="Describe the responsibilities and the skills you need."
                 >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 1,
+                      mb: 1.5,
+                    }}
+                  >
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                       Role Description & Responsibilities
                     </Typography>
@@ -889,7 +918,7 @@ const PostJob: React.FC = () => {
                           />
                         }
                         label={
-                          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5 }}>
                             <Typography sx={{ fontWeight: 600 }}>Feature this job</Typography>
                             {!canFeature && <Lock fontSize="small" color="disabled" />}
                             {canFeature && featuredMeter && (
@@ -914,7 +943,7 @@ const PostJob: React.FC = () => {
                     </Box>
 
                     <Box>
-                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5, mb: 1 }}>
                         <Typography sx={{ fontWeight: 600 }}>Screening questions</Typography>
                         {!canScreen && <Lock fontSize="small" color="disabled" />}
                         <Typography variant="caption" color="text.secondary">
@@ -1000,11 +1029,19 @@ const PostJob: React.FC = () => {
                   variant="text"
                   startIcon={<ArrowBack />}
                   onClick={() => navigate('/employer/dashboard')}
-                  sx={{ fontWeight: 700, color: 'text.secondary' }}
+                  sx={{ fontWeight: 700, color: 'text.secondary', order: { xs: 2, sm: 0 }, width: { xs: '100%', sm: 'auto' } }}
                 >
                   Cancel
                 </Button>
-                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    gap: 1.5,
+                    flexWrap: 'wrap',
+                    width: { xs: '100%', sm: 'auto' },
+                    '& > *': { flex: { xs: '1 1 140px', sm: '0 0 auto' } },
+                  }}
+                >
                   <Button
                     variant="outlined"
                     size="large"
@@ -1020,7 +1057,7 @@ const PostJob: React.FC = () => {
                     disabled={isLoading || quotaExhausted}
                     onClick={() => handleSubmit('active')}
                     sx={{
-                      px: 4,
+                      px: { xs: 2, sm: 4 },
                       py: 1.1,
                       fontWeight: 800,
                       borderRadius: 2.5,

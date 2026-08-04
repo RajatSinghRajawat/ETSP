@@ -46,6 +46,8 @@ import { useGetJobsQuery, type CandidateApplicationStatus, type JobAppliedFilter
 import { useGetJobTypesQuery, useGetSkillsQuery } from '../../store/api/lookupApi';
 import { useGetMyApplicationsQuery } from '../../store/api/applicationApi';
 import { useGetMySavedJobsQuery, useSaveJobMutation, useUnsaveJobMutation } from '../../store/api/savedJobApi';
+import notify from '../../utils/toast';
+import ShareButton from '../../components/common/ShareButton';
 
 const locations = ['Mumbai', 'Bangalore', 'Delhi NCR', 'Hyderabad', 'Pune', 'Chennai', 'Gujarat'];
 const experiences = ['0-2 years', '2-5 years', '5-10 years', '10+ years'];
@@ -167,12 +169,27 @@ const FindJob: React.FC = () => {
     [savedJobsData],
   );
 
-  const toggleSave = (event: React.MouseEvent, jobId: string) => {
+  const toggleSave = async (event: React.MouseEvent, jobId: string) => {
     event.stopPropagation();
-    if (savedJobIds.has(jobId)) {
-      unsaveJob(jobId);
-    } else {
-      saveJob(jobId);
+
+    // Saving needs a candidate profile on the account, so surface the reason
+    // instead of leaving the bookmark silently unchanged.
+    if (!isCandidate) {
+      notify.info('Sign in with a candidate account to save jobs.');
+      return;
+    }
+
+    const wasSaved = savedJobIds.has(jobId);
+    try {
+      if (wasSaved) {
+        await unsaveJob(jobId).unwrap();
+        notify.success('Removed from saved jobs.');
+      } else {
+        await saveJob(jobId).unwrap();
+        notify.success('Job saved. Find it under Saved Jobs.');
+      }
+    } catch (err) {
+      notify.apiError(err, wasSaved ? 'Could not remove this job.' : 'Could not save this job.');
     }
   };
 
@@ -617,32 +634,55 @@ const FindJob: React.FC = () => {
                       {/* Top accent strip */}
                       <Box sx={{ height: 5, background: 'linear-gradient(90deg, #0c5283 0%, #0ab6a2 100%)' }} />
 
-                      {isCandidate && (
-                        <IconButton
-                          onClick={(event) => toggleSave(event, job._id)}
-                          aria-label={savedJobIds.has(job._id) ? 'Remove from saved jobs' : 'Save job'}
+                      {/* Save + share float over the card's top-right corner. */}
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: 12,
+                          right: 12,
+                          zIndex: 2,
+                          display: 'flex',
+                          gap: 0.5,
+                        }}
+                      >
+                        {isCandidate && (
+                          <IconButton
+                            onClick={(event) => void toggleSave(event, job._id)}
+                            aria-label={savedJobIds.has(job._id) ? 'Remove from saved jobs' : 'Save job'}
+                            sx={{
+                              width: 36,
+                              height: 36,
+                              bgcolor: savedJobIds.has(job._id) ? 'rgba(10,182,162,0.14)' : 'rgba(255,255,255,0.9)',
+                              color: savedJobIds.has(job._id) ? '#0ab6a2' : '#94a3b8',
+                              border: '1px solid',
+                              borderColor: savedJobIds.has(job._id) ? 'rgba(10,182,162,0.45)' : 'rgba(12,82,131,0.12)',
+                              transition: 'all 0.2s ease',
+                              '&:hover': { bgcolor: 'rgba(10,182,162,0.2)', color: '#0ab6a2', transform: 'scale(1.08)' },
+                            }}
+                          >
+                            {savedJobIds.has(job._id) ? <Bookmark sx={{ fontSize: 20 }} /> : <BookmarkBorder sx={{ fontSize: 20 }} />}
+                          </IconButton>
+                        )}
+                        <ShareButton
+                          url={`/jobs/${job._id}`}
+                          title={`${job.title} at ${job.companyName}`}
+                          text={`${job.title} at ${job.companyName} — ${job.location}. Apply on VetsLinked:`}
+                          label="Share this job"
                           sx={{
-                            position: 'absolute',
-                            top: 12,
-                            right: 12,
-                            zIndex: 2,
                             width: 36,
                             height: 36,
-                            bgcolor: savedJobIds.has(job._id) ? 'rgba(10,182,162,0.14)' : 'rgba(255,255,255,0.9)',
-                            color: savedJobIds.has(job._id) ? '#0ab6a2' : '#94a3b8',
-                            border: '1px solid',
-                            borderColor: savedJobIds.has(job._id) ? 'rgba(10,182,162,0.45)' : 'rgba(12,82,131,0.12)',
+                            bgcolor: 'rgba(255,255,255,0.9)',
+                            color: '#94a3b8',
+                            border: '1px solid rgba(12,82,131,0.12)',
                             transition: 'all 0.2s ease',
-                            '&:hover': { bgcolor: 'rgba(10,182,162,0.2)', color: '#0ab6a2', transform: 'scale(1.08)' },
+                            '&:hover': { bgcolor: 'rgba(12,82,131,0.12)', color: '#0c5283', transform: 'scale(1.08)' },
                           }}
-                        >
-                          {savedJobIds.has(job._id) ? <Bookmark sx={{ fontSize: 20 }} /> : <BookmarkBorder sx={{ fontSize: 20 }} />}
-                        </IconButton>
-                      )}
+                        />
+                      </Box>
 
                       <CardContent sx={{ p: 2.75, pb: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
                         {/* Header */}
-                        <Box sx={{ display: 'flex', gap: 1.75, mb: 2.25, pr: isCandidate ? 5 : 0 }}>
+                        <Box sx={{ display: 'flex', gap: 1.75, mb: 2.25, pr: isCandidate ? 10 : 5 }}>
                           <Box
                             sx={{
                               width: 54,

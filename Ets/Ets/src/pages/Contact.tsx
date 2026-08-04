@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { Box, Container, Typography, TextField, Button, Grid, Card, CardContent } from '@mui/material';
 import { Email, Phone, LocationOn, AccessTime } from '@mui/icons-material';
 import { useLocalizedSiteContent } from '../hooks/useLocalizedSiteContent';
+import { PHONE_LENGTH, sanitizePhone, validatePhone } from '../utils/phone';
 
 const Contact: React.FC = () => {
   const { content } = useLocalizedSiteContent();
   const contact = content?.contact;
+  const [phone, setPhone] = useState('');
 
   const contactInfo = [
     { icon: <Email />, title: 'Email', value: contact?.email },
@@ -38,7 +41,19 @@ const Contact: React.FC = () => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <TextField fullWidth label="Your Name" placeholder="John Doe" />
                   <TextField fullWidth label="Email Address" placeholder="john@example.com" type="email" />
-                  <TextField fullWidth label="Phone Number" placeholder="+91 98765 43210" type="tel" />
+                  <TextField
+                    fullWidth
+                    label="Phone Number"
+                    placeholder="10 digit mobile number"
+                    type="tel"
+                    value={phone}
+                    onChange={(event) => setPhone(sanitizePhone(event.target.value))}
+                    error={Boolean(validatePhone(phone))}
+                    helperText={validatePhone(phone) || '10 digits, without +91'}
+                    slotProps={{
+                      htmlInput: { maxLength: PHONE_LENGTH, inputMode: 'numeric', pattern: '[0-9]*', autoComplete: 'tel' },
+                    }}
+                  />
                   <TextField fullWidth label="Subject" placeholder="How can we help?" />
                   <TextField fullWidth label="Message" placeholder="Your message..." multiline rows={4} />
 

@@ -162,28 +162,51 @@ export default function ResumeBuilderModal({ open, onClose, candidateName = 'Can
         sx={{
           display: 'flex',
           alignItems: 'center',
+          // Below md the toolbar drops onto its own full-width row — the controls
+          // together are far wider than a phone screen.
+          flexWrap: { xs: 'wrap', md: 'nowrap' },
           justifyContent: 'space-between',
-          gap: 2,
+          gap: { xs: 1, md: 2 },
           borderBottom: '1px solid',
           borderColor: 'divider',
           bgcolor: 'background.paper',
           py: 1.5,
-          px: 3,
+          px: { xs: 1.5, sm: 2, md: 3 },
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box sx={{ width: 4, height: 32, bgcolor: '#0ab6a2', borderRadius: 1 }} />
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flex: '1 1 auto' }}>
+          <Box sx={{ width: 4, height: 32, flexShrink: 0, bgcolor: '#0ab6a2', borderRadius: 1 }} />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>
               AI Resume Builder
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
               {candidateName} — Veterinary Professional
             </Typography>
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {/* Close stays pinned to the title row so the dialog is always dismissable. */}
+        <IconButton
+          size="small"
+          onClick={onClose}
+          aria-label="Close resume builder"
+          sx={{ flexShrink: 0, order: { xs: 1, md: 3 } }}
+        >
+          <Close />
+        </IconButton>
+
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 1,
+            order: { xs: 2, md: 2 },
+            width: { xs: '100%', md: 'auto' },
+            flexShrink: 0,
+          }}
+        >
           {hasResume && (
             <>
               <ToggleButtonGroup
@@ -191,6 +214,7 @@ export default function ResumeBuilderModal({ open, onClose, candidateName = 'Can
                 exclusive
                 onChange={(_e, v) => { if (v) setMode(v); }}
                 size="small"
+                sx={{ '& .MuiToggleButton-root': { px: { xs: 1, sm: 1.5 }, fontSize: { xs: 12, sm: 13 } } }}
               >
                 <ToggleButton value="preview">
                   <Preview fontSize="small" sx={{ mr: 0.5 }} /> Preview
@@ -235,7 +259,12 @@ export default function ResumeBuilderModal({ open, onClose, candidateName = 'Can
           <Button
             variant="contained"
             size="small"
-            sx={{ bgcolor: '#0ab6a2', '&:hover': { bgcolor: '#089e8c' } }}
+            sx={{
+              bgcolor: '#0ab6a2',
+              whiteSpace: 'nowrap',
+              ml: { xs: 'auto', md: 0 },
+              '&:hover': { bgcolor: '#089e8c' },
+            }}
             startIcon={
               isGenerating || isBuyingCredit ? (
                 <CircularProgress size={14} color="inherit" />
@@ -256,10 +285,6 @@ export default function ResumeBuilderModal({ open, onClose, candidateName = 'Can
                     ? 'Regenerate'
                     : 'Build Resume'}
           </Button>
-
-          <IconButton size="small" onClick={onClose}>
-            <Close />
-          </IconButton>
         </Box>
       </DialogTitle>
 

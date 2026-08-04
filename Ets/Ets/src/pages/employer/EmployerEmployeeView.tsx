@@ -30,6 +30,7 @@ import {
   WorkHistory,
 } from '@mui/icons-material';
 import Sidebar from '../../components/common/Sidebar';
+import ShareButton from '../../components/common/ShareButton';
 import { PageHeader } from '../../components/common/PageHeader';
 import CandidateResumePreviewModal from '../../components/common/CandidateResumePreviewModal';
 import {
@@ -115,9 +116,9 @@ const EmployerEmployeeView: React.FC = () => {
   const candidateFullName = candidate ? `${candidate.firstName} ${candidate.lastName}`.trim() : 'Candidate';
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
       <Sidebar type="employer" userName={companyName} userRole="Employer" />
-      <Box sx={{ flex: 1, p: { xs: 2, md: 4 }, bgcolor: 'background.default' }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: 'background.default' }}>
         <PageHeader
           title="Candidate Details"
           subtitle="Complete profile of the selected candidate."
@@ -150,7 +151,14 @@ const EmployerEmployeeView: React.FC = () => {
             </Button>
           )}
           {candidate && !isLocked && (
-            <Stack direction="row" spacing={1.5}>
+            <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'wrap', rowGap: 1.5, alignItems: 'center' }}>
+              <ShareButton
+                url={`/employer/employees/${candidate._id}`}
+                title={candidateFullName}
+                text={`${candidateFullName}${candidate.currentJobTitle ? ` — ${candidate.currentJobTitle}` : ''} on VetsLinked:`}
+                label="Share this profile"
+                variant="button"
+              />
               {chatAllowed && (
               <Button
                 variant="outlined"

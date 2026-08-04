@@ -354,12 +354,18 @@ const Employers: React.FC = () => {
                     variant="outlined"
                     onClick={() => navigate(`/employer/post-job?title=${encodeURIComponent(role)}`)}
                     sx={{
-                      py: 1.5,
+                      // Uniform height so two-word roles don't make the grid ragged.
+                      height: '100%',
+                      minHeight: 52,
+                      py: 1.25,
+                      px: 1,
                       borderRadius: 2.5,
                       borderColor: 'rgba(12,82,131,0.2)',
                       color: '#0c5283',
                       fontWeight: 700,
-                      fontSize: '0.85rem',
+                      fontSize: { xs: '0.75rem', sm: '0.85rem' },
+                      lineHeight: 1.25,
+                      textTransform: 'none',
                       '&:hover': {
                         bgcolor: 'rgba(10,182,162,0.08)',
                         borderColor: '#0ab6a2'

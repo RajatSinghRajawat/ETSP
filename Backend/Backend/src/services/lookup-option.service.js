@@ -240,8 +240,12 @@ export async function disableOption(id) {
 }
 
 /**
- * Authenticated user proposes a new select value.
- * Dedupes against existing approved/pending rows in the same category.
+ * Anyone (signed in or not) can add a missing select value. The option goes
+ * live immediately so the submitter can carry on filling the form; it stays
+ * flagged as user-submitted (`userSubmitted: true`) so the admin panel can
+ * surface and prune these separately from the curated catalogue.
+ *
+ * Dedupes case-insensitively against existing rows in the same category.
  */
 export async function proposeOption(category, nameInput, user) {
   assertCategory(category);
@@ -271,37 +275,31 @@ export async function proposeOption(category, nameInput, user) {
         message: 'This option already exists and is available in the list.',
       };
     }
-    if (existing.status === 'pending') {
-      return {
-        item: existing,
-        created: false,
-        message: 'This option is already waiting for admin approval.',
-      };
-    }
-    if (existing.status === 'rejected' || existing.status === 'disabled' || !existing.isActive) {
-      // Re-open for review instead of creating a duplicate.
-      const reopened = await LookupOption.findByIdAndUpdate(
-        existing._id,
-        {
-          $set: {
-            name,
-            status: 'pending',
-            isActive: false,
-            proposedBy: user?.id ?? null,
-            proposedByEmail: user?.email ?? '',
-            reviewedBy: null,
-            reviewedAt: null,
-            rejectionReason: '',
-          },
+
+    // Previously pending/rejected/disabled — publish it now.
+    const republished = await LookupOption.findByIdAndUpdate(
+      existing._id,
+      {
+        $set: {
+          name,
+          status: 'approved',
+          isActive: true,
+          userSubmitted: true,
+          proposedBy: user?.id ?? null,
+          proposedByEmail: user?.email ?? '',
+          reviewedBy: null,
+          reviewedAt: null,
+          rejectionReason: '',
         },
-        { new: true },
-      ).lean();
-      return {
-        item: reopened,
-        created: true,
-        message: 'Submitted for admin approval.',
-      };
-    }
+      },
+      { new: true },
+    ).lean();
+
+    return {
+      item: republished,
+      created: true,
+      message: 'Added to the list.',
+    };
   }
 
   try {
@@ -311,18 +309,24 @@ export async function proposeOption(category, nameInput, user) {
       value,
       description: '',
       order: 9999,
-      status: 'pending',
-      isActive: false,
+      status: 'approved',
+      isActive: true,
+      userSubmitted: true,
       proposedBy: user?.id ?? null,
       proposedByEmail: user?.email ?? '',
     });
     return {
       item: created.toObject(),
       created: true,
-      message: 'Submitted for admin approval. It will appear in the list once approved.',
+      message: 'Added to the list.',
     };
   } catch (error) {
     if (error?.code === 11000) {
+      // Lost a race against a concurrent insert — return the winner.
+      const winner = await LookupOption.findOne({ category, value }).lean();
+      if (winner) {
+        return { item: winner, created: false, message: 'This option already exists.' };
+      }
       throw new AppError('This option already exists', 409);
     }
     throw error;

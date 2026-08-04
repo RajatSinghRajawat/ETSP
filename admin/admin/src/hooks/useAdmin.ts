@@ -31,8 +31,12 @@ import type {
   PurchaseType,
   ResumeData,
   Role,
+  TicketPriority,
+  TicketStatus,
   StripeSettingsView,
   SubscriptionStatus,
+  SupportTicket,
+  SupportTicketListResult,
   UserRow,
 } from '../types';
 
@@ -892,5 +896,70 @@ export function useDisableLookup() {
       return unwrap(res.data);
     },
     onSuccess: () => invalidateLookups(qc),
+  });
+}
+
+/* --------------------------------------------------------- support tickets */
+
+export function useSupportTickets(
+  params: ListQuery & { status?: TicketStatus | ''; priority?: TicketPriority | '' },
+) {
+  return useQuery({
+    queryKey: ['admin', 'support-tickets', params],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<SupportTicketListResult>>('/admin/support-tickets', {
+        params,
+      });
+      return unwrap(res.data);
+    },
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useSupportTicket(id: string | null) {
+  return useQuery({
+    queryKey: ['admin', 'support-tickets', id],
+    enabled: Boolean(id),
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<SupportTicket>>(`/admin/support-tickets/${id}`);
+      return unwrap(res.data);
+    },
+  });
+}
+
+/** Reply and/or change status — the backend emails the ticket owner either way. */
+export function useRespondToTicket() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      message,
+      status,
+    }: {
+      id: string;
+      message?: string;
+      status?: TicketStatus;
+    }) => {
+      const res = await api.post<ApiResponse<SupportTicket>>(
+        `/admin/support-tickets/${id}/respond`,
+        { message, status },
+      );
+      return unwrap(res.data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'support-tickets'] });
+    },
+  });
+}
+
+export function useDeleteSupportTicket() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/admin/support-tickets/${id}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'support-tickets'] });
+    },
   });
 }

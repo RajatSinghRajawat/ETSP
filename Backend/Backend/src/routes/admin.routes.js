@@ -63,6 +63,13 @@ import {
   rejectAdminLookupHandler,
   updateAdminLookupHandler,
 } from '../controllers/lookup-option.controller.js';
+import {
+  deleteAdminTicket,
+  getAdminTicket,
+  getAdminTickets,
+  postAdminTicketResponse,
+} from '../controllers/support-ticket.controller.js';
+import { adminRespondTicketSchema } from '../validations/support-ticket.validation.js';
 import { authenticate } from '../middlewares/auth.js';
 import { requireRole } from '../middlewares/rbac.js';
 import { validateBody } from '../middlewares/validate.js';
@@ -144,6 +151,15 @@ export async function adminRoutes(app) {
   app.patch('/lookups/:id/approve', approveAdminLookupHandler);
   app.patch('/lookups/:id/reject', { preHandler: validateBody(rejectLookupSchema) }, rejectAdminLookupHandler);
   app.patch('/lookups/:id/disable', disableAdminLookupHandler);
+
+  app.get('/support-tickets', getAdminTickets);
+  app.get('/support-tickets/:id', getAdminTicket);
+  app.post(
+    '/support-tickets/:id/respond',
+    { preHandler: validateBody(adminRespondTicketSchema) },
+    postAdminTicketResponse,
+  );
+  app.delete('/support-tickets/:id', deleteAdminTicket);
 
   app.get('/settings/stripe', getStripeSettingsHandler);
   app.put('/settings/stripe', { preHandler: validateBody(stripeSettingsSchema) }, putStripeSettingsHandler);

@@ -33,6 +33,12 @@ export const API_ENDPOINTS = {
   savedJobs: `${API_VERSION}/saved-jobs`,
   mySavedJobs: `${API_VERSION}/saved-jobs/me`,
   savedJobById: (jobId: string) => `${API_VERSION}/saved-jobs/${jobId}`,
+
+  supportTickets: `${API_VERSION}/support-tickets`,
+  mySupportTickets: `${API_VERSION}/support-tickets/me`,
+  supportTicketById: (id: string) => `${API_VERSION}/support-tickets/${id}`,
+  supportTicketReply: (id: string) => `${API_VERSION}/support-tickets/${id}/reply`,
+  supportTicketClose: (id: string) => `${API_VERSION}/support-tickets/${id}/close`,
   chatConversations: `${API_VERSION}/chat/conversations`,
   chatConversationMessages: (id: string) => `${API_VERSION}/chat/conversations/${id}/messages`,
   chatConversationRead: (id: string) => `${API_VERSION}/chat/conversations/${id}/read`,

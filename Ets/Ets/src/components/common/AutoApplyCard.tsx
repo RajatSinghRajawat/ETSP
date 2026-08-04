@@ -61,12 +61,12 @@ const AutoApplyCard = () => {
 
   return (
     <Card elevation={1} sx={{ borderRadius: 3 }}>
-      <CardContent sx={{ p: 3 }}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
         <Stack
           direction="row"
           sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}
         >
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5, minWidth: 0 }}>
             <AutoAwesome color="primary" />
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               AI Auto Apply

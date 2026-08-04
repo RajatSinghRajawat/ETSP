@@ -64,9 +64,9 @@ const EmployerApplications: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
       <Sidebar type="employer" userName={companyName} userRole="Employer" />
-      <Box sx={{ flex: 1, p: { xs: 2, md: 4 }, bgcolor: 'background.default' }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: 'background.default' }}>
         <PageHeader title="Applications" subtitle="Review candidate applications across your posted jobs." />
 
         <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -128,29 +128,18 @@ const EmployerApplications: React.FC = () => {
                     key={application._id}
                     sx={{
                       px: 0,
+                      // Status chip and action button drop to their own row below sm
+                      // instead of overlapping the candidate name.
+                      display: 'flex',
+                      flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                      alignItems: 'center',
+                      gap: 1,
                       borderBottom: '1px solid',
                       borderColor: 'divider',
                       ...(locked ? { bgcolor: 'action.hover' } : {}),
                     }}
-                    secondaryAction={
-                      locked ? (
-                        <Button
-                          variant="outlined"
-                          color="secondary"
-                          startIcon={<LockOpen fontSize="small" />}
-                          disabled={unlockingId === candidate._id}
-                          onClick={() => handleUnlock(candidate._id, application.job?._id)}
-                        >
-                          {unlockingId === candidate._id ? 'Unlocking…' : 'Unlock (1 credit)'}
-                        </Button>
-                      ) : (
-                        <Button startIcon={<Visibility />} onClick={() => navigate(`/employer/applications/${application._id}`)}>
-                          View
-                        </Button>
-                      )
-                    }
                   >
-                    <ListItemAvatar>
+                    <ListItemAvatar sx={{ minWidth: 56 }}>
                       <Avatar
                         src={locked ? undefined : candidate.photoUrl || undefined}
                         sx={locked ? { bgcolor: 'grey.400' } : undefined}
@@ -159,9 +148,10 @@ const EmployerApplications: React.FC = () => {
                       </Avatar>
                     </ListItemAvatar>
                     <ListItemText
+                      sx={{ minWidth: 0, my: 0 }}
                       primary={
                         <Typography
-                          sx={{ fontWeight: 800, ...(locked ? { filter: 'blur(0.5px)', color: 'text.secondary' } : {}) }}
+                          sx={{ fontWeight: 800, wordBreak: 'break-word', ...(locked ? { filter: 'blur(0.5px)', color: 'text.secondary' } : {}) }}
                         >
                           {candidate.firstName} {candidate.lastName}
                           {candidate.excelMember && !locked && (
@@ -178,7 +168,39 @@ const EmployerApplications: React.FC = () => {
                           : `${application.job.title} - ${candidate.currentLocation}`
                       }
                     />
-                    <Chip label={application.status} size="small" sx={{ mr: 12, textTransform: 'capitalize' }} />
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        justifyContent: 'flex-end',
+                        gap: 1,
+                        flexShrink: 0,
+                        width: { xs: '100%', sm: 'auto' },
+                      }}
+                    >
+                      <Chip label={application.status} size="small" sx={{ textTransform: 'capitalize' }} />
+                      {locked ? (
+                        <Button
+                          variant="outlined"
+                          color="secondary"
+                          size="small"
+                          startIcon={<LockOpen fontSize="small" />}
+                          disabled={unlockingId === candidate._id}
+                          onClick={() => handleUnlock(candidate._id, application.job?._id)}
+                        >
+                          {unlockingId === candidate._id ? 'Unlocking…' : 'Unlock (1 credit)'}
+                        </Button>
+                      ) : (
+                        <Button
+                          size="small"
+                          startIcon={<Visibility />}
+                          onClick={() => navigate(`/employer/applications/${application._id}`)}
+                        >
+                          View
+                        </Button>
+                      )}
+                    </Box>
                   </ListItem>
                 );
               })}
@@ -192,7 +214,7 @@ const EmployerApplications: React.FC = () => {
         </Card>
 
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <Pagination count={pagination?.totalPages ?? 1} page={page} onChange={(_, nextPage) => setPage(nextPage)} color="primary" />
+          <Pagination count={pagination?.totalPages ?? 1} page={page} onChange={(_, nextPage) => setPage(nextPage)} color="primary" siblingCount={0} sx={{ '& .MuiPagination-ul': { flexWrap: 'wrap', justifyContent: 'center' } }} />
         </Box>
       </Box>
     </Box>

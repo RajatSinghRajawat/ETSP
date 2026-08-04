@@ -16,6 +16,7 @@ import Plans from './pages/Plans';
 import Purchases from './pages/Purchases';
 import Settings from './pages/Settings';
 import SiteContent from './pages/SiteContent';
+import SupportTickets from './pages/SupportTickets';
 import Subscriptions from './pages/Subscriptions';
 import Users from './pages/Users';
 import { system } from './theme';
@@ -47,6 +48,7 @@ export default function App() {
                 <Route path="employers" element={<Employers />} />
                 <Route path="jobs" element={<Jobs />} />
                 <Route path="applications" element={<Applications />} />
+                <Route path="support-tickets" element={<SupportTickets />} />
                 <Route path="lookups" element={<Lookups />} />
                 <Route path="site-content" element={<SiteContent />} />
                 <Route path="plans" element={<Plans />} />

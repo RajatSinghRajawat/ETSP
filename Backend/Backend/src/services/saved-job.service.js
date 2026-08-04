@@ -5,13 +5,16 @@ import { AppError } from '../utils/app-error.js';
 
 async function getCandidateForUser(user) {
   if (!user || user.role !== 'candidate') {
-    throw new AppError('Candidate account required', 403);
+    throw new AppError('Sign in with a candidate account to save jobs', 403);
   }
 
   const candidate = await CandidateProfile.findOne({ email: user.email }).select('_id email').lean();
 
   if (!candidate) {
-    throw new AppError('Candidate profile not found for this account', 404);
+    throw new AppError(
+      'Complete your candidate profile before saving jobs',
+      404,
+    );
   }
 
   return candidate;
@@ -23,8 +26,9 @@ export async function saveJob(user, jobId) {
   }
 
   const candidate = await getCandidateForUser(user);
-  // Only a live, approved job can be saved — otherwise a stale or guessed id
-  // would let a candidate bookmark something they cannot even open.
+  // Only a live, approved job can be saved. Unapproved jobs deliberately return
+  // the same 404 as a missing one so the endpoint cannot be used to probe which
+  // job ids exist but are still pending review.
   const job = await Job.findOne({ _id: jobId, status: 'active', approvalStatus: 'approved' })
     .select('_id')
     .lean();
