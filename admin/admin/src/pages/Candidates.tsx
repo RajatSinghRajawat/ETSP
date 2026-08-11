@@ -159,7 +159,7 @@ export default function Candidates() {
                   <Table.Cell>{c.currentJobTitle ?? '—'}</Table.Cell>
                   <Table.Cell>{c.currentLocation ?? '—'}</Table.Cell>
                   <Table.Cell><StatusBadge value={c.status} /></Table.Cell>
-                  <Table.Cell><StatusBadge value={c.approvalStatus ?? 'rejected'} /></Table.Cell>
+                  <Table.Cell><StatusBadge value={c.approvalStatus ?? 'pending'} /></Table.Cell>
                   <Table.Cell color="gray.500">{formatDate(c.createdAt)}</Table.Cell>
                   <Table.Cell textAlign="end">
                     <HStack gap={1} justify="flex-end">

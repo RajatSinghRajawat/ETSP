@@ -34,6 +34,7 @@ import Pricing from './pages/billing/Pricing';
 import BillingSuccess from './pages/billing/BillingSuccess';
 import ChatBotWidget from './components/common/ChatBotWidget';
 import UpgradeDialog from './components/common/UpgradeDialog';
+import ProfileApprovalBanner from './components/common/ProfileApprovalBanner';
 import { ChatProvider } from './context/ChatContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -66,6 +67,7 @@ function App() {
               overflowX: 'clip',
             }}
           >
+            <ProfileApprovalBanner />
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />

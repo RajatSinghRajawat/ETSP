@@ -211,6 +211,7 @@ export function autoApplyNewJobInBackground(job) {
       const candidates = await CandidateProfile.find({
         autoApplyEnabled: true,
         status: 'submitted',
+        approvalStatus: 'approved',
         skills: { $exists: true, $ne: [] },
       })
         .limit(MAX_CANDIDATES_PER_NEW_JOB)
@@ -278,6 +279,15 @@ export async function setAutoApply(user, enabled) {
     candidate.autoApplyEnabled = false;
     await candidate.save();
     return { enabled: false, applied: 0, matched: 0, jobs: [] };
+  }
+
+  if (candidate.approvalStatus !== 'approved') {
+    throw new AppError(
+      'Your profile approval is pending. You can apply for jobs after admin approval.',
+      403,
+      undefined,
+      'PROFILE_APPROVAL_PENDING',
+    );
   }
 
   const entitlements = await getEntitlements(user);

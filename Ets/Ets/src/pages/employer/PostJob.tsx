@@ -240,10 +240,13 @@ const PostJob: React.FC = () => {
   const [updateJob, { isLoading: isUpdating }] = useUpdateJobMutation();
   const [purchaseCheckout, { isLoading: isBuyingCredit }] = usePurchaseCheckoutMutation();
   const { data: jobData, isLoading: isJobLoading } = useGetJobQuery(id ?? '', { skip: !id });
-  const { data: employerData } = useGetMyEmployerProfileQuery();
+  const { data: employerData, isLoading: isProfileApprovalLoading } = useGetMyEmployerProfileQuery();
   const { data: usageData } = useGetMyUsageQuery();
   const companyName = employerData?.data.companyName || 'Employer';
   const companyLogo = employerData?.data.logoUrl || '';
+  const isApprovalPending = Boolean(
+    employerData?.data.approvalStatus && employerData.data.approvalStatus !== 'approved',
+  );
   const isLoading = isCreating || isUpdating;
 
   const effectiveFeatures = usageData?.data.effectiveFeatures;
@@ -375,6 +378,13 @@ const PostJob: React.FC = () => {
   const hasNoEmployerProfile = currentUser?.role === 'employer' && employerData && !employerData.data?._id;
 
   const handleSubmit = async (statusOverride?: JobPayload['status']) => {
+    if (isApprovalPending) {
+      const message = 'Your profile approval is pending. You can post jobs after admin approval.';
+      setSubmitError(message);
+      notify.warning(message);
+      return;
+    }
+
     if (!validateForm()) {
       setSubmitError(`Please fix the highlighted fields before ${isEdit ? 'updating' : 'posting'}.`);
       notify.warning(`Please fix the highlighted fields before ${isEdit ? 'updating' : 'posting'}.`);
@@ -569,6 +579,11 @@ const PostJob: React.FC = () => {
         {submitError && (
           <Alert severity="error" sx={{ mb: 3, borderRadius: 3 }}>
             {submitError}
+          </Alert>
+        )}
+        {isApprovalPending && (
+          <Alert severity="warning" sx={{ mb: 3, borderRadius: 3 }}>
+            You can prepare job details, but posting and saving jobs will be enabled only after your profile is approved.
           </Alert>
         )}
 
@@ -1045,7 +1060,7 @@ const PostJob: React.FC = () => {
                   <Button
                     variant="outlined"
                     size="large"
-                    disabled={isLoading}
+                    disabled={isLoading || isProfileApprovalLoading || isApprovalPending}
                     onClick={() => handleSubmit('draft')}
                     sx={{ borderRadius: 2.5, fontWeight: 700 }}
                   >
@@ -1054,7 +1069,7 @@ const PostJob: React.FC = () => {
                   <Button
                     size="large"
                     startIcon={isLoading ? <CircularProgress color="inherit" size={18} /> : <Save />}
-                    disabled={isLoading || quotaExhausted}
+                    disabled={isLoading || isProfileApprovalLoading || quotaExhausted || isApprovalPending}
                     onClick={() => handleSubmit('active')}
                     sx={{
                       px: { xs: 2, sm: 4 },

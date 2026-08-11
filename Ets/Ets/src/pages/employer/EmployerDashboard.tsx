@@ -99,6 +99,9 @@ const EmployerDashboard: React.FC = () => {
   const jobs = jobsData?.data ?? [];
   const applications = applicationData?.data.items ?? [];
   const companyName = profile?.companyName || 'Employer';
+  const isApprovalPending = Boolean(
+    profile?.approvalStatus && profile.approvalStatus !== 'approved',
+  );
   const activeJobs = jobs.filter((job) => job.status === 'active');
   const closedJobs = jobs.filter((job) => job.status === 'closed');
   const draftJobs = jobs.filter((job) => job.status === 'draft');
@@ -211,6 +214,7 @@ const EmployerDashboard: React.FC = () => {
                 size="large"
                 startIcon={<Add />}
                 onClick={() => navigate('/employer/post-job')}
+                disabled={isProfileLoading || isApprovalPending}
                 sx={{
                   bgcolor: 'white',
                   color: 'primary.main',

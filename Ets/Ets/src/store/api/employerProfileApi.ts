@@ -14,6 +14,7 @@ export type EmployerProfileResponse = {
   createdAt: string;
   updatedAt: string;
   openJobs?: number;
+  approvalStatus: 'pending' | 'rejected' | 'approved';
 } & EmployerProfilePayload;
 
 export type EmployerProfileUpdatePayload = Partial<Omit<EmployerProfileForm, 'email' | 'phoneNumber'>>;

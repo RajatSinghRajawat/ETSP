@@ -243,11 +243,16 @@ export async function getMsg91Settings() {
   const value = await getSettingValue(MSG91_KEY);
   const authResult = value?.authKey ? tryReadSecret(value.authKey) : { ok: true, value: '' };
 
+  // An explicit admin toggle wins; otherwise auto-enable when .env is configured.
+  const enabled = value?.enabled !== undefined
+    ? value.enabled === true
+    : Boolean(env.MSG91_AUTH_KEY);
+
   return {
-    enabled: value?.enabled === true || Boolean(process.env.MSG91_AUTH_KEY),
-    authKey: authResult.ok && authResult.value ? authResult.value : (process.env.MSG91_AUTH_KEY || ''),
-    senderId: value?.senderId || process.env.MSG91_SENDER_ID || '',
-    templateId: value?.templateId || process.env.MSG91_TEMPLATE_ID || '',
+    enabled,
+    authKey: authResult.ok && authResult.value ? authResult.value : env.MSG91_AUTH_KEY,
+    senderId: value?.senderId || env.MSG91_SENDER_ID,
+    templateId: value?.templateId || env.MSG91_TEMPLATE_ID,
   };
 }
 

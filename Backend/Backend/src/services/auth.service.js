@@ -125,13 +125,10 @@ class AuthService {
     }
 
     const preferredRole = this.resolveRole(user, candidateProfile, employerProfile);
-    const role = this.pickLoginRole(preferredRole, candidateProfile, employerProfile);
-
-    if (role === 'candidate') {
-      this.assertProfileApproved('candidate', candidateProfile);
-    } else if (role === 'employer') {
-      this.assertProfileApproved('employer', employerProfile);
-    }
+    const role =
+      preferredRole === 'admin'
+        ? 'admin'
+        : this.pickLoginRole(preferredRole, candidateProfile, employerProfile);
 
     return {
       user,
@@ -152,7 +149,9 @@ class AuthService {
     const otpKey = `auth:otp:${formattedEmail}`;
     const ttlInSeconds = 600; // 10 minutes
 
-    logger.info(`Generated OTP for ${formattedEmail}: ${otp}`);
+    if (env.NODE_ENV !== 'production') {
+      logger.info(`Generated OTP for ${formattedEmail}: ${otp}`);
+    }
 
     // Store in Redis with fallback to memory
     try {
@@ -216,26 +215,10 @@ class AuthService {
     return role === 'candidate' ? profile?.phone : profile?.phoneNumber;
   }
 
-  assertProfileApproved(role, profile) {
+  assertProfileExists(role, profile) {
     if (!profile) {
       throw new AppError(`No ${role} profile found for this account`, 404);
     }
-
-    if (profile.approvalStatus === 'approved') {
-      return;
-    }
-
-    if (role === 'candidate') {
-      throw new AppError(
-        'Your candidate registration has not been approved by the admin yet. You will be able to use this profile once it is verified.',
-        403,
-      );
-    }
-
-    throw new AppError(
-      'Your employer registration has not been approved by the admin yet. You will be able to use this profile once it is verified.',
-      403,
-    );
   }
 
   /**
@@ -367,17 +350,16 @@ class AuthService {
       throw new AppError(`No ${currentRole} profile found for this account`, 404);
     }
 
-    // Current side must stay approved too (token shouldn't exist otherwise, but be safe).
-    this.assertProfileApproved(currentRole, currentProfile);
+    this.assertProfileExists(currentRole, currentProfile);
 
     const targetProfile = await this.getProfileForRole(email, targetRole);
     if (!targetProfile) {
       throw new AppError(`No ${targetRole} profile found for this account`, 404);
     }
 
-    // Target must be admin-approved — do not let an approved employer jump into
-    // a pending candidate profile (or the reverse).
-    this.assertProfileApproved(targetRole, targetProfile);
+    // Pending profiles are valid self-service destinations; restricted actions
+    // are still protected by the API's approval gates.
+    this.assertProfileExists(targetRole, targetProfile);
 
     let user = await User.findOne({ email });
     if (!user) {

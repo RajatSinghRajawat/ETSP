@@ -4,6 +4,17 @@ import { EmployerProfile } from '../src/models/employer-profile.model.js';
 import { User } from '../src/models/user.model.js';
 import { authService } from '../src/services/auth.service.js';
 import { emailService } from '../src/services/email.service.js';
+import {
+  getCandidateProfileByEmail,
+  getCandidateProfiles,
+  getFeaturedCandidateProfiles,
+} from '../src/services/candidate-profile.service.js';
+import {
+  getEmployerProfileByEmail,
+  getEmployerProfiles,
+} from '../src/services/employer-profile.service.js';
+import { createJob } from '../src/services/job.service.js';
+import { createJobApplication } from '../src/services/job-application.service.js';
 import * as adminService from '../src/services/admin.service.js';
 import { connectTestDb, clearTestDb, disconnectTestDb } from './helpers/db.js';
 
@@ -79,41 +90,37 @@ async function registerEmployer(email, overrides = {}) {
 }
 
 describe('registration defaults', () => {
-  test('a new candidate profile starts not-approved (rejected) by default', async () => {
+  test('a new candidate profile starts pending by default', async () => {
     const profile = await registerCandidate('new-candidate@test.local');
-    expect(profile.approvalStatus).toBe('rejected');
+    expect(profile.approvalStatus).toBe('pending');
   });
 
-  test('a new employer profile starts not-approved (rejected) by default', async () => {
+  test('a new employer profile starts pending by default', async () => {
     const profile = await registerEmployer('new-employer@test.local');
-    expect(profile.approvalStatus).toBe('rejected');
+    expect(profile.approvalStatus).toBe('pending');
   });
 });
 
-describe('login is blocked until admin approval', () => {
-  test('an unapproved candidate cannot request an OTP to login', async () => {
+describe('pending users can login before admin approval', () => {
+  test('a pending candidate can request an OTP to login', async () => {
     const email = 'unapproved-candidate@test.local';
     await registerCandidate(email);
 
-    await expectAppError(authService.sendOtp(email), 403);
-
-    // No account should have been created for a blocked login attempt.
-    expect(await User.findOne({ email })).toBeNull();
+    await expect(authService.sendOtp(email)).resolves.toMatchObject({ message: expect.any(String) });
   });
 
-  test('an unapproved candidate cannot complete OTP verification either', async () => {
+  test('OTP verification reaches OTP validation for a pending candidate', async () => {
     const email = 'unapproved-candidate-2@test.local';
     await registerCandidate(email);
 
-    await expectAppError(authService.verifyOtp(email, '000000'), 403);
+    await expectAppError(authService.verifyOtp(email, '000000'), 400);
   });
 
-  test('an unapproved employer cannot request an OTP to login', async () => {
+  test('a pending employer can request an OTP to login', async () => {
     const email = 'unapproved-employer@test.local';
     await registerEmployer(email);
 
-    await expectAppError(authService.sendOtp(email), 403);
-    expect(await User.findOne({ email })).toBeNull();
+    await expect(authService.sendOtp(email)).resolves.toMatchObject({ message: expect.any(String) });
   });
 
   test('an approved candidate can proceed through the OTP send step', async () => {
@@ -132,6 +139,58 @@ describe('login is blocked until admin approval', () => {
     await expect(authService.sendOtp(email)).resolves.toMatchObject({
       message: expect.any(String),
     });
+  });
+});
+
+describe('pending profile access and restrictions', () => {
+  test('a pending candidate can view their own profile but stays out of public directories', async () => {
+    const pending = await registerCandidate('pending-self-candidate@test.local');
+    await registerCandidate('approved-public-candidate@test.local', { approvalStatus: 'approved' });
+
+    await expect(getCandidateProfileByEmail(pending.email)).resolves.toMatchObject({
+      email: pending.email,
+      approvalStatus: 'pending',
+    });
+    await expect(getCandidateProfiles({}, { role: 'admin' })).resolves.toMatchObject({
+      pagination: { total: 1 },
+    });
+    await expect(getFeaturedCandidateProfiles()).resolves.toMatchObject({ total: 1 });
+  });
+
+  test('a pending employer can view their own profile but stays out of public directories', async () => {
+    const pending = await registerEmployer('pending-self-employer@test.local');
+    await registerEmployer('approved-public-employer@test.local', { approvalStatus: 'approved' });
+
+    await expect(getEmployerProfileByEmail(pending.email)).resolves.toMatchObject({
+      email: pending.email,
+      approvalStatus: 'pending',
+    });
+    await expect(getEmployerProfiles()).resolves.toMatchObject({
+      pagination: { total: 1 },
+    });
+  });
+
+  test('a pending candidate cannot apply for a job', async () => {
+    const candidate = await registerCandidate('pending-apply@test.local');
+    const error = await expectAppError(
+      createJobApplication(
+        { role: 'candidate', email: candidate.email },
+        { jobId: candidate._id.toString(), coverLetter: '' },
+      ),
+      403,
+    );
+
+    expect(error.code).toBe('PROFILE_APPROVAL_PENDING');
+  });
+
+  test('a pending employer cannot post a job', async () => {
+    const employer = await registerEmployer('pending-post@test.local');
+    const error = await expectAppError(
+      createJob({ role: 'employer', email: employer.email }, {}),
+      403,
+    );
+
+    expect(error.code).toBe('PROFILE_APPROVAL_PENDING');
   });
 });
 
@@ -206,7 +265,7 @@ describe('admin reject sends a notification email', () => {
 });
 
 describe('admin reject action', () => {
-  test('rejecting a candidate blocks login but keeps the profile on file', async () => {
+  test('rejecting a candidate keeps self-service login and the profile on file', async () => {
     const email = 'to-reject-candidate@test.local';
     const profile = await registerCandidate(email);
     // Registration creates the bare User record up front (see
@@ -219,10 +278,10 @@ describe('admin reject action', () => {
 
     expect(rejected.approvalStatus).toBe('rejected');
     expect(await CandidateProfile.findById(profile._id)).not.toBeNull();
-    await expectAppError(authService.sendOtp(email), 403);
+    await expect(authService.sendOtp(email)).resolves.toMatchObject({ message: expect.any(String) });
   });
 
-  test('rejecting an employer blocks login but keeps the profile on file', async () => {
+  test('rejecting an employer keeps self-service login and the profile on file', async () => {
     const email = 'to-reject-employer@test.local';
     const profile = await registerEmployer(email);
     await User.create({ email, role: 'employer', isActive: true });
@@ -232,7 +291,7 @@ describe('admin reject action', () => {
 
     expect(rejected.approvalStatus).toBe('rejected');
     expect(await EmployerProfile.findById(profile._id)).not.toBeNull();
-    await expectAppError(authService.sendOtp(email), 403);
+    await expect(authService.sendOtp(email)).resolves.toMatchObject({ message: expect.any(String) });
   });
 
   // The whole point of rejection-as-a-status: an admin can change their mind.
@@ -242,7 +301,7 @@ describe('admin reject action', () => {
 
     await adminService.approveCandidate(profile._id.toString());
     await adminService.rejectCandidate(profile._id.toString());
-    await expectAppError(authService.sendOtp(email), 403);
+    await expect(authService.sendOtp(email)).resolves.toMatchObject({ message: expect.any(String) });
 
     const reApproved = await adminService.approveCandidate(profile._id.toString());
     expect(reApproved.approvalStatus).toBe('approved');
@@ -257,7 +316,7 @@ describe('admin reject action', () => {
 
     await adminService.approveEmployer(profile._id.toString());
     await adminService.rejectEmployer(profile._id.toString());
-    await expectAppError(authService.sendOtp(email), 403);
+    await expect(authService.sendOtp(email)).resolves.toMatchObject({ message: expect.any(String) });
 
     const reApproved = await adminService.approveEmployer(profile._id.toString());
     expect(reApproved.approvalStatus).toBe('approved');

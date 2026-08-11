@@ -11,7 +11,7 @@ import {
   deleteFollowEmployer,
   postFollowEmployer,
 } from '../controllers/follow.controller.js';
-import { authenticate } from '../middlewares/auth.js';
+import { authenticate, authenticateOptional } from '../middlewares/auth.js';
 import { validateBody } from '../middlewares/validate.js';
 import {
   employerProfileSchema,
@@ -27,7 +27,7 @@ export async function employerProfileRoutes(app) {
   }, updateMyProfile);
   app.post('/', { preHandler: validateBody(employerProfileSchema) }, createProfile);
   app.get('/', getProfiles);
-  app.get('/:id', getProfile);
+  app.get('/:id', { preHandler: authenticateOptional }, getProfile);
   // EXCEL candidate feature: follow an employer for new-job email updates.
   app.post('/:id/follow', { preHandler: authenticate }, postFollowEmployer);
   app.delete('/:id/follow', { preHandler: authenticate }, deleteFollowEmployer);

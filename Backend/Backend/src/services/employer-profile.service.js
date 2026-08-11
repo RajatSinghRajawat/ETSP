@@ -40,7 +40,7 @@ function getDuplicateEmployerMessage(error) {
 }
 
 function buildEmployerFilters(query = {}) {
-  const filters = { status: 'submitted' };
+  const filters = { status: 'submitted', approvalStatus: 'approved' };
   const andFilters = [];
 
   if (query.search) {
@@ -203,8 +203,14 @@ export async function getEmployerProfiles(query = {}) {
   };
 }
 
-export async function getEmployerProfile(id) {
-  const profile = await EmployerProfile.findById(id).lean();
+export async function getEmployerProfile(id, user = null) {
+  const visibilityFilter =
+    user?.role === 'admin'
+      ? {}
+      : user?.role === 'employer'
+        ? { $or: [{ approvalStatus: 'approved' }, { email: user.email }] }
+        : { approvalStatus: 'approved' };
+  const profile = await EmployerProfile.findOne({ _id: id, ...visibilityFilter }).lean();
 
   if (!profile) {
     throw new AppError('Employer profile not found', 404);

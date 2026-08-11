@@ -112,12 +112,12 @@ class EmailService {
             Good news — your ${roleLabel} registration on VetJobs has been reviewed and approved by our team.
           </p>
           <p style="font-size: 16px; color: #555;">
-            You can now log in using your registered email and OTP.
+            Your full profile access is now active. Candidates can apply for jobs, and employers can post jobs.
           </p>
         </div>
       </div>
     `;
-    const text = `Hi ${greetingName}, your ${roleLabel} registration on VetJobs has been approved. You can now log in using your registered email and OTP.`;
+    const text = `Hi ${greetingName}, your ${roleLabel} registration on VetJobs has been approved. Your full profile access is now active.`;
     return this.sendEmail({ to: email, subject, html, text });
   }
 
@@ -134,7 +134,7 @@ class EmailService {
           <p style="font-size: 16px; color: #555;">Hi ${greetingName},</p>
           <p style="font-size: 16px; color: #555;">
             After reviewing your ${roleLabel} registration on VetJobs, our team was not able to
-            approve it at this time, so you will not be able to log in for now.
+            approve it at this time. You may still log in and manage your own profile, but it will remain hidden and restricted.
           </p>
           <p style="font-size: 16px; color: #555;">
             Your details are still on file. If you believe this was a mistake or you can share
@@ -143,7 +143,7 @@ class EmailService {
         </div>
       </div>
     `;
-    const text = `Hi ${greetingName}, after reviewing your ${roleLabel} registration on VetJobs our team was not able to approve it at this time, so you will not be able to log in for now. Your details are still on file — please contact support if you believe this was a mistake.`;
+    const text = `Hi ${greetingName}, after reviewing your ${roleLabel} registration on VetJobs our team was not able to approve it at this time. You may still log in and manage your own profile, but it will remain hidden and restricted. Please contact support if you believe this was a mistake.`;
     return this.sendEmail({ to: email, subject, html, text });
   }
 

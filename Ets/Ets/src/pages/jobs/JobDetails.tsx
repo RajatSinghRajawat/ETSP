@@ -36,6 +36,7 @@ import {
   type ApplicationStatus,
 } from '../../store/api/applicationApi';
 import { useGetMyUsageQuery } from '../../store/api/subscriptionApi';
+import { useGetMyCandidateProfileQuery } from '../../store/api/candidateProfileApi';
 
 const BRAND_GRADIENT = 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)';
 
@@ -90,6 +91,14 @@ const JobDetails: React.FC = () => {
   const { role, email } = getStoredUser();
   const isCandidate = role === 'candidate';
   const isOwnerEmployer = role === 'employer' && !!job && job.employerEmail === email;
+  const { data: candidateProfileData, isLoading: isProfileApprovalLoading } = useGetMyCandidateProfileQuery(undefined, {
+    skip: !isCandidate,
+  });
+  const isApprovalPending = Boolean(
+    isCandidate &&
+      candidateProfileData?.data.approvalStatus &&
+      candidateProfileData.data.approvalStatus !== 'approved',
+  );
 
   const { data: myApplicationStatus, isLoading: isLoadingMyStatus } = useGetMyApplicationStatusQuery(id, {
     skip: !id || !isCandidate,
@@ -108,6 +117,13 @@ const JobDetails: React.FC = () => {
   const handleApply = async () => {
     setApplyMessage('');
     setApplyError('');
+
+    if (isApprovalPending) {
+      const message = 'Your profile approval is pending. You can apply for jobs after admin approval.';
+      setApplyError(message);
+      notify.warning(message);
+      return;
+    }
 
     if (screeningQuestions.some((entry) => !screeningAnswers[entry.question]?.trim())) {
       setApplyError('Please answer all screening questions before applying.');
@@ -361,6 +377,11 @@ const JobDetails: React.FC = () => {
                         {applyError}
                       </Alert>
                     )}
+                    {isApprovalPending && (
+                      <Alert severity="warning" sx={{ mb: 2, borderRadius: 3 }}>
+                        Job applications will be enabled after your profile is approved.
+                      </Alert>
+                    )}
                     {applyQuotaExhausted && (
                       <Alert
                         severity="warning"
@@ -416,7 +437,13 @@ const JobDetails: React.FC = () => {
                       color="primary"
                       size="large"
                       sx={{ mb: 2 }}
-                      disabled={isApplying || isLoadingMyStatus || applyQuotaExhausted}
+                      disabled={
+                        isApplying ||
+                        isLoadingMyStatus ||
+                        isProfileApprovalLoading ||
+                        applyQuotaExhausted ||
+                        isApprovalPending
+                      }
                       onClick={handleApply}
                     >
                       {isApplying ? 'Applying' : 'Apply Now'}

@@ -263,7 +263,7 @@ export default function Employers() {
                     <Table.Cell>{e.organizationType ?? '—'}</Table.Cell>
                     <Table.Cell>{e.headquarters ?? '—'}</Table.Cell>
                     <Table.Cell><StatusBadge value={e.status} /></Table.Cell>
-                    <Table.Cell><StatusBadge value={e.approvalStatus ?? 'rejected'} /></Table.Cell>
+                    <Table.Cell><StatusBadge value={e.approvalStatus ?? 'pending'} /></Table.Cell>
                     <Table.Cell color="gray.500">{formatDate(e.createdAt)}</Table.Cell>
                     <Table.Cell textAlign="end">
                       <Menu.Root>

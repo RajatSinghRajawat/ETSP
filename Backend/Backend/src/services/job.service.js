@@ -95,24 +95,33 @@ async function getCandidateApplicationMap(user) {
   return new Map(applications.map((application) => [String(application.job), application.status]));
 }
 
-async function getEmployerForJob(user) {
+async function getEmployerForJob(user, { requireApproved = false } = {}) {
   if (user.role !== 'employer') {
     throw new AppError('Job posting requires employer account token', 403);
   }
 
   const employerProfile = await EmployerProfile.findOne({ email: user.email })
-    .select('_id email companyName')
+    .select('_id email companyName approvalStatus')
     .lean();
 
   if (!employerProfile) {
     throw new AppError('Employer profile not found for this account', 404);
   }
 
+  if (requireApproved && employerProfile.approvalStatus !== 'approved') {
+    throw new AppError(
+      'Your profile approval is pending. You can post jobs after admin approval.',
+      403,
+      undefined,
+      'PROFILE_APPROVAL_PENDING',
+    );
+  }
+
   return employerProfile;
 }
 
 export async function createJob(user, input) {
-  const employerProfile = await getEmployerForJob(user);
+  const employerProfile = await getEmployerForJob(user, { requireApproved: true });
 
   const { useJobCredit = false, ...jobInput } = input;
 
@@ -160,7 +169,7 @@ export async function updateJob(user, id, input) {
     throw new AppError('Job not found', 404);
   }
 
-  const employerProfile = await getEmployerForJob(user);
+  const employerProfile = await getEmployerForJob(user, { requireApproved: true });
   const job = await Job.findById(id);
 
   if (!job) {

@@ -30,7 +30,7 @@ export async function getProfiles(request) {
 }
 
 export async function getProfile(request) {
-  const profile = await getEmployerProfile(request.params.id);
+  const profile = await getEmployerProfile(request.params.id, request.user);
 
   return {
     success: true,

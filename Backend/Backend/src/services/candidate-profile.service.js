@@ -28,7 +28,7 @@ function toPositiveNumber(value, fallback) {
 }
 
 function buildCandidateFilters(query = {}) {
-  const filters = { status: 'submitted' };
+  const filters = { status: 'submitted', approvalStatus: 'approved' };
   const andFilters = [];
 
   if (query.search) {
@@ -277,6 +277,10 @@ export async function getCandidateProfile(id, user = null) {
   }
 
   if (user?.role === 'employer') {
+    if (profile.approvalStatus !== 'approved') {
+      throw new AppError('Candidate profile not found', 404);
+    }
+
     const employerContext = await getEmployerContext(user);
 
     if (!employerContext.employerProfile) {
@@ -305,7 +309,11 @@ export async function getCandidateProfile(id, user = null) {
 
 export async function getFeaturedCandidateProfiles(query = {}) {
   const limit = Math.min(toPositiveNumber(query.limit, 8), 12);
-  const filters = { status: 'submitted', profileVisible: { $ne: false } };
+  const filters = {
+    status: 'submitted',
+    approvalStatus: 'approved',
+    profileVisible: { $ne: false },
+  };
   const projection = {
     firstName: 1,
     lastName: 1,

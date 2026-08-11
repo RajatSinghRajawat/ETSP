@@ -24,6 +24,7 @@ export type CandidateProfileResponse = {
   resumeCreditBalance?: number;
   subscriptionTier?: 'free' | 'excel';
   searchBoost?: boolean;
+  approvalStatus: 'pending' | 'rejected' | 'approved';
 } & CandidateProfilePayload;
 
 export type CandidateProfileUpdatePayload = Partial<Omit<CandidateProfileForm, 'email' | 'phone'>> & {

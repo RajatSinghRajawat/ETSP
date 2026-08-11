@@ -57,7 +57,7 @@ export async function createJobApplication(user, input) {
   }
 
   const [candidateProfile, job] = await Promise.all([
-    CandidateProfile.findOne({ email: user.email }).select('_id email').lean(),
+    CandidateProfile.findOne({ email: user.email }).select('_id email approvalStatus').lean(),
     Job.findOne({
       _id: input.jobId,
       status: 'active',
@@ -70,6 +70,15 @@ export async function createJobApplication(user, input) {
 
   if (!candidateProfile) {
     throw new AppError('Candidate profile not found for this account', 404);
+  }
+
+  if (candidateProfile.approvalStatus !== 'approved') {
+    throw new AppError(
+      'Your profile approval is pending. You can apply for jobs after admin approval.',
+      403,
+      undefined,
+      'PROFILE_APPROVAL_PENDING',
+    );
   }
 
   if (!job) {

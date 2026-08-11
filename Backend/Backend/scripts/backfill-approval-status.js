@@ -22,14 +22,16 @@ async function run() {
     );
     logger.info(`${label} profiles grandfathered to approved: ${grandfathered.modifiedCount}`);
 
-    // The not-yet-approved state was originally called 'pending'; it is now
-    // 'rejected' so the admin list reads as a hard block. Leaving the old
-    // value in place would fail schema validation on the next write.
-    const renamed = await Model.updateMany(
-      { approvalStatus: 'pending' },
-      { $set: { approvalStatus: 'rejected' } },
-    );
-    logger.info(`${label} profiles migrated pending -> rejected: ${renamed.modifiedCount}`);
+    if (label !== 'Job') {
+      // Earlier releases used `rejected` for every not-yet-reviewed profile.
+      // Restore the explicit pending state; both pending/rejected remain
+      // non-public and action-restricted until an admin approves them.
+      const renamed = await Model.updateMany(
+        { approvalStatus: 'rejected' },
+        { $set: { approvalStatus: 'pending' } },
+      );
+      logger.info(`${label} profiles migrated rejected -> pending: ${renamed.modifiedCount}`);
+    }
   }
 
   await disconnectDatabase();

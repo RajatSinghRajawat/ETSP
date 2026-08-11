@@ -191,10 +191,8 @@ export async function approveCandidate(id) {
   return profile;
 }
 
-// Rejection is the reverse of approval, not a deletion: it flips the gate back
-// so the candidate can no longer log in while the profile stays on file. That
-// keeps the decision reversible — an admin can approve again later. Use
-// deleteCandidate when the record itself should be removed.
+// Rejection removes public/action access but preserves self-service login and
+// the profile record, so the decision remains reversible.
 export async function rejectCandidate(id) {
   assertObjectId(id);
   const profile = await CandidateProfile.findByIdAndUpdate(
@@ -265,10 +263,8 @@ export async function approveEmployer(id) {
   return profile;
 }
 
-// Rejection is the reverse of approval, not a deletion: it flips the gate back
-// so the employer can no longer log in while the profile stays on file. That
-// keeps the decision reversible — an admin can approve again later. Use
-// deleteEmployer when the record itself should be removed.
+// Rejection removes public/action access but preserves self-service login and
+// the profile record, so the decision remains reversible.
 export async function rejectEmployer(id) {
   assertObjectId(id);
   const profile = await EmployerProfile.findByIdAndUpdate(
