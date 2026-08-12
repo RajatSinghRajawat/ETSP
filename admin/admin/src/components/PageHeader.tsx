@@ -26,7 +26,7 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
           </Text>
         )}
       </Box>
-      {actions && <Flex gap={3}>{actions}</Flex>}
+      {actions && <Flex gap={3} wrap="wrap">{actions}</Flex>}
     </Flex>
   );
 }

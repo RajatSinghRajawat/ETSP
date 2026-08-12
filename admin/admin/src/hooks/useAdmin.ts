@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, downloadFile } from '../lib/api';
 import type {
   AdminPurchase,
   AdminSubscription,
@@ -311,6 +311,35 @@ export function useImportedEmployers(params: ListQuery & { status?: string }) {
       return unwrap(res.data);
     },
     placeholderData: (previous) => previous,
+  });
+}
+
+type EmployerExportArgs = {
+  view: 'registered' | 'imported';
+  search?: string;
+  status?: string;
+};
+
+/**
+ * Download the employers currently matching the admin's filters — the whole
+ * result set, not just the page on screen.
+ */
+export function useExportEmployers() {
+  return useMutation({
+    mutationFn: async ({ view, search, status }: EmployerExportArgs) => {
+      const path = view === 'registered' ? '/admin/employers/export' : '/admin/imported-employers/export';
+      const fallbackName = view === 'registered' ? 'registered-employers.xlsx' : 'imported-employers.xlsx';
+      await downloadFile(path, { search: search || undefined, status: status || undefined }, fallbackName);
+    },
+  });
+}
+
+/** Download the blank import sheet showing the columns the uploader expects. */
+export function useDownloadEmployerTemplate() {
+  return useMutation({
+    mutationFn: async () => {
+      await downloadFile('/admin/imported-employers/template', undefined, 'employer-import-format.xlsx');
+    },
   });
 }
 

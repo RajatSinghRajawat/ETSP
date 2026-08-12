@@ -138,6 +138,35 @@ export async function importEmployersExcel(request, reply) {
   return reply.code(201).send(ok('Employer Excel imported successfully', data));
 }
 
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+function sendWorkbook(reply, buffer, baseName) {
+  const fileName = `${baseName}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+  return reply
+    .header('Content-Type', XLSX_MIME)
+    .header('Content-Disposition', `attachment; filename="${fileName}"`)
+    // The browser can only read the filename off a cross-origin download when
+    // the header is explicitly exposed.
+    .header('Access-Control-Expose-Headers', 'Content-Disposition')
+    .send(buffer);
+}
+
+export async function exportEmployersExcel(request, reply) {
+  const buffer = await adminService.exportEmployers(request.query);
+  return sendWorkbook(reply, buffer, 'registered-employers');
+}
+
+export async function exportImportedEmployersExcel(request, reply) {
+  const buffer = await importedEmployerService.exportImportedEmployers(request.query);
+  return sendWorkbook(reply, buffer, 'imported-employers');
+}
+
+export async function downloadEmployerImportTemplate(request, reply) {
+  const buffer = importedEmployerService.buildImportTemplateWorkbook();
+  return sendWorkbook(reply, buffer, 'employer-import-format');
+}
+
 export async function getImportedEmployers(request) {
   const data = await importedEmployerService.getImportedEmployers(request.query);
   return ok('Imported employers fetched successfully', data);

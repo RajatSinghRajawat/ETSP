@@ -16,6 +16,9 @@ import {
   approveEmployer,
   rejectEmployer,
   importEmployersExcel,
+  exportEmployersExcel,
+  exportImportedEmployersExcel,
+  downloadEmployerImportTemplate,
   getImportedEmployers,
   removeImportedEmployer,
   getJobs,
@@ -111,6 +114,7 @@ export async function adminRoutes(app) {
   app.put('/candidates/:id/resume', saveResume);
 
   app.get('/employers', getEmployers);
+  app.get('/employers/export', exportEmployersExcel);
   app.get('/employers/:id', getEmployer);
   app.delete('/employers/:id', removeEmployer);
   app.patch('/employers/:id/approve', approveEmployer);
@@ -118,6 +122,8 @@ export async function adminRoutes(app) {
 
   app.post('/imported-employers/upload', importEmployersExcel);
   app.get('/imported-employers', getImportedEmployers);
+  app.get('/imported-employers/export', exportImportedEmployersExcel);
+  app.get('/imported-employers/template', downloadEmployerImportTemplate);
   app.delete('/imported-employers/:id', removeImportedEmployer);
 
   app.get('/jobs', getJobs);

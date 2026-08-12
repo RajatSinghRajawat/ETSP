@@ -18,7 +18,16 @@ import {
   Wrap,
 } from '@chakra-ui/react';
 import { useRef, useState } from 'react';
-import { FiCheck, FiEye, FiMoreVertical, FiTrash2, FiUpload, FiXCircle } from 'react-icons/fi';
+import {
+  FiCheck,
+  FiDownload,
+  FiEye,
+  FiFileText,
+  FiMoreVertical,
+  FiTrash2,
+  FiUpload,
+  FiXCircle,
+} from 'react-icons/fi';
 import { ConfirmDelete } from '../components/ConfirmDelete';
 import { Detail, DetailDrawer } from '../components/DetailDrawer';
 import { PageHeader } from '../components/PageHeader';
@@ -29,8 +38,10 @@ import {
   useApproveEmployer,
   useDeleteEmployer,
   useDeleteImportedEmployer,
+  useDownloadEmployerTemplate,
   useEmployer,
   useEmployers,
+  useExportEmployers,
   useImportEmployers,
   useImportedEmployers,
   useRejectEmployer,
@@ -71,6 +82,10 @@ export default function Employers() {
   const rejectEmployer = useRejectEmployer();
   const deleteImported = useDeleteImportedEmployer();
   const importEmployers = useImportEmployers();
+  const exportEmployers = useExportEmployers();
+  const downloadTemplate = useDownloadEmployerTemplate();
+
+  const rowCount = view === 'registered' ? data?.pagination.total : imported.data?.pagination.total;
 
   function switchView(nextView: EmployerView) {
     setView(nextView);
@@ -105,6 +120,38 @@ export default function Employers() {
       },
       onError: (err) =>
         toaster.create({ title: 'Import failed', description: extractErrorMessage(err), type: 'error' }),
+    });
+  }
+
+  function handleExport() {
+    exportEmployers.mutate(
+      { view, search, status },
+      {
+        onSuccess: () =>
+          toaster.create({
+            title: 'Excel downloaded',
+            description:
+              view === 'registered'
+                ? 'Registered employers exported with your current filters.'
+                : 'Imported employers exported with your current filters.',
+            type: 'success',
+          }),
+        onError: (err) =>
+          toaster.create({ title: 'Export failed', description: extractErrorMessage(err), type: 'error' }),
+      },
+    );
+  }
+
+  function handleDownloadTemplate() {
+    downloadTemplate.mutate(undefined, {
+      onSuccess: () =>
+        toaster.create({
+          title: 'Format downloaded',
+          description: 'Fill this sheet and upload it with “Import Excel”.',
+          type: 'success',
+        }),
+      onError: (err) =>
+        toaster.create({ title: 'Download failed', description: extractErrorMessage(err), type: 'error' }),
     });
   }
 
@@ -165,6 +212,23 @@ export default function Employers() {
               hidden
               onChange={handleFileSelected}
             />
+            <Button
+              variant="outline"
+              onClick={handleDownloadTemplate}
+              loading={downloadTemplate.isPending}
+            >
+              <FiFileText style={{ marginRight: 8 }} /> Excel Format
+            </Button>
+            <Button
+              colorPalette="blue"
+              variant="outline"
+              onClick={handleExport}
+              loading={exportEmployers.isPending}
+              disabled={rowCount === 0}
+            >
+              <FiDownload style={{ marginRight: 8 }} /> Download Excel
+              {typeof rowCount === 'number' ? ` (${rowCount})` : ''}
+            </Button>
             <Button
               colorPalette="teal"
               onClick={() => fileInputRef.current?.click()}

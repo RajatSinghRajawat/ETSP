@@ -4,11 +4,13 @@ import { EmployerProfile } from '../models/employer-profile.model.js';
 import { Job } from '../models/job.model.js';
 import { JobApplication } from '../models/job-application.model.js';
 import { AppError } from '../utils/app-error.js';
+import { buildWorkbookBuffer } from '../utils/excel.js';
 import { emailService } from './email.service.js';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 100;
+const EXPORT_LIMIT = 20000;
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -209,8 +211,7 @@ export async function rejectCandidate(id) {
   return profile;
 }
 
-export async function listEmployers(query = {}) {
-  const { page, limit, skip } = readPaging(query);
+function buildEmployerFilters(query = {}) {
   const filters = {};
   if (query.status) filters.status = String(query.status).trim();
   if (query.search) {
@@ -223,12 +224,53 @@ export async function listEmployers(query = {}) {
       { organizationType: keyword },
     ];
   }
+  return filters;
+}
+
+export async function listEmployers(query = {}) {
+  const { page, limit, skip } = readPaging(query);
+  const filters = buildEmployerFilters(query);
 
   const [items, total] = await Promise.all([
     EmployerProfile.find(filters).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     EmployerProfile.countDocuments(filters),
   ]);
   return paginated(items, total, page, limit);
+}
+
+const EMPLOYER_EXPORT_COLUMNS = [
+  { header: 'Company Name', value: (row) => row.companyName },
+  { header: 'Email', value: (row) => row.email },
+  { header: 'Phone Number', value: (row) => row.phoneNumber },
+  { header: 'Organization Type', value: (row) => row.organizationType },
+  { header: 'Headquarters', value: (row) => row.headquarters },
+  { header: 'Team Size', value: (row) => row.teamSize },
+  { header: 'Workplace Model', value: (row) => row.workplaceModel },
+  { header: 'Hiring Urgency', value: (row) => row.hiringUrgency },
+  { header: 'Website', value: (row) => row.website },
+  { header: 'Status', value: (row) => row.status },
+  { header: 'Approval Status', value: (row) => row.approvalStatus ?? 'pending' },
+  { header: 'Email Verified', value: (row) => Boolean(row.emailVerified) },
+  { header: 'Phone Verified', value: (row) => Boolean(row.phoneVerified) },
+  { header: 'Specialties', value: (row) => row.specialties },
+  { header: 'Benefits', value: (row) => row.benefits },
+  { header: 'Hiring Regions', value: (row) => row.hiringRegions },
+  { header: 'Overview', value: (row) => row.overview },
+  { header: 'Registered On', value: (row) => row.createdAt },
+];
+
+/** Every registered employer matching the admin's current search/status filters. */
+export async function exportEmployers(query = {}) {
+  const rows = await EmployerProfile.find(buildEmployerFilters(query))
+    .sort({ createdAt: -1 })
+    .limit(EXPORT_LIMIT)
+    .lean();
+
+  return buildWorkbookBuffer({
+    sheetName: 'Registered Employers',
+    columns: EMPLOYER_EXPORT_COLUMNS,
+    rows,
+  });
 }
 
 export async function getEmployer(id) {

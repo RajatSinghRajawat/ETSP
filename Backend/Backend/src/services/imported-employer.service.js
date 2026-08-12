@@ -1,10 +1,12 @@
 import * as XLSX from 'xlsx';
 import { ImportedEmployer } from '../models/imported-employer.model.js';
 import { AppError } from '../utils/app-error.js';
+import { buildWorkbookBuffer } from '../utils/excel.js';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
+const EXPORT_LIMIT = 20000;
 
 const allowedSpreadsheetMimeTypes = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -277,11 +279,7 @@ export async function importEmployersFromExcel(file) {
   return summary;
 }
 
-export async function getImportedEmployers(query = {}) {
-  const page = toPositiveNumber(query.page, DEFAULT_PAGE);
-  const limit = Math.min(toPositiveNumber(query.limit, DEFAULT_LIMIT), MAX_LIMIT);
-  const skip = (page - 1) * limit;
-
+function buildListFilters(query = {}) {
   const filters = {};
 
   if (query.search) {
@@ -302,6 +300,16 @@ export async function getImportedEmployers(query = {}) {
     filters.status = query.status;
   }
 
+  return filters;
+}
+
+export async function getImportedEmployers(query = {}) {
+  const page = toPositiveNumber(query.page, DEFAULT_PAGE);
+  const limit = Math.min(toPositiveNumber(query.limit, DEFAULT_LIMIT), MAX_LIMIT);
+  const skip = (page - 1) * limit;
+
+  const filters = buildListFilters(query);
+
   const [items, total] = await Promise.all([
     ImportedEmployer.find(filters).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     ImportedEmployer.countDocuments(filters),
@@ -316,6 +324,78 @@ export async function getImportedEmployers(query = {}) {
       totalPages: Math.max(Math.ceil(total / limit), 1),
     },
   };
+}
+
+// Canonical headers for the import sheet. Each one resolves through
+// HEADER_FIELD_MAP, so a file exported with these columns re-imports as-is.
+const IMPORT_TEMPLATE_COLUMNS = [
+  { header: 'COMPANY NAME', value: (row) => row.companyName },
+  { header: 'CATEGORY', value: (row) => row.category },
+  {
+    header: 'CONTACT PERSON',
+    value: (row) => [row.firstName, row.lastName].filter(Boolean).join(' '),
+  },
+  { header: 'DESIGNATION', value: (row) => row.designation },
+  { header: 'CONTACT NUMBER', value: (row) => row.contactNumber },
+  { header: 'WHATSAPP NO.', value: (row) => row.whatsappNumber },
+  { header: 'EMAIL', value: (row) => row.email },
+  { header: 'WEBSITE', value: (row) => row.website },
+  { header: 'ADDRESS', value: (row) => row.address },
+  { header: 'CITY/CITIES', value: (row) => row.cities },
+  { header: 'STATE', value: (row) => row.state },
+  { header: 'PINCODE', value: (row) => row.pincode },
+  { header: 'STAFF SIZE', value: (row) => row.staffSize },
+  { header: 'ABOUT US', value: (row) => row.aboutUs },
+];
+
+// Read-only context for the admin. Unmapped headers are ignored by the
+// importer, so these extra columns do not break a re-upload.
+const EXPORT_COLUMNS = [
+  ...IMPORT_TEMPLATE_COLUMNS,
+  { header: 'STATUS', value: (row) => row.status },
+  { header: 'SOURCE FILE', value: (row) => row.sourceFileName },
+  { header: 'IMPORTED ON', value: (row) => row.createdAt },
+];
+
+const TEMPLATE_SAMPLE_ROW = {
+  companyName: 'Acme Veterinary Pvt Ltd',
+  category: 'Veterinary Hospital',
+  firstName: 'Ramesh',
+  lastName: 'Kumar',
+  designation: 'HR Manager',
+  contactNumber: '9876543210',
+  whatsappNumber: '9876543210',
+  email: 'hr@acmevet.in',
+  website: 'https://acmevet.in',
+  address: '12 MG Road',
+  cities: ['Jaipur', 'Ajmer'],
+  state: 'Rajasthan',
+  pincode: '302001',
+  staffSize: '51-200',
+  aboutUs: 'Multi-speciality veterinary care since 2005.',
+};
+
+/** Blank import sheet with one sample row showing the expected format. */
+export function buildImportTemplateWorkbook() {
+  return buildWorkbookBuffer({
+    sheetName: 'Employer Import Format',
+    columns: IMPORT_TEMPLATE_COLUMNS,
+    rows: [TEMPLATE_SAMPLE_ROW],
+  });
+}
+
+/** Every imported employer matching the admin's current search/status filters. */
+export async function exportImportedEmployers(query = {}) {
+  const rows = await ImportedEmployer.find(buildListFilters(query))
+    .sort({ createdAt: -1 })
+    .limit(EXPORT_LIMIT)
+    .lean();
+
+  return buildWorkbookBuffer({
+    sheetName: 'Imported Employers',
+    columns: EXPORT_COLUMNS,
+    rows,
+  });
 }
 
 export async function deleteImportedEmployer(id) {
