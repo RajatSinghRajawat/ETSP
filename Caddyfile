@@ -1,5 +1,5 @@
 # Main User Frontend
-vetlinked.in, vetlinked.com, vetslinked.in {
+vetlinked.in, vetlinked.com, vetslinked.in, www.vetslinked.in {
     # Route Socket.IO and REST API requests to backend
     handle_path /api/* {
         reverse_proxy backend:5000
