@@ -4,6 +4,9 @@ const getApiBaseUrl = () => {
   }
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    if (hostname.endsWith('vetslinked.in')) {
+      return 'https://api.vetslinked.in/api/v1';
+    }
     if (hostname.endsWith('vetlinked.com')) {
       return 'https://api.vetlinked.com/api/v1';
     }
