@@ -1,7 +1,8 @@
+import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { getMsg91Settings } from './settings.service.js';
 
-const MSG91_FLOW_URL = 'https://control.msg91.com/api/v5/flow';
+const MSG91_FLOW_URL = `${env.MSG91_BASE_URL.replace(/\/$/, '')}/api/v5/flow`;
 
 /** Normalise an Indian mobile number to the 91XXXXXXXXXX format MSG91 expects. */
 function toMsg91Mobile(phone) {
@@ -20,8 +21,9 @@ export async function isSmsEnabled() {
 }
 
 /**
- * Send the login OTP via MSG91 (Flow API). The DLT-approved template must
- * contain an `##otp##` variable. Returns true when MSG91 accepts the message.
+ * Send the login OTP via MSG91 (Flow API). The DLT-approved template
+ * ("vetlinkedotp") uses `{#number#}`, so the recipient payload carries the code
+ * under `number`. Returns true when MSG91 accepts the message.
  */
 export async function sendOtpSms(phone, otp) {
   const settings = await getMsg91Settings();
@@ -48,7 +50,7 @@ export async function sendOtpSms(phone, otp) {
         template_id: settings.templateId,
         short_url: '0',
         ...(settings.senderId ? { sender: settings.senderId } : {}),
-        recipients: [{ mobiles: mobile, otp }],
+        recipients: [{ mobiles: mobile, number: otp }],
       }),
     });
 

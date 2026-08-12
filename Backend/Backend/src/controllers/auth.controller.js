@@ -4,8 +4,8 @@ import { logger } from '../utils/logger.js';
 class AuthController {
   async sendOtp(request, reply) {
     try {
-      const { email } = request.body;
-      const response = await authService.sendOtp(email);
+      const { email, phone } = request.body;
+      const response = await authService.sendOtp({ email, phone });
       reply.send({ success: true, ...response });
     } catch (err) {
       logger.error('Error sending OTP', err);
@@ -18,8 +18,8 @@ class AuthController {
 
   async verifyOtp(request, reply) {
     try {
-      const { email, otp } = request.body;
-      const response = await authService.verifyOtp(email, otp);
+      const { email, phone, otp } = request.body;
+      const response = await authService.verifyOtp({ email, phone }, otp);
       reply.send({ success: true, ...response });
     } catch (err) {
       logger.error('Error verifying OTP', err);

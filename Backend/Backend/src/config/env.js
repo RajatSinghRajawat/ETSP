@@ -35,9 +35,10 @@ const envSchema = z.object({
   SMTP_PASS: z.string().default('icqxhfjzfwresfis'),
   SMTP_FROM: z.string().default('Santosh <santoshkumarsharma6367@gmail.com>'),
 
-  // SMS OTP via MSG91 (DLT: Jio TrueConnect). TEMPLATE_ID is the MSG91 Flow ID
-  // from the MSG91 panel — not the DLT template id. The flow text must match the
-  // DLT-approved template and use ##otp## as the variable.
+  // SMS OTP via MSG91 (DLT: Jio TrueConnect). TEMPLATE_ID is the template id from
+  // the MSG91 panel — not the DLT template id. The template text must match the
+  // DLT-approved one, whose variable is {#number#} (##number## in the panel).
+  MSG91_BASE_URL: z.string().default('https://control.msg91.com'),
   MSG91_AUTH_KEY: z.string().default(''),
   MSG91_SENDER_ID: z.string().default('VETSLI'),
   MSG91_TEMPLATE_ID: z.string().default(''),

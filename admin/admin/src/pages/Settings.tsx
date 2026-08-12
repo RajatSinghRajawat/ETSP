@@ -345,7 +345,7 @@ function Msg91Section() {
   return (
     <SectionCard
       title="SMS (MSG91)"
-      description="Login OTPs are also sent by SMS (to the user's registered phone) when this service is on. Use a DLT-approved MSG91 template containing the ##otp## variable. The auth key is stored encrypted."
+      description="Login OTPs are sent by SMS (to the user's registered phone) when this service is on — this is also what mobile-number login depends on. Use a DLT-approved MSG91 template whose variable is ##number##. The auth key is stored encrypted."
       badge={
         <HStack gap={1}>
           <Badge colorPalette={settings?.enabled ? 'green' : 'red'} variant="subtle">

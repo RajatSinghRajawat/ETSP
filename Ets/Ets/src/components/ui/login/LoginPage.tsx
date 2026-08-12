@@ -82,6 +82,19 @@ const LoginPage: React.FC = () => {
     setAuthError('');
   };
 
+  const handlePhoneLogin = () => {
+    setMethod('phone');
+    setStep('phone_otp');
+    setAuthError('');
+  };
+
+  /**
+   * The API takes either identifier; the backend resolves a mobile number to the
+   * account it was registered with and keys the OTP off that account either way.
+   */
+  const identifier = method === 'email' ? { email } : { phone };
+  const identifierLabel = method === 'email' ? email : phone;
+
   const handleSendOtp = async () => {
     setAuthError('');
 
@@ -96,12 +109,8 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      if (method === 'email') {
-        const response = await axiosInstance.post(API_ENDPOINTS.auth.sendOtp, { email });
-        showToast(response.data?.message || t('otp_sent', { method: email }), 'success');
-      } else {
-        showToast(t('otp_sent', { method: phone }), 'success');
-      }
+      const response = await axiosInstance.post(API_ENDPOINTS.auth.sendOtp, identifier);
+      showToast(response.data?.message || t('otp_sent', { method: identifierLabel }), 'success');
     } catch (error) {
       const errorMsg = getApiErrorMessage(error, 'Failed to send OTP');
       setAuthError(errorMsg);
@@ -121,24 +130,22 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      if (method === 'email') {
-        const response = await axiosInstance.post(API_ENDPOINTS.auth.verifyOtp, { email, otp });
-        const { accessToken, user } = response.data;
-        localStorage.setItem('ets-access-token', accessToken);
-        localStorage.setItem('user', JSON.stringify(user));
-        const roleLabel =
-          user.role === 'employer' ? 'Employer' : user.role === 'admin' ? 'Admin' : 'Candidate';
-        showToast(`Login successful — signed in as ${roleLabel}`, 'success');
+      const response = await axiosInstance.post(API_ENDPOINTS.auth.verifyOtp, {
+        ...identifier,
+        otp,
+      });
+      const { accessToken, user } = response.data;
+      localStorage.setItem('ets-access-token', accessToken);
+      localStorage.setItem('user', JSON.stringify(user));
+      const roleLabel =
+        user.role === 'employer' ? 'Employer' : user.role === 'admin' ? 'Admin' : 'Candidate';
+      showToast(`Login successful — signed in as ${roleLabel}`, 'success');
 
-        if (user.role === 'candidate') {
-          navigate('/candidate/dashboard');
-        } else if (user.role === 'employer') {
-          navigate('/employer/dashboard');
-        } else {
-          navigate('/');
-        }
+      if (user.role === 'candidate') {
+        navigate('/candidate/dashboard');
+      } else if (user.role === 'employer') {
+        navigate('/employer/dashboard');
       } else {
-        showToast('Login successful!', 'success');
         navigate('/');
       }
     } catch (error) {
@@ -230,14 +237,14 @@ const LoginPage: React.FC = () => {
       <Stack spacing={1.8} sx={{ mb: 3 }}>
         <MethodButton
           icon={<Phone />}
-          label={`${t('phone_login')} (Coming Soon)`}
-          disabled
+          label={t('phone_login')}
+          onClick={handlePhoneLogin}
+          recommended
         />
         <MethodButton
           icon={<Email />}
           label={t('email_login')}
           onClick={handleEmailLogin}
-          recommended
         />
       </Stack>
 

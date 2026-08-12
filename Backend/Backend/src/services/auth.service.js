@@ -9,6 +9,7 @@ import { CandidateProfile } from '../models/candidate-profile.model.js';
 import { EmployerProfile } from '../models/employer-profile.model.js';
 import { AppError } from '../utils/app-error.js';
 import { logger } from '../utils/logger.js';
+import { mobileLookupVariants, normalizeIndianMobile } from '../utils/phone.js';
 
 // Static test accounts (non-production only) for repeatable login testing.
 const STATIC_TEST_OTP = '123456';
@@ -136,8 +137,48 @@ class AuthService {
     };
   }
 
-  async sendOtp(email) {
-    const formattedEmail = email.toLowerCase().trim();
+  /**
+   * Both login channels key the OTP off the account email, so a mobile login is
+   * resolved to its profile's email first. Phone numbers are unique within each
+   * profile collection, so at most one account can answer to a number.
+   *
+   * Accepts a bare email string as well — the existing callers pass one.
+   */
+  async resolveLoginEmail(identifier) {
+    const { email, phone } =
+      typeof identifier === 'string' ? { email: identifier } : (identifier ?? {});
+
+    if (email) {
+      return email.toLowerCase().trim();
+    }
+
+    const digits = normalizeIndianMobile(phone);
+
+    if (!digits) {
+      throw new AppError('Enter a valid 10 digit mobile number', 400);
+    }
+
+    const variants = mobileLookupVariants(digits);
+
+    const [candidate, employer] = await Promise.all([
+      CandidateProfile.findOne({ phone: { $in: variants } }).select('email').lean(),
+      EmployerProfile.findOne({ phoneNumber: { $in: variants } }).select('email').lean(),
+    ]);
+
+    const resolved = candidate?.email ?? employer?.email;
+
+    if (!resolved) {
+      throw new AppError(
+        'No registration found for this mobile number. Please register first and wait for admin approval.',
+        404,
+      );
+    }
+
+    return resolved.toLowerCase().trim();
+  }
+
+  async sendOtp(identifier) {
+    const formattedEmail = await this.resolveLoginEmail(identifier);
 
     if (this.isTestAccount(formattedEmail)) {
       return { message: `Test account: use static OTP ${STATIC_TEST_OTP}` };
@@ -259,8 +300,8 @@ class AuthService {
     };
   }
 
-  async verifyOtp(email, otp) {
-    const formattedEmail = email.toLowerCase().trim();
+  async verifyOtp(identifier, otp) {
+    const formattedEmail = await this.resolveLoginEmail(identifier);
 
     if (this.isTestAccount(formattedEmail)) {
       if (otp !== STATIC_TEST_OTP) {
