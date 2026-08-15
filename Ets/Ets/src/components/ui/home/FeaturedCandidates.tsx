@@ -1,9 +1,11 @@
 import { Box, Container, Typography, Card, CardContent, Avatar, Chip, Button, Skeleton } from '@mui/material';
 import { Verified, Lock, TrendingUp, PeopleOutlined, LocationOn } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useGetFeaturedCandidatesQuery, type FeaturedCandidate } from '../../../store/api/candidateProfileApi';
 
 const FeaturedCandidates: React.FC = () => {
+  const { t } = useTranslation();
   const { data, isLoading } = useGetFeaturedCandidatesQuery({ limit: 4 });
   const candidates: FeaturedCandidate[] = data?.data?.items ?? [];
   const skeletonCount = 4;
@@ -35,7 +37,7 @@ const FeaturedCandidates: React.FC = () => {
                 fontSize: '0.85rem'
               }}
             >
-              TOP TALENT
+              {t('top_talent_overline')}
             </Typography>
           </Box>
           <Typography
@@ -47,10 +49,10 @@ const FeaturedCandidates: React.FC = () => {
               fontSize: { xs: '2rem', md: '2.5rem' }
             }}
           >
-            Featured Candidates
+            {t('featured_candidates_title')}
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
-            Stand out from the crowd with our verified and highly-rated veterinary professionals
+            {t('featured_candidates_desc')}
           </Typography>
         </Box>
 
@@ -90,17 +92,17 @@ const FeaturedCandidates: React.FC = () => {
             >
               <PeopleOutlined sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
               <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                No featured candidates yet
+                {t('no_featured_candidates')}
               </Typography>
               <Typography variant="body2">
-                Be among the first to showcase your veterinary expertise.
+                {t('no_featured_candidates_hint')}
               </Typography>
             </Box>
           )}
 
           {!isLoading && candidates.map((candidate) => {
-            const displayName = `Dr. ${candidate.firstName} ${candidate.lastNameInitial}`.trim();
-            const role = candidate.currentJobTitle || candidate.degree || 'Veterinary Professional';
+            const displayName = `${t('dr_prefix')} ${candidate.firstName} ${candidate.lastNameInitial}`.trim();
+            const role = candidate.currentJobTitle || candidate.degree || t('veterinary_professional');
             const initials = `${candidate.firstName?.[0] ?? ''}${candidate.lastNameInitial?.[0] ?? ''}`.toUpperCase();
 
             return (
@@ -193,12 +195,12 @@ const FeaturedCandidates: React.FC = () => {
                       <Chip label="EXCEL" size="small" color="warning" sx={{ fontSize: '0.65rem', height: 22, fontWeight: 700 }} />
                     )}
                     {candidate.verifiedBadge && (
-                      <Chip label="Verified" size="small" color="success" variant="outlined" sx={{ fontSize: '0.65rem', height: 22, fontWeight: 700 }} />
+                      <Chip label={t('verified')} size="small" color="success" variant="outlined" sx={{ fontSize: '0.65rem', height: 22, fontWeight: 700 }} />
                     )}
                     {!candidate.excelMember && !candidate.verifiedBadge && (
                       <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
                         <Lock sx={{ fontSize: 13 }} />
-                        <Typography variant="caption">Contact visible to entitled employers</Typography>
+                        <Typography variant="caption">{t('contact_visible_entitled')}</Typography>
                       </Box>
                     )}
                   </Box>
@@ -219,7 +221,7 @@ const FeaturedCandidates: React.FC = () => {
                       }
                     }}
                   >
-                    Hire this candidate
+                    {t('hire_this_candidate')}
                   </Button>
                 </CardContent>
               </Card>
@@ -229,7 +231,7 @@ const FeaturedCandidates: React.FC = () => {
 
         <Box sx={{ textAlign: 'center', mt: 8 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Want to be featured? Create your professional profile today!
+            {t('want_to_be_featured')}
           </Typography>
           <Button
             component={Link}
@@ -241,7 +243,7 @@ const FeaturedCandidates: React.FC = () => {
               '&:hover': { borderWidth: 2 }
             }}
           >
-            Create Profile
+            {t('create_profile')}
           </Button>
         </Box>
       </Container>

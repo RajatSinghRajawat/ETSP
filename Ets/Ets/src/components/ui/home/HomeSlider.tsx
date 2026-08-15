@@ -21,11 +21,14 @@ import {
   Bolt,
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useGetJobsQuery, type JobResponse } from '../../../store/api/jobApi';
 import { useLocalizedSiteContent } from '../../../hooks/useLocalizedSiteContent';
+import { translateJobType } from '../../../i18n';
 import HeroAnimation from './HeroAnimation';
 
 const HomeSlider: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
@@ -46,24 +49,24 @@ const HomeSlider: React.FC = () => {
     navigate(query ? `/jobs?${query}` : '/jobs');
   };
 
-  const badge = hero?.badge || "India's #1 Veterinary Job Portal";
-  const headlinePrefix = hero?.headlinePrefix || 'Empowering Your';
-  const headlineAccent = hero?.headlineAccent || 'Veterinary';
-  const headlineSuffix = hero?.headlineSuffix || 'Career';
-  const subtitle =
-    hero?.subtitle ||
-    'Connect with top clinics, companies and specialized veterinary opportunities across India';
-  const keywordPlaceholder = hero?.searchKeywordPlaceholder || 'Job title, skill, or keyword';
-  const locationPlaceholder = hero?.searchLocationPlaceholder || 'Location';
-  const searchButtonLabel = hero?.searchButtonLabel || 'Search';
-  const trustLine = hero?.trustLine || 'Verified Employers | Free for Candidates | Jobs Across India';
-  const hiringPrompt = hero?.hiringPrompt || 'Are you hiring?';
-  const hiringCtaLabel = hero?.hiringCtaLabel || 'Post a Job';
+  // CMS copy wins; the i18n strings are the fallback while the API loads or if
+  // a field is blank, so the hero never flashes English in Hindi mode.
+  const badge = hero?.badge || t('hero_badge');
+  const headlinePrefix = hero?.headlinePrefix || t('hero_headline_prefix');
+  const headlineAccent = hero?.headlineAccent || t('hero_headline_accent');
+  const headlineSuffix = hero?.headlineSuffix || t('hero_headline_suffix');
+  const subtitle = hero?.subtitle || t('hero_headline_updated');
+  const keywordPlaceholder = hero?.searchKeywordPlaceholder || t('hero_search_keyword_placeholder');
+  const locationPlaceholder = hero?.searchLocationPlaceholder || t('hero_search_location_placeholder');
+  const searchButtonLabel = hero?.searchButtonLabel || t('search');
+  const trustLine = hero?.trustLine || t('verified_employers_badge');
+  const hiringPrompt = hero?.hiringPrompt || t('hiring_prompt');
+  const hiringCtaLabel = hero?.hiringCtaLabel || t('hero_hiring_cta');
   const hiringCtaPath = hero?.hiringCtaPath || '/employer/post-job';
-  const badge1Title = hero?.floatingBadge1Title || 'Verified Candidates';
-  const badge1Subtitle = hero?.floatingBadge1Subtitle || 'Identity checked';
-  const badge2Title = hero?.floatingBadge2Title || '100% Free';
-  const badge2Subtitle = hero?.floatingBadge2Subtitle || 'For job seekers';
+  const badge1Title = hero?.floatingBadge1Title || t('verified_candidates');
+  const badge1Subtitle = hero?.floatingBadge1Subtitle || t('identity_checked');
+  const badge2Title = hero?.floatingBadge2Title || t('hundred_percent_free');
+  const badge2Subtitle = hero?.floatingBadge2Subtitle || t('for_job_seekers');
 
   return (
     <Box
@@ -406,10 +409,10 @@ const HomeSlider: React.FC = () => {
                       }
                     }}
                   />
-                  LIVE
+                  {t('live')}
                 </Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  {totalJobs > 0 ? `${totalJobs}+ open jobs` : 'Loading…'}
+                  {totalJobs > 0 ? t('open_jobs_count', { count: totalJobs }) : t('loading')}
                 </Typography>
               </Box>
 
@@ -439,18 +442,18 @@ const HomeSlider: React.FC = () => {
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                       <LocationOn sx={{ fontSize: 16, color: 'text.secondary' }} />
                       <Typography variant="caption" color="text.secondary">
-                        {previewJob.location || 'Anywhere'}
+                        {previewJob.location || t('anywhere')}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                       <AttachMoney sx={{ fontSize: 16, color: 'success.main' }} />
                       <Typography variant="caption" sx={{ fontWeight: 700, color: 'success.dark' }}>
-                        {previewJob.salary || 'Negotiable'}
+                        {previewJob.salary || t('negotiable')}
                       </Typography>
                     </Box>
                     {previewJob.type && (
                       <Chip
-                        label={previewJob.type}
+                        label={translateJobType(previewJob.type)}
                         size="small"
                         sx={{
                           height: 20,
@@ -480,7 +483,7 @@ const HomeSlider: React.FC = () => {
                       }
                     }}
                   >
-                    View Job
+                    {t('view_job')}
                   </Button>
                 </>
               )}

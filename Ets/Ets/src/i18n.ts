@@ -113,7 +113,105 @@ const resources = {
       "otp_placeholder": "Enter 6-digit OTP",
       "back_to_login": "Back to Login",
       "send_otp": "Send OTP",
-      "verify_otp": "Verify OTP"
+      "verify_otp": "Verify OTP",
+
+      "hero_badge": "India's #1 Veterinary Job Portal",
+      "hero_headline_prefix": "Empowering Your",
+      "hero_headline_accent": "Veterinary",
+      "hero_headline_suffix": "Career",
+      "hero_search_keyword_placeholder": "Job title, skill, or keyword",
+      "hero_search_location_placeholder": "Location",
+      "hiring_prompt": "Are you hiring?",
+      "hero_hiring_cta": "Post a Job",
+      "identity_checked": "Identity checked",
+      "hundred_percent_free": "100% Free",
+      "for_job_seekers": "For job seekers",
+      "live": "LIVE",
+      "open_jobs_count": "{{count}}+ open jobs",
+      "loading": "Loading…",
+      "anywhere": "Anywhere",
+      "remote_anywhere": "Remote / Anywhere",
+      "negotiable": "Negotiable",
+      "view": "View",
+      "view_job": "View Job",
+
+      "home_get_started_overline": "GET STARTED",
+      "home_quick_title": "What are you looking for?",
+      "home_quick_subtitle": "Choose from our options to find your dream veterinary job or hire the best talent for your organization",
+      "quick_candidate_desc": "Browse thousands of veterinary jobs that match your skills and preferences",
+      "quick_employer_desc": "Post your job opening and connect with qualified veterinary professionals",
+      "verified_listings": "Verified Listings",
+      "daily_updates": "Daily Updates",
+
+      "featured_overline": "FEATURED",
+      "latest_jobs_title": "Latest Job Opportunities",
+      "latest_jobs_subtitle": "Discover the most recent openings from top veterinary clinics and hospitals across India",
+      "no_active_jobs": "No active jobs right now",
+      "no_active_jobs_hint": "Check back soon — new opportunities are posted every day.",
+      "time_just_now": "Just now",
+      "time_minutes_ago": "{{count}}m ago",
+      "time_hours_ago": "{{count}}h ago",
+      "time_days_ago": "{{count}}d ago",
+      "time_months_ago": "{{count}}mo ago",
+      "job_type_full_time": "Full-time",
+      "job_type_part_time": "Part-time",
+      "job_type_contract": "Contract",
+      "job_type_internship": "Internship",
+      "job_type_freelance": "Freelance",
+      "job_type_temporary": "Temporary",
+
+      "top_talent_overline": "TOP TALENT",
+      "featured_candidates_title": "Featured Candidates",
+      "featured_candidates_desc": "Stand out from the crowd with our verified and highly-rated veterinary professionals",
+      "no_featured_candidates": "No featured candidates yet",
+      "no_featured_candidates_hint": "Be among the first to showcase your veterinary expertise.",
+      "dr_prefix": "Dr.",
+      "veterinary_professional": "Veterinary Professional",
+      "verified": "Verified",
+      "contact_visible_entitled": "Contact visible to entitled employers",
+      "hire_this_candidate": "Hire this candidate",
+      "want_to_be_featured": "Want to be featured? Create your professional profile today!",
+      "create_profile": "Create Profile",
+
+      "cta_overline": "🚀 GET STARTED TODAY",
+      "cta_headline_line1": "Ready to Transform Your",
+      "cta_headline_line2": "Veterinary Career?",
+      "cta_desc": "Join thousands of veterinary professionals who have found their dream jobs through VetsLinked",
+      "trusted_by": "Trusted by leading veterinary organizations",
+      "trusted_org_clinics": "Clinics / Hospitals / NGOs",
+      "trusted_org_animal_health": "Animal Health Co",
+      "trusted_org_research": "Research & Academia",
+      "trusted_org_petcare": "Petcare Services",
+
+      "about_us": "About Us",
+      "contact_us": "Contact Us",
+      "careers": "Careers",
+      "footer_help_center": "Help Center",
+      "browse_jobs": "Browse Jobs",
+      "job_alerts": "Job Alerts",
+      "salary_guide": "Salary Guide",
+      "phone_label": "Phone",
+      "mobile_app_coming_soon": "Mobile App coming soon",
+      "app_store": "App Store",
+      "play_store": "Play Store",
+      "terms_of_service": "Terms of Service",
+      "cookie_policy": "Cookie Policy",
+
+      "switch_to_employer": "Switch to Employer",
+      "switch_to_candidate": "Switch to Candidate",
+      "switching": "Switching",
+      "switch_profile_error": "Unable to switch to {{role}} profile",
+      "role_employer": "employer",
+      "role_candidate": "candidate",
+      "logout": "Logout",
+      "dashboard": "Dashboard",
+      "profile": "Profile",
+      "menu": "Menu",
+
+      "approval_pending_title": "Your profile is pending approval.",
+      "approval_pending_body": "You can use your dashboard and manage your profile, but it is hidden from other users.",
+      "approval_restriction_employer": "You cannot post jobs until the admin approves it.",
+      "approval_restriction_candidate": "You cannot apply for jobs until the admin approves it."
     }
   },
   hi: {
@@ -218,7 +316,114 @@ const resources = {
       "otp_placeholder": "6 अंकों का OTP दर्ज करें",
       "back_to_login": "लॉगिन पर वापस जाएं",
       "send_otp": "OTP भेजें",
-      "verify_otp": "OTP सत्यापित करें"
+      "verify_otp": "OTP सत्यापित करें",
+
+      "verified_employers_badge": "सत्यापित एम्प्लॉयर्स | कैंडिडेट्स के लिए मुफ़्त | पूरे भारत में जॉब्स",
+      "i_am_candidate": "मैं एक कैंडिडेट हूँ",
+      "i_am_employer": "मैं एक एम्प्लॉयर हूँ",
+      "hero_headline_updated": "भारत भर में शीर्ष क्लीनिकों, कंपनियों और विशेष वेटरनरी अवसरों से जुड़ें",
+      "verified_candidates": "सत्यापित कैंडिडेट्स",
+      "help_center": "सहायता और FAQs",
+      "help_center_title": "सहायता केंद्र और FAQ",
+      "help_center_subtitle": "कैंडिडेट्स और एम्प्लॉयर्स के लिए त्वरित उत्तर पाएं",
+
+      "hero_badge": "भारत का #1 वेटरनरी जॉब पोर्टल",
+      "hero_headline_prefix": "अपने",
+      "hero_headline_accent": "वेटरनरी",
+      "hero_headline_suffix": "करियर को आगे बढ़ाएँ",
+      "hero_search_keyword_placeholder": "जॉब टाइटल, स्किल या कीवर्ड",
+      "hero_search_location_placeholder": "स्थान",
+      "hiring_prompt": "क्या आप हायर कर रहे हैं?",
+      "hero_hiring_cta": "जॉब पोस्ट करें",
+      "identity_checked": "पहचान सत्यापित",
+      "hundred_percent_free": "100% मुफ़्त",
+      "for_job_seekers": "जॉब खोजने वालों के लिए",
+      "live": "लाइव",
+      "open_jobs_count": "{{count}}+ खुली जॉब्स",
+      "loading": "लोड हो रहा है…",
+      "anywhere": "कहीं भी",
+      "remote_anywhere": "रिमोट / कहीं भी",
+      "negotiable": "बातचीत योग्य",
+      "view": "देखें",
+      "view_job": "जॉब देखें",
+
+      "home_get_started_overline": "शुरू करें",
+      "home_quick_title": "आप क्या ढूंढ रहे हैं?",
+      "home_quick_subtitle": "अपनी मनचाही वेटरनरी जॉब खोजने या अपने संस्थान के लिए सर्वश्रेष्ठ प्रतिभा नियुक्त करने के लिए विकल्प चुनें",
+      "quick_candidate_desc": "अपने कौशल और पसंद से मेल खाती हज़ारों वेटरनरी जॉब्स ब्राउज़ करें",
+      "quick_employer_desc": "अपनी जॉब पोस्ट करें और योग्य वेटरनरी प्रोफेशनल्स से जुड़ें",
+      "verified_listings": "सत्यापित लिस्टिंग",
+      "daily_updates": "दैनिक अपडेट",
+
+      "featured_overline": "फीचर्ड",
+      "latest_jobs_title": "नवीनतम जॉब अवसर",
+      "latest_jobs_subtitle": "भारत भर के शीर्ष वेटरनरी क्लीनिकों और अस्पतालों की नवीनतम रिक्तियाँ खोजें",
+      "no_active_jobs": "अभी कोई सक्रिय जॉब नहीं है",
+      "no_active_jobs_hint": "जल्द ही फिर देखें — हर दिन नए अवसर पोस्ट किए जाते हैं।",
+      "time_just_now": "अभी-अभी",
+      "time_minutes_ago": "{{count}} मिनट पहले",
+      "time_hours_ago": "{{count}} घंटे पहले",
+      "time_days_ago": "{{count}} दिन पहले",
+      "time_months_ago": "{{count}} महीने पहले",
+      "job_type_full_time": "फुल-टाइम",
+      "job_type_part_time": "पार्ट-टाइम",
+      "job_type_contract": "कॉन्ट्रैक्ट",
+      "job_type_internship": "इंटर्नशिप",
+      "job_type_freelance": "फ्रीलांस",
+      "job_type_temporary": "अस्थायी",
+
+      "top_talent_overline": "शीर्ष प्रतिभा",
+      "featured_candidates_title": "फीचर्ड कैंडिडेट्स",
+      "featured_candidates_desc": "हमारे सत्यापित और उच्च-रेटेड वेटरनरी प्रोफेशनल्स के साथ भीड़ से अलग दिखें",
+      "no_featured_candidates": "अभी कोई फीचर्ड कैंडिडेट नहीं है",
+      "no_featured_candidates_hint": "अपनी वेटरनरी विशेषज्ञता दिखाने वाले पहले लोगों में शामिल हों।",
+      "dr_prefix": "डॉ.",
+      "veterinary_professional": "वेटरनरी प्रोफेशनल",
+      "verified": "सत्यापित",
+      "contact_visible_entitled": "संपर्क विवरण केवल पात्र एम्प्लॉयर्स को दिखेगा",
+      "hire_this_candidate": "इस कैंडिडेट को हायर करें",
+      "want_to_be_featured": "फीचर्ड होना चाहते हैं? आज ही अपनी प्रोफेशनल प्रोफ़ाइल बनाएं!",
+      "create_profile": "प्रोफ़ाइल बनाएं",
+
+      "cta_overline": "🚀 आज ही शुरू करें",
+      "cta_headline_line1": "क्या आप अपने वेटरनरी करियर को",
+      "cta_headline_line2": "नई ऊँचाई देने के लिए तैयार हैं?",
+      "cta_desc": "उन हज़ारों वेटरनरी प्रोफेशनल्स से जुड़ें जिन्होंने VetsLinked के ज़रिए अपनी मनचाही जॉब पाई",
+      "trusted_by": "अग्रणी वेटरनरी संस्थानों द्वारा विश्वसनीय",
+      "trusted_org_clinics": "क्लीनिक / अस्पताल / एनजीओ",
+      "trusted_org_animal_health": "एनिमल हेल्थ कंपनियाँ",
+      "trusted_org_research": "अनुसंधान और शिक्षा",
+      "trusted_org_petcare": "पेटकेयर सेवाएँ",
+
+      "about_us": "हमारे बारे में",
+      "contact_us": "संपर्क करें",
+      "careers": "करियर",
+      "footer_help_center": "सहायता केंद्र",
+      "browse_jobs": "जॉब्स ब्राउज़ करें",
+      "job_alerts": "जॉब अलर्ट",
+      "salary_guide": "सैलरी गाइड",
+      "phone_label": "फ़ोन",
+      "mobile_app_coming_soon": "मोबाइल ऐप जल्द आ रहा है",
+      "app_store": "ऐप स्टोर",
+      "play_store": "प्ले स्टोर",
+      "terms_of_service": "सेवा की शर्तें",
+      "cookie_policy": "कुकी नीति",
+
+      "switch_to_employer": "एम्प्लॉयर पर स्विच करें",
+      "switch_to_candidate": "कैंडिडेट पर स्विच करें",
+      "switching": "स्विच हो रहा है",
+      "switch_profile_error": "{{role}} प्रोफ़ाइल पर स्विच नहीं हो सका",
+      "role_employer": "एम्प्लॉयर",
+      "role_candidate": "कैंडिडेट",
+      "logout": "लॉगआउट",
+      "dashboard": "डैशबोर्ड",
+      "profile": "प्रोफ़ाइल",
+      "menu": "मेनू",
+
+      "approval_pending_title": "आपकी प्रोफ़ाइल अनुमोदन के लिए लंबित है।",
+      "approval_pending_body": "आप अपना डैशबोर्ड उपयोग कर सकते हैं और प्रोफ़ाइल प्रबंधित कर सकते हैं, लेकिन यह अन्य उपयोगकर्ताओं से छिपी रहेगी।",
+      "approval_restriction_employer": "एडमिन की मंज़ूरी मिलने तक आप जॉब पोस्ट नहीं कर सकते।",
+      "approval_restriction_candidate": "एडमिन की मंज़ूरी मिलने तक आप जॉब्स के लिए आवेदन नहीं कर सकते।"
     }
   }
 };
@@ -229,6 +434,10 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
+    // Only two locales exist; region codes like `en-US` / `hi-IN` reported by
+    // the browser collapse to `en` / `hi` so `i18n.language` is always one of
+    // these two (the language menu compares against them).
+    supportedLngs: ['en', 'hi'],
     interpolation: {
       escapeValue: false,
     },
@@ -237,5 +446,34 @@ i18n
       caches: ['localStorage', 'cookie'],
     }
   });
+
+// Keep <html lang> in sync so screen readers / fonts pick the right script.
+const syncHtmlLang = (lng: string) => {
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = lng;
+  }
+};
+syncHtmlLang(i18n.resolvedLanguage ?? i18n.language ?? 'en');
+i18n.on('languageChanged', syncHtmlLang);
+
+/** Known employment types come from the DB in English; show them in the active language. */
+const JOB_TYPE_KEYS: Record<string, string> = {
+  'full-time': 'job_type_full_time',
+  'fulltime': 'job_type_full_time',
+  'full time': 'job_type_full_time',
+  'part-time': 'job_type_part_time',
+  'parttime': 'job_type_part_time',
+  'part time': 'job_type_part_time',
+  'contract': 'job_type_contract',
+  'internship': 'job_type_internship',
+  'freelance': 'job_type_freelance',
+  'temporary': 'job_type_temporary',
+};
+
+export function translateJobType(type: string | null | undefined): string {
+  if (!type) return i18n.t('job_type_full_time');
+  const key = JOB_TYPE_KEYS[type.trim().toLowerCase()];
+  return key ? i18n.t(key) : type;
+}
 
 export default i18n;

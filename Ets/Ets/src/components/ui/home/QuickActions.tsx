@@ -9,7 +9,8 @@ const QuickActions: React.FC = () => {
   const actions = [
     {
       icon: <SearchIcon sx={{ fontSize: 52, color: '#0c5283' }} />,
-      title: "I am a Candidate",
+      title: t('i_am_candidate'),
+      desc: t('quick_candidate_desc'),
       btn: t('find_jobs'),
       bgColor: 'linear-gradient(135deg, rgba(12, 82, 131, 0.08) 0%, rgba(12, 82, 131, 0.02) 100%)',
       borderColor: 'rgba(12, 82, 131, 0.2)',
@@ -19,7 +20,8 @@ const QuickActions: React.FC = () => {
     },
     {
       icon: <WorkIcon sx={{ fontSize: 52, color: '#0ab6a2' }} />,
-      title: "I am an Employer",
+      title: t('i_am_employer'),
+      desc: t('quick_employer_desc'),
       btn: t('post_job'),
       bgColor: 'linear-gradient(135deg, rgba(10, 182, 162, 0.08) 0%, rgba(10, 182, 162, 0.02) 100%)',
       borderColor: 'rgba(10, 182, 162, 0.2)',
@@ -65,7 +67,7 @@ const QuickActions: React.FC = () => {
               fontSize: '0.85rem'
             }}
           >
-            GET STARTED
+            {t('home_get_started_overline')}
           </Typography>
           <Typography
             variant="h3"
@@ -76,10 +78,10 @@ const QuickActions: React.FC = () => {
               fontSize: { xs: '2rem', md: '2.5rem' }
             }}
           >
-            What are you looking for?
+            {t('home_quick_title')}
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 650, mx: 'auto', fontSize: '1.05rem', fontWeight: 500 }}>
-            Choose from our options to find your dream veterinary job or hire the best talent for your organization
+            {t('home_quick_subtitle')}
           </Typography>
         </Box>
 
@@ -154,9 +156,7 @@ const QuickActions: React.FC = () => {
                       {action.title}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.6 }}>
-                      {index === 0
-                        ? 'Browse thousands of veterinary jobs that match your skills and preferences'
-                        : 'Post your job opening and connect with qualified veterinary professionals'}
+                      {action.desc}
                     </Typography>
                     <Box
                       sx={{
@@ -178,11 +178,11 @@ const QuickActions: React.FC = () => {
                 <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid', borderColor: 'divider', display: 'flex', gap: 3 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Verified sx={{ fontSize: 18, color: 'success.main' }} />
-                    <Typography variant="caption" color="text.secondary">Verified Listings</Typography>
+                    <Typography variant="caption" color="text.secondary">{t('verified_listings')}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <TrendingUp sx={{ fontSize: 18, color: 'primary.main' }} />
-                    <Typography variant="caption" color="text.secondary">Daily Updates</Typography>
+                    <Typography variant="caption" color="text.secondary">{t('daily_updates')}</Typography>
                   </Box>
                 </Box>
               </CardActionArea>

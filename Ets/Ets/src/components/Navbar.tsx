@@ -56,6 +56,7 @@ const getApiErrorMessage = (error: unknown, fallback: string) => {
 
 const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
   const { t, i18n } = useTranslation();
+  const currentLang = (i18n.resolvedLanguage ?? i18n.language ?? 'en').toLowerCase().startsWith('hi') ? 'hi' : 'en';
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState<null | HTMLElement>(null);
@@ -68,7 +69,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
   const location = useLocation();
   const currentUser = getStoredUser();
   const switchTargetRole = currentUser?.role === 'employer' ? 'candidate' : 'employer';
-  const switchTargetLabel = switchTargetRole === 'employer' ? 'Switch to Employer' : 'Switch to Candidate';
+  const switchTargetLabel = switchTargetRole === 'employer' ? t('switch_to_employer') : t('switch_to_candidate');
 
   const handleLanguageMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -145,7 +146,12 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
       setMobileOpen(false);
       navigate(switchTargetRole === 'employer' ? '/employer/dashboard' : '/candidate/dashboard');
     } catch (error) {
-      setSwitchError(getApiErrorMessage(error, `Unable to switch to ${switchTargetRole} profile`));
+      setSwitchError(
+        getApiErrorMessage(
+          error,
+          t('switch_profile_error', { role: t(switchTargetRole === 'employer' ? 'role_employer' : 'role_candidate') })
+        )
+      );
     } finally {
       setSwitchingRole(null);
     }
@@ -182,7 +188,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
     currentUser?.name ||
     [currentUser?.firstName, currentUser?.lastName].filter(Boolean).join(' ') ||
     currentUser?.email ||
-    'Profile';
+    t('profile');
   const userInitial = userDisplayName.charAt(0).toUpperCase();
 
   const drawer = (
@@ -229,11 +235,11 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                 startIcon={switchingRole ? <CircularProgress size={16} /> : <SwapHoriz />}
                 disabled={Boolean(switchingRole)}
               >
-                {switchingRole ? 'Switching' : switchTargetLabel}
+                {switchingRole ? t('switching') : switchTargetLabel}
               </Button>
             )}
             <Button onClick={handleLogout} variant="text" color="error" fullWidth size="small" startIcon={<Logout />}>
-              Logout
+              {t('logout')}
             </Button>
           </Box>
         ) : (
@@ -405,8 +411,8 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                     </IconButton>
                   </Tooltip>
                   <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleLanguageMenuClose}>
-                    <MenuItem onClick={() => changeLanguage('en')} selected={i18n.language === 'en'}>English</MenuItem>
-                    <MenuItem onClick={() => changeLanguage('hi')} selected={i18n.language === 'hi'}>हिन्दी (Hindi)</MenuItem>
+                    <MenuItem onClick={() => changeLanguage('en')} selected={currentLang === 'en'}>English</MenuItem>
+                    <MenuItem onClick={() => changeLanguage('hi')} selected={currentLang === 'hi'}>हिन्दी (Hindi)</MenuItem>
                   </Menu>
 
                   <Tooltip title={t('theme_mode')}>
@@ -458,7 +464,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                       <Menu anchorEl={profileAnchorEl} open={Boolean(profileAnchorEl)} onClose={handleProfileMenuClose}>
                         <MenuItem onClick={handleOpenProfile}>
                           <Dashboard fontSize="small" sx={{ mr: 1 }} />
-                          Dashboard
+                          {t('dashboard')}
                         </MenuItem>
                         {currentUser.role !== 'admin' && (
                           <MenuItem onClick={handleSwitchProfile} disabled={Boolean(switchingRole)}>
@@ -467,12 +473,12 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                             ) : (
                               <SwapHoriz fontSize="small" sx={{ mr: 1 }} />
                             )}
-                            {switchingRole ? 'Switching' : switchTargetLabel}
+                            {switchingRole ? t('switching') : switchTargetLabel}
                           </MenuItem>
                         )}
                         <MenuItem onClick={handleLogout}>
                           <Logout fontSize="small" sx={{ mr: 1 }} />
-                          Logout
+                          {t('logout')}
                         </MenuItem>
                       </Menu>
                     </>
@@ -530,8 +536,8 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                     </IconButton>
                   </Tooltip>
                   <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleLanguageMenuClose}>
-                    <MenuItem onClick={() => changeLanguage('en')} selected={i18n.language === 'en'}>English</MenuItem>
-                    <MenuItem onClick={() => changeLanguage('hi')} selected={i18n.language === 'hi'}>हिन्दी (Hindi)</MenuItem>
+                    <MenuItem onClick={() => changeLanguage('en')} selected={currentLang === 'en'}>English</MenuItem>
+                    <MenuItem onClick={() => changeLanguage('hi')} selected={currentLang === 'hi'}>हिन्दी (Hindi)</MenuItem>
                   </Menu>
 
                   {!currentUser && (
@@ -558,7 +564,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                   <IconButton
                     onClick={() => setMobileOpen(true)}
                     edge="end"
-                    aria-label="menu"
+                    aria-label={t('menu')}
                     sx={{
                       color: 'text.primary',
                       p: 0.75,

@@ -74,10 +74,10 @@ const Footer: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {[
-                { name: 'About Us', link: '/about' },
-                { name: 'Contact Us', link: '/contact' },
-                { name: 'Careers', link: '#' },
-                { name: 'Help Center', link: '#' }
+                { name: t('about_us'), link: '/about' },
+                { name: t('contact_us'), link: '/contact' },
+                { name: t('careers'), link: '#' },
+                { name: t('footer_help_center'), link: '#' }
               ].map((item) => (
                 <MuiLink 
                   key={item.name}
@@ -97,7 +97,7 @@ const Footer: React.FC = () => {
               {t('jobs')}
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {['Browse Jobs', 'Post a Job', 'Job Alerts', 'Salary Guide'].map((text) => (
+              {[t('browse_jobs'), t('hero_hiring_cta'), t('job_alerts'), t('salary_guide')].map((text) => (
                 <MuiLink 
                   key={text}
                   href="#" 
@@ -117,11 +117,11 @@ const Footer: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Typography variant="body2" sx={{ opacity: 0.7, fontSize: '0.9rem' }}>
-                {contactPhone ? `Phone: ${contactPhone}` : null}
+                {contactPhone ? `${t('phone_label')}: ${contactPhone}` : null}
               </Typography>
               <Box sx={{ mt: 1, p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <Typography variant="caption" sx={{ display: 'block', mb: 1, opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>
-                  Mobile App coming soon
+                  {t('mobile_app_coming_soon')}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <Button 
@@ -130,7 +130,7 @@ const Footer: React.FC = () => {
                     startIcon={<Smartphone />}
                     sx={{ bgcolor: 'white', color: 'black', '&:hover': { bgcolor: '#eee' }, fontSize: '0.65rem', fontWeight: 700 }}
                   >
-                    App Store
+                    {t('app_store')}
                   </Button>
                   <Button 
                     variant="contained" 
@@ -138,7 +138,7 @@ const Footer: React.FC = () => {
                     startIcon={<Smartphone />}
                     sx={{ bgcolor: 'white', color: 'black', '&:hover': { bgcolor: '#eee' }, fontSize: '0.65rem', fontWeight: 700 }}
                   >
-                    Play Store
+                    {t('play_store')}
                   </Button>
                 </Box>
               </Box>
@@ -176,7 +176,7 @@ const Footer: React.FC = () => {
               color="inherit"
               sx={{ opacity: 0.5, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { opacity: 1 } }}
             >
-              Terms of Service
+              {t('terms_of_service')}
             </MuiLink>
             <MuiLink
               component={RouterLink}
@@ -184,7 +184,7 @@ const Footer: React.FC = () => {
               color="inherit"
               sx={{ opacity: 0.5, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { opacity: 1 } }}
             >
-              Cookie Policy
+              {t('cookie_policy')}
             </MuiLink>
           </Box>
         </Box>

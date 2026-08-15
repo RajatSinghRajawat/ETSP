@@ -1,22 +1,26 @@
 import { Box, Container, Typography, Card, CardContent, Chip, Button, Avatar, IconButton, Skeleton } from '@mui/material';
 import { LocationOn, AttachMoney, ArrowForward, AccessTime, Verified, BookmarkBorder, WorkOutlined } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useGetJobsQuery, type JobResponse } from '../../../store/api/jobApi';
+import { translateJobType } from '../../../i18n';
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: TFunction): string {
   const diff = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t('time_just_now');
+  if (minutes < 60) return t('time_minutes_ago', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('time_hours_ago', { count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
+  if (days < 30) return t('time_days_ago', { count: days });
   const months = Math.floor(days / 30);
-  return `${months}mo ago`;
+  return t('time_months_ago', { count: months });
 }
 
 const FeaturedJobs: React.FC = () => {
+  const { t } = useTranslation();
   const { data, isLoading } = useGetJobsQuery({ limit: 4 });
   const jobs: JobResponse[] = data?.data?.items ?? [];
   const skeletonCount = 4;
@@ -48,7 +52,7 @@ const FeaturedJobs: React.FC = () => {
                 fontSize: '0.85rem'
               }}
             >
-              FEATURED
+              {t('featured_overline')}
             </Typography>
           </Box>
           <Typography
@@ -60,10 +64,10 @@ const FeaturedJobs: React.FC = () => {
               fontSize: { xs: '2rem', md: '2.5rem' }
             }}
           >
-            Latest Job Opportunities
+            {t('latest_jobs_title')}
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
-            Discover the most recent openings from top veterinary clinics and hospitals across India
+            {t('latest_jobs_subtitle')}
           </Typography>
         </Box>
 
@@ -110,10 +114,10 @@ const FeaturedJobs: React.FC = () => {
             >
               <WorkOutlined sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
               <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                No active jobs right now
+                {t('no_active_jobs')}
               </Typography>
               <Typography variant="body2">
-                Check back soon — new opportunities are posted every day.
+                {t('no_active_jobs_hint')}
               </Typography>
             </Box>
           )}
@@ -211,26 +215,26 @@ const FeaturedJobs: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-                      {job.location || 'Remote / Anywhere'}
+                      {job.location || t('remote_anywhere')}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <AttachMoney sx={{ fontSize: 18, color: 'success.main' }} />
                     <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.dark', fontSize: '0.9rem' }}>
-                      {job.salary || 'Negotiable'}
+                      {job.salary || t('negotiable')}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <AccessTime sx={{ fontSize: 18, color: 'text.secondary' }} />
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                      {timeAgo(job.createdAt)}
+                      {timeAgo(job.createdAt, t)}
                     </Typography>
                   </Box>
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Chip
-                    label={job.type || 'Full-time'}
+                    label={translateJobType(job.type)}
                     size="small"
                     sx={{
                       bgcolor: job.type === 'Full-time' ? 'rgba(10, 182, 162, 0.1)' : 'rgba(12, 82, 131, 0.1)',
@@ -259,7 +263,7 @@ const FeaturedJobs: React.FC = () => {
                       }
                     }}
                   >
-                    View
+                    {t('view')}
                     <ArrowForward className="job-card-arrow" sx={{ fontSize: 18 }} />
                   </Button>
                 </Box>
@@ -289,7 +293,7 @@ const FeaturedJobs: React.FC = () => {
               }
             }}
           >
-            View All Jobs
+            {t('view_all')}
           </Button>
         </Box>
       </Container>

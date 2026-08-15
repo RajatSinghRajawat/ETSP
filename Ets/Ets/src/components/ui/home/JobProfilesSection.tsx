@@ -13,6 +13,7 @@ import {
   ArrowForward,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useLocalizedSiteContent } from '../../../hooks/useLocalizedSiteContent';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -28,14 +29,15 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 };
 
 const JobProfilesSection: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { content } = useLocalizedSiteContent();
   const section = content?.jobProfiles;
 
-  const title = section?.title || 'Job Profiles';
-  const subtitle =
-    section?.subtitle || 'Explore specialized roles across clinics, hospitals and pet-care businesses.';
-  const exploreLabel = section?.exploreLabel || 'Explore Jobs';
+  // CMS copy wins; i18n strings cover the API-loading window / blank fields.
+  const title = section?.title || t('job_profiles_title');
+  const subtitle = section?.subtitle || t('job_profiles_subtitle');
+  const exploreLabel = section?.exploreLabel || t('explore_jobs');
   const items = section?.items ?? [];
 
   const handleProfileClick = (query: string) => {

@@ -57,7 +57,7 @@ const CTASection: React.FC = () => {
                 fontSize: '0.8rem'
               }}
             >
-              🚀 GET STARTED TODAY
+              {t('cta_overline')}
             </Typography>
 
             <Typography
@@ -69,9 +69,9 @@ const CTASection: React.FC = () => {
                 lineHeight: 1.2
               }}
             >
-              Ready to Transform Your
+              {t('cta_headline_line1')}
               <br />
-              Veterinary Career?
+              {t('cta_headline_line2')}
             </Typography>
 
             <Typography
@@ -84,7 +84,7 @@ const CTASection: React.FC = () => {
                 mx: 'auto'
               }}
             >
-              Join thousands of veterinary professionals who have found their dream jobs through VetsLinked
+              {t('cta_desc')}
             </Typography>
 
             <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -111,16 +111,21 @@ const CTASection: React.FC = () => {
                   transition: 'all 0.3s ease'
                 }}
               >
-                Signup
+                {t('signup')}
               </Button>
             </Box>
 
             <Box sx={{ mt: 6, pt: 4, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
               <Typography variant="body2" sx={{ opacity: 0.8, mb: 2 }}>
-                Trusted by leading veterinary organizations
+                {t('trusted_by')}
               </Typography>
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap', opacity: 0.7 }}>
-                {['Clinics / Hospitals / NGOs', 'Animal Health Co', 'Research & Academia', 'Petcare Services'].map((name) => (
+                {[
+                  t('trusted_org_clinics'),
+                  t('trusted_org_animal_health'),
+                  t('trusted_org_research'),
+                  t('trusted_org_petcare'),
+                ].map((name) => (
                   <Typography key={name} variant="subtitle2" sx={{ fontWeight: 600 }}>
                     {name}
                   </Typography>

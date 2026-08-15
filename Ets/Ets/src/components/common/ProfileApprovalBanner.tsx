@@ -1,8 +1,10 @@
 import { Alert, Box, Typography } from '@mui/material';
 import { HourglassTop } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { useProfileApproval } from '../../hooks/useProfileApproval';
 
 const ProfileApprovalBanner: React.FC = () => {
+  const { t } = useTranslation();
   const { role, isApprovalPending, isLoading } = useProfileApproval();
 
   if (isLoading || !isApprovalPending) {
@@ -11,8 +13,8 @@ const ProfileApprovalBanner: React.FC = () => {
 
   const restriction =
     role === 'employer'
-      ? 'You cannot post jobs until the admin approves it.'
-      : 'You cannot apply for jobs until the admin approves it.';
+      ? t('approval_restriction_employer')
+      : t('approval_restriction_candidate');
 
   return (
     <Box sx={{ bgcolor: '#fff7ed', borderBottom: '1px solid #fed7aa' }}>
@@ -30,10 +32,10 @@ const ProfileApprovalBanner: React.FC = () => {
         }}
       >
         <Typography component="span" variant="body2" sx={{ fontWeight: 800 }}>
-          Your profile is pending approval.
+          {t('approval_pending_title')}
         </Typography>{' '}
         <Typography component="span" variant="body2">
-          You can use your dashboard and manage your profile, but it is hidden from other users. {restriction}
+          {t('approval_pending_body')} {restriction}
         </Typography>
       </Alert>
     </Box>
