@@ -62,8 +62,11 @@ export async function sendPhoneVerificationOtp(user) {
     throw new AppError('Error generating OTP. Try again later.', 500);
   }
 
-  const smsSent = smsEnabled ? await sendOtpSms(candidate.phone, otp) : false;
-  const whatsappSent = whatsappEnabled ? await sendOtpWhatsapp(candidate.phone, otp) : false;
+  // Both channels fire together so the code arrives everywhere at once.
+  const [smsSent, whatsappSent] = await Promise.all([
+    smsEnabled ? sendOtpSms(candidate.phone, otp) : false,
+    whatsappEnabled ? sendOtpWhatsapp(candidate.phone, otp) : false,
+  ]);
 
   if (!smsSent && !whatsappSent) {
     throw new AppError('Could not send the verification code. Try again later.', 502);

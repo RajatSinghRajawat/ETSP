@@ -211,26 +211,19 @@ class AuthService {
       isWhatsappEnabled(),
     ]);
 
-    let emailSent = false;
-    let smsSent = false;
-    let whatsappSent = false;
-
-    if (emailEnabled) {
-      emailSent = await emailService.sendOtpEmail(formattedEmail, otp);
-    }
-
+    let phone = null;
     if (smsEnabled || whatsappEnabled) {
       const profile = await this.getProfileForRole(formattedEmail, registeredAccount.role);
-      const phone = this.getProfilePhone(profile, registeredAccount.role);
-      if (phone) {
-        if (smsEnabled) {
-          smsSent = await sendOtpSms(phone, otp);
-        }
-        if (whatsappEnabled) {
-          whatsappSent = await sendOtpWhatsapp(phone, otp);
-        }
-      }
+      phone = this.getProfilePhone(profile, registeredAccount.role);
     }
+
+    // Fire every enabled channel at the same time so the OTP lands everywhere
+    // at once; each sender swallows its own errors and resolves to a boolean.
+    const [emailSent, smsSent, whatsappSent] = await Promise.all([
+      emailEnabled ? emailService.sendOtpEmail(formattedEmail, otp) : false,
+      smsEnabled && phone ? sendOtpSms(phone, otp) : false,
+      whatsappEnabled && phone ? sendOtpWhatsapp(phone, otp) : false,
+    ]);
 
     if (!emailSent && !smsSent && !whatsappSent) {
       if (env.NODE_ENV !== 'production') {

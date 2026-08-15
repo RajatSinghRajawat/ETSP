@@ -2,7 +2,7 @@ import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { getMsg91Settings } from './settings.service.js';
 
-const MSG91_FLOW_URL = `${env.MSG91_BASE_URL.replace(/\/$/, '')}/api/v5/flow`;
+const MSG91_OTP_URL = `${env.MSG91_BASE_URL.replace(/\/$/, '')}/api/v5/otp`;
 
 /** Normalise an Indian mobile number to the 91XXXXXXXXXX format MSG91 expects. */
 export function toMsg91Mobile(phone) {
@@ -21,11 +21,11 @@ export async function isSmsEnabled() {
 }
 
 /**
- * Send the login OTP via MSG91 (Flow API). The current panel template
- * ("vetslinkedotp", DLT id 1277178655626147513) carries the code in `##OTP##`;
- * the legacy one used `##number##`, so the payload sends the code under both
- * keys — MSG91 ignores variables the template doesn't use. Returns true when
- * MSG91 accepts the message.
+ * Send the login OTP via MSG91's SendOTP API. The template must be an OTP-app
+ * template ("vetslinkedotp", DLT id 1277178655626147513, variable `##OTP##`) —
+ * the Flow API silently drops OTP-app template ids, so this endpoint is the
+ * only one that delivers them. The sender id comes from the template itself.
+ * Returns true when MSG91 accepts the message.
  */
 export async function sendOtpSms(phone, otp) {
   const settings = await getMsg91Settings();
@@ -42,18 +42,19 @@ export async function sendOtpSms(phone, otp) {
   }
 
   try {
-    const response = await fetch(MSG91_FLOW_URL, {
+    const params = new URLSearchParams({
+      template_id: settings.templateId,
+      mobile,
+      otp: String(otp),
+      otp_expiry: '10',
+    });
+
+    const response = await fetch(`${MSG91_OTP_URL}?${params}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         authkey: settings.authKey,
       },
-      body: JSON.stringify({
-        template_id: settings.templateId,
-        short_url: '0',
-        ...(settings.senderId ? { sender: settings.senderId } : {}),
-        recipients: [{ mobiles: mobile, OTP: otp, number: otp }],
-      }),
     });
 
     const body = await response.json().catch(() => ({}));
