@@ -1,4 +1,4 @@
-import { type ChangeEvent, useState } from 'react';
+import { type ChangeEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -15,6 +15,9 @@ import {
   Alert,
   Stack,
   Chip,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -29,6 +32,8 @@ import {
   WorkOutlined,
   TrendingUp,
   LockOutlined,
+  Sms,
+  WhatsApp,
 } from '@mui/icons-material';
 import { Toast } from '../../common';
 import LoginAnimation from './LoginAnimation';
@@ -38,6 +43,31 @@ import { isValidPhone, phoneHtmlInputProps, sanitizePhone } from '../../../utils
 
 type LoginStep = 'method' | 'phone_otp' | 'email_otp';
 type LoginMethod = 'phone' | 'email';
+
+/**
+ * Where the OTP is delivered. Exactly one channel is used per request — the
+ * backend sends the code to the email / mobile registered on the account, so
+ * the choice is independent of which identifier the user typed.
+ */
+type OtpChannel = 'email' | 'sms' | 'whatsapp';
+type ChannelAvailability = Record<OtpChannel, boolean>;
+
+const OTP_CHANNELS: OtpChannel[] = ['email', 'sms', 'whatsapp'];
+
+const OTP_CHANNEL_META: Record<OtpChannel, { labelKey: string; icon: React.ReactNode }> = {
+  email: { labelKey: 'otp_channel_email', icon: <Email fontSize="small" /> },
+  sms: { labelKey: 'otp_channel_sms', icon: <Sms fontSize="small" /> },
+  whatsapp: { labelKey: 'otp_channel_whatsapp', icon: <WhatsApp fontSize="small" /> },
+};
+
+const isOtpChannel = (value: unknown): value is OtpChannel =>
+  typeof value === 'string' && (OTP_CHANNELS as string[]).includes(value);
+
+/** First channel from `preferred` that is available (all count as available until we know). */
+const pickChannel = (
+  preferred: OtpChannel[],
+  availability: ChannelAvailability | null,
+): OtpChannel => preferred.find((c) => !availability || availability[c]) ?? preferred[0];
 
 const HERO_IMAGE =
   'https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=1200&q=80';
@@ -67,6 +97,11 @@ const LoginPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
+  const [channel, setChannel] = useState<OtpChannel>('email');
+  const [availability, setAvailability] = useState<ChannelAvailability | null>(null);
+  const [sentInfo, setSentInfo] = useState<{ channel: OtpChannel; destination?: string } | null>(
+    null,
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState('');
@@ -76,15 +111,45 @@ const LoginPage: React.FC = () => {
     severity: 'success' as 'success' | 'error',
   });
 
+  // Ask the API which delivery options the admin has switched on so the page
+  // only offers channels that can actually deliver. If the call fails, every
+  // option stays selectable and the send request reports the real problem.
+  useEffect(() => {
+    let cancelled = false;
+
+    axiosInstance
+      .get(API_ENDPOINTS.auth.otpChannels)
+      .then((response) => {
+        const channels = response.data?.channels;
+        if (cancelled || !channels) return;
+        setAvailability({
+          email: Boolean(channels.email),
+          sms: Boolean(channels.sms),
+          whatsapp: Boolean(channels.whatsapp),
+        });
+      })
+      .catch(() => {
+        /* keep every option enabled */
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleEmailLogin = () => {
     setMethod('email');
     setStep('email_otp');
+    setChannel(pickChannel(['email', 'sms', 'whatsapp'], availability));
+    setSentInfo(null);
     setAuthError('');
   };
 
   const handlePhoneLogin = () => {
     setMethod('phone');
     setStep('phone_otp');
+    setChannel(pickChannel(['sms', 'whatsapp', 'email'], availability));
+    setSentInfo(null);
     setAuthError('');
   };
 
@@ -109,7 +174,15 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await axiosInstance.post(API_ENDPOINTS.auth.sendOtp, identifier);
+      const response = await axiosInstance.post(API_ENDPOINTS.auth.sendOtp, {
+        ...identifier,
+        channel,
+      });
+      const sentChannel = isOtpChannel(response.data?.channel) ? response.data.channel : channel;
+      const destination =
+        typeof response.data?.destination === 'string' ? response.data.destination : undefined;
+      setSentInfo({ channel: sentChannel, destination });
+      setOtp('');
       showToast(response.data?.message || t('otp_sent', { method: identifierLabel }), 'success');
     } catch (error) {
       const errorMsg = getApiErrorMessage(error, 'Failed to send OTP');
@@ -163,6 +236,7 @@ const LoginPage: React.FC = () => {
     setPhone('');
     setEmail('');
     setOtp('');
+    setSentInfo(null);
     setAuthError('');
   };
 
@@ -200,6 +274,36 @@ const LoginPage: React.FC = () => {
       background: 'rgba(0,0,0,0.08)',
       color: 'rgba(0,0,0,0.35)',
       boxShadow: 'none',
+    },
+  };
+
+  const channelGroupSx = {
+    gap: 1,
+    '& .MuiToggleButtonGroup-grouped': {
+      flex: 1,
+      py: 1.1,
+      borderRadius: '10px !important',
+      border: '1.5px solid rgba(12,82,131,0.18) !important',
+      textTransform: 'none' as const,
+      fontWeight: 600,
+      fontSize: 13.5,
+      color: 'text.primary',
+      transition: 'all 0.2s ease',
+      '& svg': { color: '#0c5283' },
+      '&:hover': { borderColor: '#0ab6a2 !important', bgcolor: 'rgba(10,182,162,0.06)' },
+      '&.Mui-selected': {
+        borderColor: '#0ab6a2 !important',
+        bgcolor: 'rgba(10,182,162,0.12)',
+        color: '#0c5283',
+        boxShadow: '0 6px 16px -10px rgba(10,182,162,0.6)',
+        '& svg': { color: '#0ab6a2' },
+        '&:hover': { bgcolor: 'rgba(10,182,162,0.16)' },
+      },
+      '&.Mui-disabled': {
+        borderColor: 'rgba(0,0,0,0.08) !important',
+        color: 'rgba(0,0,0,0.3)',
+        '& svg': { color: 'rgba(0,0,0,0.26)' },
+      },
     },
   };
 
@@ -290,7 +394,8 @@ const LoginPage: React.FC = () => {
     const placeholder = isEmail ? t('email_placeholder') : t('phone_placeholder');
     const title = isEmail ? t('email_login') : t('phone_login');
     const isValid = isEmail ? email.includes('@') : isValidPhone(phone);
-    const showOtpField = step === `${mode}_otp` && method === mode && isValid;
+    const showOtpField = step === `${mode}_otp` && method === mode && isValid && sentInfo !== null;
+    const channelLabel = (c: OtpChannel) => t(OTP_CHANNEL_META[c].labelKey);
 
     return (
       <Box>
@@ -324,9 +429,9 @@ const LoginPage: React.FC = () => {
           {title}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          {isEmail
-            ? "We'll send a 6-digit code to your email."
-            : "We'll send a 6-digit code to your phone."}
+          {channel === 'email'
+            ? t('otp_hint_email')
+            : t('otp_hint_phone', { channel: channelLabel(channel) })}
         </Typography>
 
         <TextField
@@ -337,6 +442,7 @@ const LoginPage: React.FC = () => {
           onChange={(e: ChangeEvent<HTMLInputElement>) => {
             const next = isEmail ? e.target.value : sanitizePhone(e.target.value);
             setValue(next);
+            setSentInfo(null);
             setAuthError('');
           }}
           slotProps={{
@@ -352,9 +458,65 @@ const LoginPage: React.FC = () => {
           sx={{ mb: 2, ...fieldSx }}
         />
 
+        <Typography
+          variant="caption"
+          sx={{ display: 'block', mb: 1, fontWeight: 700, color: 'text.secondary', letterSpacing: 0.4 }}
+        >
+          {t('otp_channel_label')}
+        </Typography>
+        <ToggleButtonGroup
+          exclusive
+          fullWidth
+          value={channel}
+          onChange={(_event, next: OtpChannel | null) => {
+            if (!next) return;
+            setChannel(next);
+            setSentInfo(null);
+            setAuthError('');
+          }}
+          aria-label={t('otp_channel_label')}
+          sx={{ mb: 2.5, ...channelGroupSx }}
+        >
+          {OTP_CHANNELS.map((option) => {
+            const unavailable = availability !== null && !availability[option];
+            const button = (
+              <ToggleButton
+                key={option}
+                value={option}
+                disabled={unavailable}
+                aria-label={channelLabel(option)}
+              >
+                {OTP_CHANNEL_META[option].icon}
+                <Box component="span" sx={{ ml: 0.8 }}>
+                  {channelLabel(option)}
+                </Box>
+              </ToggleButton>
+            );
+
+            return unavailable ? (
+              <Tooltip key={option} title={t('otp_channel_unavailable')} arrow>
+                <span style={{ display: 'flex', flex: 1 }}>{button}</span>
+              </Tooltip>
+            ) : (
+              button
+            );
+          })}
+        </ToggleButtonGroup>
+
         {authError && (
           <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
             {authError}
+          </Alert>
+        )}
+
+        {sentInfo && !authError && (
+          <Alert severity="success" icon={OTP_CHANNEL_META[sentInfo.channel].icon} sx={{ mb: 2, borderRadius: 2 }}>
+            {sentInfo.destination
+              ? t('otp_sent_via', {
+                  channel: channelLabel(sentInfo.channel),
+                  destination: sentInfo.destination,
+                })
+              : t('otp_sent_generic', { channel: channelLabel(sentInfo.channel) })}
           </Alert>
         )}
 
@@ -366,7 +528,13 @@ const LoginPage: React.FC = () => {
           disabled={loading || !isValid}
           sx={primaryButtonSx}
         >
-          {loading ? <CircularProgress size={22} color="inherit" /> : t('send_otp')}
+          {loading ? (
+            <CircularProgress size={22} color="inherit" />
+          ) : sentInfo ? (
+            t('resend_otp')
+          ) : (
+            t('send_otp')
+          )}
         </Button>
 
         {showOtpField && (

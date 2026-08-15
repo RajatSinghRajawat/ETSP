@@ -7,6 +7,9 @@ import {
 } from '../validations/auth.validation.js';
 
 export default async function authRoutes(fastify) {
+  // Which OTP delivery options (email / SMS / WhatsApp) the login page may show.
+  fastify.get('/otp-channels', authController.getOtpChannels);
+
   fastify.post('/send-otp', {
     preHandler: validateBody(sendOtpSchema.shape.body),
   }, authController.sendOtp);

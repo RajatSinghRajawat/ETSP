@@ -3,8 +3,9 @@ import { redis } from '../config/redis.js';
 import { CandidateProfile } from '../models/candidate-profile.model.js';
 import { AppError } from '../utils/app-error.js';
 import { logger } from '../utils/logger.js';
-import { isSmsEnabled, sendOtpSms } from './sms.service.js';
-import { isWhatsappEnabled, sendOtpWhatsapp } from './whatsapp.service.js';
+import { isSmsEnabled } from './sms.service.js';
+import { isWhatsappEnabled } from './whatsapp.service.js';
+import { OTP_CHANNEL_LABELS, deliverOtp, maskPhone } from './otp-delivery.service.js';
 
 const OTP_TTL_SECONDS = 600;
 const STATIC_DEV_OTP = '123456';
@@ -27,19 +28,29 @@ async function getCandidateOr404(user) {
   return candidate;
 }
 
+/** Phone verification can only go to the handset: SMS or WhatsApp. */
+const PHONE_CHANNELS = ['sms', 'whatsapp'];
+
 /**
- * Send an OTP to the candidate's registered phone (MSG91 SMS and/or WhatsApp).
- * Outside production the static dev OTP is accepted when neither channel is
- * configured, so the verified badge remains testable end-to-end.
+ * Send an OTP to the candidate's registered phone over ONE channel — the one
+ * the candidate picked ('sms' | 'whatsapp'). When no channel is given, SMS is
+ * used and WhatsApp is the fallback if SMS is switched off. Outside production
+ * the static dev OTP is accepted when neither channel is configured, so the
+ * verified badge remains testable end-to-end.
  */
-export async function sendPhoneVerificationOtp(user) {
+export async function sendPhoneVerificationOtp(user, channel) {
   const candidate = await getCandidateOr404(user);
 
   if (candidate.phoneVerified) {
     return { alreadyVerified: true, message: 'Phone number is already verified' };
   }
 
+  if (channel !== undefined && channel !== null && !PHONE_CHANNELS.includes(channel)) {
+    throw new AppError('Choose where to receive the code: SMS or WhatsApp', 400);
+  }
+
   const [smsEnabled, whatsappEnabled] = await Promise.all([isSmsEnabled(), isWhatsappEnabled()]);
+  const available = { sms: smsEnabled, whatsapp: whatsappEnabled };
 
   if (!smsEnabled && !whatsappEnabled) {
     if (env.NODE_ENV !== 'production') {
@@ -53,6 +64,17 @@ export async function sendPhoneVerificationOtp(user) {
     throw new AppError('SMS service is not configured yet. Please contact support.', 503);
   }
 
+  const chosen = channel ?? (smsEnabled ? 'sms' : 'whatsapp');
+  const label = OTP_CHANNEL_LABELS[chosen];
+
+  if (!available[chosen]) {
+    const other = chosen === 'sms' ? OTP_CHANNEL_LABELS.whatsapp : OTP_CHANNEL_LABELS.sms;
+    throw new AppError(
+      `Verification via ${label} is currently unavailable. Please choose ${other} instead.`,
+      503,
+    );
+  }
+
   const otp = String(Math.floor(100000 + Math.random() * 900000));
 
   try {
@@ -62,17 +84,23 @@ export async function sendPhoneVerificationOtp(user) {
     throw new AppError('Error generating OTP. Try again later.', 500);
   }
 
-  // Both channels fire together so the code arrives everywhere at once.
-  const [smsSent, whatsappSent] = await Promise.all([
-    smsEnabled ? sendOtpSms(candidate.phone, otp) : false,
-    whatsappEnabled ? sendOtpWhatsapp(candidate.phone, otp) : false,
-  ]);
+  const sent = await deliverOtp(chosen, { phone: candidate.phone }, otp);
 
-  if (!smsSent && !whatsappSent) {
-    throw new AppError('Could not send the verification code. Try again later.', 502);
+  if (!sent) {
+    throw new AppError(
+      `Could not send the verification code via ${label}. Try again or choose another option.`,
+      502,
+    );
   }
 
-  return { alreadyVerified: false, message: 'Verification code sent to your registered phone' };
+  const destination = maskPhone(candidate.phone);
+
+  return {
+    alreadyVerified: false,
+    channel: chosen,
+    destination,
+    message: `Verification code sent via ${label} to ${destination}`,
+  };
 }
 
 export async function confirmPhoneVerification(user, otp) {

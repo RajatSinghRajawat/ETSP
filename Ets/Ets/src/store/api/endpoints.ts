@@ -2,6 +2,7 @@ const API_VERSION = '/api/v1';
 
 export const API_ENDPOINTS = {
   auth: {
+    otpChannels: `${API_VERSION}/auth/otp-channels`,
     sendOtp: `${API_VERSION}/auth/send-otp`,
     verifyOtp: `${API_VERSION}/auth/verify-otp`,
     switchProfile: `${API_VERSION}/auth/switch-profile`,

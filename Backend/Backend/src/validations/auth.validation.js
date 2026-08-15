@@ -22,8 +22,19 @@ const hasIdentifier = [
   { message: 'Email or mobile number is required', path: ['email'] },
 ];
 
+/**
+ * Where the OTP should be delivered. Only ONE channel is used per request; it
+ * defaults to email so older clients (admin panel) keep working unchanged.
+ */
+const otpChannelField = z.enum(['email', 'sms', 'whatsapp'], {
+  error: 'Choose where to receive the OTP: email, SMS or WhatsApp',
+});
+
 export const sendOtpSchema = z.object({
-  body: z.object(identifierShape).refine(...hasIdentifier),
+  body: z.object({
+    ...identifierShape,
+    channel: otpChannelField.default('email'),
+  }).refine(...hasIdentifier),
 });
 
 export const verifyOtpSchema = z.object({

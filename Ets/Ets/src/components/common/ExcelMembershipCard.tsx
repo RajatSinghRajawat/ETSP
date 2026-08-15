@@ -19,18 +19,23 @@ import {
   Stack,
   Switch,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import {
   Business,
   Lock,
   NotificationsActive,
+  Sms,
   Verified,
   VisibilityOff,
+  WhatsApp,
   WorkspacePremium,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 import {
+  type PhoneOtpChannel,
   useGetMyCandidateProfileQuery,
   useGetMyFollowsQuery,
   useUnfollowEmployerMutation,
@@ -64,6 +69,8 @@ const ExcelMembershipCard = () => {
   const [unfollowEmployer] = useUnfollowEmployerMutation();
 
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);
+  const [otpChannel, setOtpChannel] = useState<PhoneOtpChannel>('sms');
+  const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpHint, setOtpHint] = useState('');
   const [otpError, setOtpError] = useState('');
@@ -80,20 +87,31 @@ const ExcelMembershipCard = () => {
   const isExcel = freeMode || profile.subscriptionTier === 'excel';
   const follows = followsData?.data.items ?? [];
 
+  // The dialog first asks WHERE the code should go (SMS or WhatsApp) and only
+  // then sends it — one channel per request, never both at once.
+  const handleOpenVerify = () => {
+    setOtp('');
+    setOtpSent(false);
+    setOtpError('');
+    setOtpHint('');
+    setOtpDialogOpen(true);
+  };
+
   const handleSendOtp = async () => {
     setOtpError('');
     setOtpHint('');
     try {
-      const res = await verifyPhone().unwrap();
+      const res = await verifyPhone({ channel: otpChannel }).unwrap();
       if (res.data.alreadyVerified) {
+        setOtpDialogOpen(false);
         refetchProfile();
         return;
       }
+      setOtpSent(true);
+      setOtp('');
       setOtpHint(res.data.message ?? 'Verification code sent to your registered phone.');
-      setOtpDialogOpen(true);
     } catch (error) {
       setOtpError(apiMessage(error, 'Could not send the verification code.'));
-      setOtpDialogOpen(true);
     }
   };
 
@@ -179,8 +197,8 @@ const ExcelMembershipCard = () => {
                   sx={{ maxWidth: '100%' }}
                 />
               ) : (
-                <Button size="small" variant="outlined" disabled={isSendingOtp} onClick={handleSendOtp}>
-                  {isSendingOtp ? 'Sending…' : 'Verify phone'}
+                <Button size="small" variant="outlined" onClick={handleOpenVerify}>
+                  Verify phone
                 </Button>
               )
             ) : (
@@ -294,15 +312,52 @@ const ExcelMembershipCard = () => {
         <DialogTitle>Verify your phone number</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {otpHint || 'Enter the code sent to your registered phone number.'}
+            {otpSent && otpHint
+              ? otpHint
+              : 'Choose where to receive the verification code for your registered mobile number.'}
           </Typography>
-          <TextField
+
+          <Typography variant="caption" sx={{ display: 'block', mb: 0.75, fontWeight: 600 }}>
+            Send code via
+          </Typography>
+          <ToggleButtonGroup
+            exclusive
             fullWidth
-            autoFocus
-            label="Verification code"
-            value={otp}
-            onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 8))}
-          />
+            size="small"
+            value={otpChannel}
+            disabled={isSendingOtp}
+            onChange={(_event, next: PhoneOtpChannel | null) => {
+              if (next) setOtpChannel(next);
+            }}
+            sx={{ mb: 1.5, '& .MuiToggleButton-root': { textTransform: 'none', gap: 0.75 } }}
+          >
+            <ToggleButton value="sms">
+              <Sms fontSize="small" /> SMS
+            </ToggleButton>
+            <ToggleButton value="whatsapp">
+              <WhatsApp fontSize="small" /> WhatsApp
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <Button
+            fullWidth
+            variant={otpSent ? 'text' : 'outlined'}
+            size="small"
+            disabled={isSendingOtp}
+            onClick={handleSendOtp}
+            sx={{ mb: otpSent ? 2 : 0 }}
+          >
+            {isSendingOtp ? 'Sending…' : otpSent ? 'Resend code' : 'Send code'}
+          </Button>
+
+          {otpSent && (
+            <TextField
+              fullWidth
+              autoFocus
+              label="Verification code"
+              value={otp}
+              onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 8))}
+            />
+          )}
           {otpError && (
             <Alert severity="error" sx={{ mt: 2 }}>
               {otpError}
@@ -315,7 +370,7 @@ const ExcelMembershipCard = () => {
           </Button>
           <Button
             variant="contained"
-            disabled={otp.length < 4 || isConfirmingOtp}
+            disabled={!otpSent || otp.length < 4 || isConfirmingOtp}
             onClick={handleConfirmOtp}
           >
             {isConfirmingOtp ? 'Verifying…' : 'Verify'}

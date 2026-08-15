@@ -79,7 +79,7 @@ export async function postUnlockProfile(request) {
 }
 
 export async function postVerifyPhone(request) {
-  const data = await sendPhoneVerificationOtp(request.user);
+  const data = await sendPhoneVerificationOtp(request.user, request.body?.channel);
 
   return {
     success: true,

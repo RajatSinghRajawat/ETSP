@@ -1,6 +1,9 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import type { CandidateProfileForm } from '../../data/profileData';
 import { axiosBaseQuery } from './axiosBaseQuery';
+
+/** Phone verification codes go to the handset only — SMS or WhatsApp, one at a time. */
+export type PhoneOtpChannel = 'sms' | 'whatsapp';
 import { API_ENDPOINTS } from './endpoints';
 
 export type CandidateProfileStatus = 'draft' | 'submitted';
@@ -180,10 +183,19 @@ export const candidateProfileApi = createApi({
       }),
       invalidatesTags: ['CandidateProfile'],
     }),
-    verifyPhone: builder.mutation<ApiResponse<{ alreadyVerified?: boolean; message?: string }>, void>({
-      query: () => ({
+    verifyPhone: builder.mutation<
+      ApiResponse<{
+        alreadyVerified?: boolean;
+        message?: string;
+        channel?: PhoneOtpChannel;
+        destination?: string;
+      }>,
+      { channel?: PhoneOtpChannel } | void
+    >({
+      query: (body) => ({
         url: API_ENDPOINTS.verifyPhone,
         method: 'POST',
+        data: body ?? {},
       }),
     }),
     verifyPhoneConfirm: builder.mutation<ApiResponse<{ phoneVerified: boolean }>, { otp: string }>({

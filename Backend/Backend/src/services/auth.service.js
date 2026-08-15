@@ -2,9 +2,14 @@ import jwt from 'jsonwebtoken';
 import { randomInt } from 'crypto';
 import { env } from '../config/env.js';
 import { redis } from '../config/redis.js';
-import { emailService } from './email.service.js';
-import { isSmsEnabled, sendOtpSms } from './sms.service.js';
-import { isWhatsappEnabled, sendOtpWhatsapp } from './whatsapp.service.js';
+import {
+  OTP_CHANNEL_LABELS,
+  deliverOtp,
+  getOtpChannelAvailability,
+  isOtpChannel,
+  isOtpChannelEnabled,
+  maskOtpDestination,
+} from './otp-delivery.service.js';
 import { User } from '../models/user.model.js';
 import { CandidateProfile } from '../models/candidate-profile.model.js';
 import { EmployerProfile } from '../models/employer-profile.model.js';
@@ -178,21 +183,63 @@ class AuthService {
     return resolved.toLowerCase().trim();
   }
 
-  async sendOtp(identifier) {
+  /** Which OTP channels the login page may offer right now. */
+  getOtpChannels() {
+    return getOtpChannelAvailability();
+  }
+
+  /**
+   * Send a login OTP over exactly one channel — the one the user picked on the
+   * login page. `channel` is 'email' | 'sms' | 'whatsapp'; the identifier is
+   * only used to find the account, so a phone login can still ask for the code
+   * by email and an email login can ask for it on WhatsApp — the code always
+   * goes to the contact details registered on the account.
+   */
+  async sendOtp(identifier, channel = 'email') {
     const formattedEmail = await this.resolveLoginEmail(identifier);
 
+    if (!isOtpChannel(channel)) {
+      throw new AppError('Choose where to receive the OTP: email, SMS or WhatsApp', 400);
+    }
+
     if (this.isTestAccount(formattedEmail)) {
-      return { message: `Test account: use static OTP ${STATIC_TEST_OTP}` };
+      return { message: `Test account: use static OTP ${STATIC_TEST_OTP}`, channel };
     }
 
     const registeredAccount = await this.getRegisteredAccount(formattedEmail);
+    const label = OTP_CHANNEL_LABELS[channel];
+
+    // Resolve the destination before minting a code, so a channel the user
+    // cannot actually use never overwrites a code that is already in flight.
+    // Outside production a disabled channel falls through to the dev bypass
+    // below (the code is returned in the response) so login stays testable.
+    const enabled = await isOtpChannelEnabled(channel);
+    if (!enabled && env.NODE_ENV === 'production') {
+      throw new AppError(
+        `OTP via ${label} is currently unavailable. Please choose another option.`,
+        503,
+      );
+    }
+
+    let phone = null;
+    if (channel !== 'email') {
+      const profile = await this.getProfileForRole(formattedEmail, registeredAccount.role);
+      phone = normalizeIndianMobile(this.getProfilePhone(profile, registeredAccount.role));
+
+      if (!phone) {
+        throw new AppError(
+          'No valid mobile number is registered with this account. Please receive the OTP by email instead.',
+          400,
+        );
+      }
+    }
 
     const otp = this.generateOtp();
     const otpKey = `auth:otp:${formattedEmail}`;
     const ttlInSeconds = 600; // 10 minutes
 
     if (env.NODE_ENV !== 'production') {
-      logger.info(`Generated OTP for ${formattedEmail}: ${otp}`);
+      logger.info(`Generated OTP for ${formattedEmail} (${channel}): ${otp}`);
     }
 
     // Store in Redis with fallback to memory
@@ -203,48 +250,25 @@ class AuthService {
     }
     setMemoryOtp(otpKey, otp, ttlInSeconds);
 
-    // Deliver over every channel the admin has enabled: email (SMTP), SMS
-    // (MSG91) and/or WhatsApp (MSG91), sent to the registered profile phone.
-    const [emailEnabled, smsEnabled, whatsappEnabled] = await Promise.all([
-      emailService.isEnabled(),
-      isSmsEnabled(),
-      isWhatsappEnabled(),
-    ]);
+    const destination = maskOtpDestination(channel, { email: formattedEmail, phone });
+    const sent = enabled ? await deliverOtp(channel, { email: formattedEmail, phone }, otp) : false;
 
-    let phone = null;
-    if (smsEnabled || whatsappEnabled) {
-      const profile = await this.getProfileForRole(formattedEmail, registeredAccount.role);
-      phone = this.getProfilePhone(profile, registeredAccount.role);
-    }
-
-    // Fire every enabled channel at the same time so the OTP lands everywhere
-    // at once; each sender swallows its own errors and resolves to a boolean.
-    const [emailSent, smsSent, whatsappSent] = await Promise.all([
-      emailEnabled ? emailService.sendOtpEmail(formattedEmail, otp) : false,
-      smsEnabled && phone ? sendOtpSms(phone, otp) : false,
-      whatsappEnabled && phone ? sendOtpWhatsapp(phone, otp) : false,
-    ]);
-
-    if (!emailSent && !smsSent && !whatsappSent) {
+    if (!sent) {
       if (env.NODE_ENV !== 'production') {
-        return { message: `OTP sent successfully: ${otp}` };
+        return { message: `OTP sent successfully: ${otp}`, channel, destination };
       }
 
-      if (!emailEnabled && !smsEnabled && !whatsappEnabled) {
-        throw new AppError(
-          'Login is temporarily unavailable — no delivery service is enabled. Please contact support.',
-          503,
-        );
-      }
-
-      throw new AppError('Failed to send OTP. Please try again in a moment.', 500);
+      throw new AppError(
+        `Failed to send OTP via ${label}. Please try again or choose another option.`,
+        500,
+      );
     }
 
-    const channels = [emailSent && 'email', smsSent && 'SMS', whatsappSent && 'WhatsApp']
-      .filter(Boolean)
-      .join(' and ');
-
-    return { message: `OTP sent successfully via ${channels}` };
+    return {
+      message: `OTP sent via ${label} to ${destination}`,
+      channel,
+      destination,
+    };
   }
 
   async getProfileForRole(email, role) {
