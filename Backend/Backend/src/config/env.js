@@ -37,11 +37,16 @@ const envSchema = z.object({
 
   // SMS OTP via MSG91 (DLT: Jio TrueConnect). TEMPLATE_ID is the template id from
   // the MSG91 panel — not the DLT template id. The template text must match the
-  // DLT-approved one, whose variable is {#number#} (##number## in the panel).
+  // DLT-approved one ("vetslinkedotp"); the panel variable is ##OTP##.
   MSG91_BASE_URL: z.string().default('https://control.msg91.com'),
   MSG91_AUTH_KEY: z.string().default(''),
   MSG91_SENDER_ID: z.string().default('VETSLI'),
   MSG91_TEMPLATE_ID: z.string().default(''),
+  // WhatsApp OTP via the same MSG91 account. WA_NUMBER is the integrated
+  // WhatsApp business number; WA_TEMPLATE_NAME is the Meta-approved
+  // Authentication template whose body/copy-code button carry the OTP.
+  MSG91_WA_NUMBER: z.string().default(''),
+  MSG91_WA_TEMPLATE_NAME: z.string().default('vetslinkedotp'),
 });
 
 const parsed = envSchema.safeParse(process.env);

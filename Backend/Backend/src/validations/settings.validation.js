@@ -48,6 +48,9 @@ export const msg91SettingsSchema = z
     authKey: z.string().trim().min(10).max(100).optional(),
     senderId: z.string().trim().min(3).max(10).optional(),
     templateId: z.string().trim().min(10).max(50).optional(),
+    waEnabled: z.boolean().optional(),
+    waNumber: z.string().trim().regex(/^\d{10,15}$/).optional(),
+    waTemplateName: z.string().trim().min(3).max(100).optional(),
   })
   .refine((value) => Object.values(value).some((entry) => entry !== undefined), {
     message: 'Provide at least one MSG91 setting to update',

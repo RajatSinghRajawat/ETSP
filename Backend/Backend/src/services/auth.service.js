@@ -4,6 +4,7 @@ import { env } from '../config/env.js';
 import { redis } from '../config/redis.js';
 import { emailService } from './email.service.js';
 import { isSmsEnabled, sendOtpSms } from './sms.service.js';
+import { isWhatsappEnabled, sendOtpWhatsapp } from './whatsapp.service.js';
 import { User } from '../models/user.model.js';
 import { CandidateProfile } from '../models/candidate-profile.model.js';
 import { EmployerProfile } from '../models/employer-profile.model.js';
@@ -202,34 +203,41 @@ class AuthService {
     }
     setMemoryOtp(otpKey, otp, ttlInSeconds);
 
-    // Deliver over every channel the admin has enabled: email (SMTP) and/or
-    // SMS (MSG91, sent to the registered profile phone).
-    const [emailEnabled, smsEnabled] = await Promise.all([
+    // Deliver over every channel the admin has enabled: email (SMTP), SMS
+    // (MSG91) and/or WhatsApp (MSG91), sent to the registered profile phone.
+    const [emailEnabled, smsEnabled, whatsappEnabled] = await Promise.all([
       emailService.isEnabled(),
       isSmsEnabled(),
+      isWhatsappEnabled(),
     ]);
 
     let emailSent = false;
     let smsSent = false;
+    let whatsappSent = false;
 
     if (emailEnabled) {
       emailSent = await emailService.sendOtpEmail(formattedEmail, otp);
     }
 
-    if (smsEnabled) {
+    if (smsEnabled || whatsappEnabled) {
       const profile = await this.getProfileForRole(formattedEmail, registeredAccount.role);
       const phone = this.getProfilePhone(profile, registeredAccount.role);
       if (phone) {
-        smsSent = await sendOtpSms(phone, otp);
+        if (smsEnabled) {
+          smsSent = await sendOtpSms(phone, otp);
+        }
+        if (whatsappEnabled) {
+          whatsappSent = await sendOtpWhatsapp(phone, otp);
+        }
       }
     }
 
-    if (!emailSent && !smsSent) {
+    if (!emailSent && !smsSent && !whatsappSent) {
       if (env.NODE_ENV !== 'production') {
         return { message: `OTP sent successfully: ${otp}` };
       }
 
-      if (!emailEnabled && !smsEnabled) {
+      if (!emailEnabled && !smsEnabled && !whatsappEnabled) {
         throw new AppError(
           'Login is temporarily unavailable — no delivery service is enabled. Please contact support.',
           503,
@@ -239,7 +247,9 @@ class AuthService {
       throw new AppError('Failed to send OTP. Please try again in a moment.', 500);
     }
 
-    const channels = [emailSent && 'email', smsSent && 'SMS'].filter(Boolean).join(' and ');
+    const channels = [emailSent && 'email', smsSent && 'SMS', whatsappSent && 'WhatsApp']
+      .filter(Boolean)
+      .join(' and ');
 
     return { message: `OTP sent successfully via ${channels}` };
   }

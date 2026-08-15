@@ -4,6 +4,7 @@ import { CandidateProfile } from '../models/candidate-profile.model.js';
 import { AppError } from '../utils/app-error.js';
 import { logger } from '../utils/logger.js';
 import { isSmsEnabled, sendOtpSms } from './sms.service.js';
+import { isWhatsappEnabled, sendOtpWhatsapp } from './whatsapp.service.js';
 
 const OTP_TTL_SECONDS = 600;
 const STATIC_DEV_OTP = '123456';
@@ -27,9 +28,9 @@ async function getCandidateOr404(user) {
 }
 
 /**
- * Send an OTP to the candidate's registered phone (MSG91). Outside production
- * the static dev OTP is accepted when SMS is not configured, so the verified
- * badge remains testable end-to-end.
+ * Send an OTP to the candidate's registered phone (MSG91 SMS and/or WhatsApp).
+ * Outside production the static dev OTP is accepted when neither channel is
+ * configured, so the verified badge remains testable end-to-end.
  */
 export async function sendPhoneVerificationOtp(user) {
   const candidate = await getCandidateOr404(user);
@@ -38,9 +39,9 @@ export async function sendPhoneVerificationOtp(user) {
     return { alreadyVerified: true, message: 'Phone number is already verified' };
   }
 
-  const smsEnabled = await isSmsEnabled();
+  const [smsEnabled, whatsappEnabled] = await Promise.all([isSmsEnabled(), isWhatsappEnabled()]);
 
-  if (!smsEnabled) {
+  if (!smsEnabled && !whatsappEnabled) {
     if (env.NODE_ENV !== 'production') {
       await redis.set(otpKey(candidate.email), STATIC_DEV_OTP, 'EX', OTP_TTL_SECONDS);
       return {
@@ -61,10 +62,11 @@ export async function sendPhoneVerificationOtp(user) {
     throw new AppError('Error generating OTP. Try again later.', 500);
   }
 
-  const sent = await sendOtpSms(candidate.phone, otp);
+  const smsSent = smsEnabled ? await sendOtpSms(candidate.phone, otp) : false;
+  const whatsappSent = whatsappEnabled ? await sendOtpWhatsapp(candidate.phone, otp) : false;
 
-  if (!sent) {
-    throw new AppError('Could not send the verification SMS. Try again later.', 502);
+  if (!smsSent && !whatsappSent) {
+    throw new AppError('Could not send the verification code. Try again later.', 502);
   }
 
   return { alreadyVerified: false, message: 'Verification code sent to your registered phone' };

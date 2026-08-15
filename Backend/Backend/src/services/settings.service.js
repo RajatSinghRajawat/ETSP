@@ -248,11 +248,20 @@ export async function getMsg91Settings() {
     ? value.enabled === true
     : Boolean(env.MSG91_AUTH_KEY);
 
+  // WhatsApp shares the MSG91 auth key; its own toggle follows the same
+  // pattern — explicit admin choice wins, else auto-enable when configured.
+  const waEnabled = value?.waEnabled !== undefined
+    ? value.waEnabled === true
+    : Boolean(env.MSG91_WA_NUMBER);
+
   return {
     enabled,
     authKey: authResult.ok && authResult.value ? authResult.value : env.MSG91_AUTH_KEY,
     senderId: value?.senderId || env.MSG91_SENDER_ID,
     templateId: value?.templateId || env.MSG91_TEMPLATE_ID,
+    waEnabled,
+    waNumber: value?.waNumber || env.MSG91_WA_NUMBER,
+    waTemplateName: value?.waTemplateName || env.MSG91_WA_TEMPLATE_NAME,
   };
 }
 
@@ -265,10 +274,16 @@ export async function getMsg91SettingsMasked() {
     authKeyMasked: maskSecret(settings.authKey),
     senderId: settings.senderId,
     templateId: settings.templateId,
+    waEnabled: settings.waEnabled,
+    waConfigured: Boolean(settings.authKey && settings.waNumber && settings.waTemplateName),
+    waNumber: settings.waNumber,
+    waTemplateName: settings.waTemplateName,
   };
 }
 
-export async function updateMsg91Settings({ enabled, authKey, senderId, templateId }) {
+export async function updateMsg91Settings({
+  enabled, authKey, senderId, templateId, waEnabled, waNumber, waTemplateName,
+}) {
   const existing = await getSettingValue(MSG91_KEY);
   const value = { ...(existing ?? {}) };
 
@@ -276,6 +291,9 @@ export async function updateMsg91Settings({ enabled, authKey, senderId, template
   if (authKey) value.authKey = encryptSecret(authKey);
   if (senderId) value.senderId = senderId;
   if (templateId) value.templateId = templateId;
+  if (waEnabled !== undefined) value.waEnabled = waEnabled;
+  if (waNumber) value.waNumber = waNumber;
+  if (waTemplateName) value.waTemplateName = waTemplateName;
 
   await upsertSettingValue(MSG91_KEY, value);
 

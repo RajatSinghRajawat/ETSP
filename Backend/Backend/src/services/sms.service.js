@@ -5,7 +5,7 @@ import { getMsg91Settings } from './settings.service.js';
 const MSG91_FLOW_URL = `${env.MSG91_BASE_URL.replace(/\/$/, '')}/api/v5/flow`;
 
 /** Normalise an Indian mobile number to the 91XXXXXXXXXX format MSG91 expects. */
-function toMsg91Mobile(phone) {
+export function toMsg91Mobile(phone) {
   const digits = String(phone ?? '').replace(/\D/g, '');
 
   if (digits.length === 10) return `91${digits}`;
@@ -21,9 +21,11 @@ export async function isSmsEnabled() {
 }
 
 /**
- * Send the login OTP via MSG91 (Flow API). The DLT-approved template
- * ("vetlinkedotp") uses `{#number#}`, so the recipient payload carries the code
- * under `number`. Returns true when MSG91 accepts the message.
+ * Send the login OTP via MSG91 (Flow API). The current panel template
+ * ("vetslinkedotp", DLT id 1277178655626147513) carries the code in `##OTP##`;
+ * the legacy one used `##number##`, so the payload sends the code under both
+ * keys — MSG91 ignores variables the template doesn't use. Returns true when
+ * MSG91 accepts the message.
  */
 export async function sendOtpSms(phone, otp) {
   const settings = await getMsg91Settings();
@@ -50,7 +52,7 @@ export async function sendOtpSms(phone, otp) {
         template_id: settings.templateId,
         short_url: '0',
         ...(settings.senderId ? { sender: settings.senderId } : {}),
-        recipients: [{ mobiles: mobile, number: otp }],
+        recipients: [{ mobiles: mobile, OTP: otp, number: otp }],
       }),
     });
 
