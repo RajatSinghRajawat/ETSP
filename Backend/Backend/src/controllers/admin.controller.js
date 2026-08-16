@@ -66,6 +66,11 @@ export async function getEmployers(request) {
   return ok('Employer profiles fetched successfully', data);
 }
 
+export async function getEmployerFilters() {
+  const data = await adminService.getEmployerFilterOptions();
+  return ok('Employer filter options fetched successfully', data);
+}
+
 export async function getEmployer(request) {
   const data = await adminService.getEmployer(request.params.id);
   return ok('Employer profile fetched successfully', data);

@@ -3,6 +3,7 @@ import { candidateProfileApi } from './api/candidateProfileApi';
 import { employerProfileApi } from './api/employerProfileApi';
 import { jobApi } from './api/jobApi';
 import { applicationApi } from './api/applicationApi';
+import { bannerApi } from './api/bannerApi';
 import { savedJobApi } from './api/savedJobApi';
 import { chatApi } from './api/chatApi';
 import { lookupApi } from './api/lookupApi';
@@ -27,6 +28,7 @@ export const store = configureStore({
     [subscriptionApi.reducerPath]: subscriptionApi.reducer,
     [purchaseApi.reducerPath]: purchaseApi.reducer,
     [siteContentApi.reducerPath]: siteContentApi.reducer,
+    [bannerApi.reducerPath]: bannerApi.reducer,
     [supportTicketApi.reducerPath]: supportTicketApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -43,6 +45,7 @@ export const store = configureStore({
       subscriptionApi.middleware,
       purchaseApi.middleware,
       siteContentApi.middleware,
+      bannerApi.middleware,
       supportTicketApi.middleware,
     ),
 });

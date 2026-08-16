@@ -211,9 +211,18 @@ export async function rejectCandidate(id) {
   return profile;
 }
 
+/**
+ * Industry and headquarters are free-text on the profile, so a stored value can
+ * differ from the picked one only by case or padding. Matching on an anchored
+ * case-insensitive regex keeps those rows in the filter (and in the export).
+ */
+const exactLabelMatch = (value) => new RegExp(`^${escapeRegex(String(value).trim())}$`, 'i');
+
 function buildEmployerFilters(query = {}) {
   const filters = {};
   if (query.status) filters.status = String(query.status).trim();
+  if (query.industry) filters.organizationType = exactLabelMatch(query.industry);
+  if (query.headquarters) filters.headquarters = exactLabelMatch(query.headquarters);
   if (query.search) {
     const keyword = new RegExp(escapeRegex(String(query.search).trim()), 'i');
     filters.$or = [
@@ -225,6 +234,31 @@ function buildEmployerFilters(query = {}) {
     ];
   }
   return filters;
+}
+
+/** Collapses blank/duplicate labels that differ only by case or padding. */
+function dedupeLabels(values) {
+  const bestByKey = new Map();
+  for (const value of values) {
+    const label = String(value ?? '').trim();
+    if (!label) continue;
+    const key = label.toLowerCase();
+    if (!bestByKey.has(key)) bestByKey.set(key, label);
+  }
+  return [...bestByKey.values()].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * The Industry / Headquarters values actually present on employer profiles, so
+ * the admin filters only ever offer options that can return rows.
+ */
+export async function getEmployerFilterOptions() {
+  const [industries, headquarters] = await Promise.all([
+    EmployerProfile.distinct('organizationType'),
+    EmployerProfile.distinct('headquarters'),
+  ]);
+
+  return { industries: dedupeLabels(industries), headquarters: dedupeLabels(headquarters) };
 }
 
 export async function listEmployers(query = {}) {
@@ -259,7 +293,7 @@ const EMPLOYER_EXPORT_COLUMNS = [
   { header: 'Registered On', value: (row) => row.createdAt },
 ];
 
-/** Every registered employer matching the admin's current search/status filters. */
+/** Every registered employer matching the admin's current filters, not just the page on screen. */
 export async function exportEmployers(query = {}) {
   const rows = await EmployerProfile.find(buildEmployerFilters(query))
     .sort({ createdAt: -1 })

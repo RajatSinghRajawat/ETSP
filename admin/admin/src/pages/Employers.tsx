@@ -30,6 +30,10 @@ import {
 } from 'react-icons/fi';
 import { ConfirmDelete } from '../components/ConfirmDelete';
 import { Detail, DetailDrawer } from '../components/DetailDrawer';
+import {
+  ExportEmployersDialog,
+  type EmployerExportFilters,
+} from '../components/ExportEmployersDialog';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
@@ -40,6 +44,7 @@ import {
   useDeleteImportedEmployer,
   useDownloadEmployerTemplate,
   useEmployer,
+  useEmployerFilterOptions,
   useEmployers,
   useExportEmployers,
   useImportEmployers,
@@ -57,6 +62,9 @@ export default function Employers() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [headquarters, setHeadquarters] = useState('');
+  const [exportOpen, setExportOpen] = useState(false);
   const [viewId, setViewId] = useState<string | null>(null);
   const [importedView, setImportedView] = useState<ImportedEmployerRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EmployerRow | null>(null);
@@ -64,12 +72,17 @@ export default function Employers() {
   const [deleteImportedTarget, setDeleteImportedTarget] = useState<ImportedEmployerRow | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const isRegistered = view === 'registered';
+
   const { data, isLoading, error } = useEmployers({
-    page: view === 'registered' ? page : 1,
+    page: isRegistered ? page : 1,
     limit: 10,
-    search: view === 'registered' ? search || undefined : undefined,
-    status: view === 'registered' ? status || undefined : undefined,
+    search: isRegistered ? search || undefined : undefined,
+    status: isRegistered ? status || undefined : undefined,
+    industry: isRegistered ? industry || undefined : undefined,
+    headquarters: isRegistered ? headquarters || undefined : undefined,
   });
+  const filterOptions = useEmployerFilterOptions();
   const imported = useImportedEmployers({
     page: view === 'imported' ? page : 1,
     limit: 10,
@@ -89,9 +102,15 @@ export default function Employers() {
 
   function switchView(nextView: EmployerView) {
     setView(nextView);
+    clearFilters();
+  }
+
+  function clearFilters() {
     setPage(1);
     setSearch('');
     setStatus('');
+    setIndustry('');
+    setHeadquarters('');
   }
 
   function handleFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
@@ -123,19 +142,35 @@ export default function Employers() {
     });
   }
 
-  function handleExport() {
+  /** Spelled out in the toast so the admin can tell a filtered sheet from a full one. */
+  function describeFilters(filters: EmployerExportFilters) {
+    return [
+      filters.search.trim() && `search “${filters.search.trim()}”`,
+      filters.status && `status ${filters.status}`,
+      filters.industry && `industry ${filters.industry}`,
+      filters.headquarters && `headquarters ${filters.headquarters}`,
+    ].filter((label): label is string => Boolean(label));
+  }
+
+  const activeFilters = describeFilters({ search, status, industry, headquarters });
+
+  function handleExport(filters: EmployerExportFilters) {
+    const scope = isRegistered ? 'Registered' : 'Imported';
+    const applied = describeFilters(filters);
+
     exportEmployers.mutate(
-      { view, search, status },
+      { view, ...filters },
       {
-        onSuccess: () =>
+        onSuccess: () => {
+          setExportOpen(false);
           toaster.create({
             title: 'Excel downloaded',
-            description:
-              view === 'registered'
-                ? 'Registered employers exported with your current filters.'
-                : 'Imported employers exported with your current filters.',
+            description: applied.length
+              ? `${scope} employers matching ${applied.join(' + ')}.`
+              : `All ${scope.toLowerCase()} employers exported.`,
             type: 'success',
-          }),
+          });
+        },
         onError: (err) =>
           toaster.create({ title: 'Export failed', description: extractErrorMessage(err), type: 'error' }),
       },
@@ -222,9 +257,8 @@ export default function Employers() {
             <Button
               colorPalette="blue"
               variant="outline"
-              onClick={handleExport}
+              onClick={() => setExportOpen(true)}
               loading={exportEmployers.isPending}
-              disabled={rowCount === 0}
             >
               <FiDownload style={{ marginRight: 8 }} /> Download Excel
               {typeof rowCount === 'number' ? ` (${rowCount})` : ''}
@@ -286,6 +320,52 @@ export default function Employers() {
           </NativeSelect.Field>
           <NativeSelect.Indicator />
         </NativeSelect.Root>
+
+        {/* Industry and headquarters live only on registered profiles. */}
+        {isRegistered && (
+          <>
+            <NativeSelect.Root maxW={{ md: '220px' }}>
+              <NativeSelect.Field
+                value={industry}
+                onChange={(e) => { setIndustry(e.target.value); setPage(1); }}
+                bg="white"
+                aria-label="Filter by industry"
+              >
+                <option value="">All industries</option>
+                {filterOptions.data?.industries.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </NativeSelect.Field>
+              <NativeSelect.Indicator />
+            </NativeSelect.Root>
+
+            <NativeSelect.Root maxW={{ md: '220px' }}>
+              <NativeSelect.Field
+                value={headquarters}
+                onChange={(e) => { setHeadquarters(e.target.value); setPage(1); }}
+                bg="white"
+                aria-label="Filter by headquarters"
+              >
+                <option value="">All headquarters</option>
+                {filterOptions.data?.headquarters.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </NativeSelect.Field>
+              <NativeSelect.Indicator />
+            </NativeSelect.Root>
+          </>
+        )}
+
+        {activeFilters.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            alignSelf={{ base: 'flex-start', md: 'center' }}
+            onClick={clearFilters}
+          >
+            Clear filters
+          </Button>
+        )}
       </Flex>
 
       {view === 'registered' ? (
@@ -552,6 +632,17 @@ export default function Employers() {
           </Stack>
         )}
       </DetailDrawer>
+
+      {exportOpen && (
+        <ExportEmployersDialog
+          view={view}
+          initial={{ search, status, industry, headquarters }}
+          options={filterOptions.data}
+          loading={exportEmployers.isPending}
+          onCancel={() => setExportOpen(false)}
+          onConfirm={handleExport}
+        />
+      )}
 
       <ConfirmDelete
         open={Boolean(deleteTarget)}

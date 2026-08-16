@@ -22,6 +22,8 @@ export const API_ENDPOINTS = {
   employerProfileById: (id: string) => `${API_VERSION}/employer-profiles/${id}`,
   siteContent: `${API_VERSION}/site-content`,
   billingStatus: `${API_VERSION}/billing-status`,
+  banners: `${API_VERSION}/banners`,
+  bannerClick: (id: string) => `${API_VERSION}/banners/${id}/click`,
   jobs: `${API_VERSION}/jobs`,
   myJobs: `${API_VERSION}/jobs/my`,
   jobById: (id: string) => `${API_VERSION}/jobs/${id}`,

@@ -37,6 +37,11 @@ interface SidebarProps {
 
 const SIDEBAR_WIDTH = 272;
 const PANEL_BG = 'linear-gradient(185deg, #0c5283 0%, #0a466e 55%, #083a5c 100%)';
+// Matches the fixed Navbar toolbar heights in App.tsx / Navbar.tsx.
+const HEADER_H = { xs: '56px', sm: '64px', md: '72px' };
+// The Navbar AppBar sits at `zIndex.drawer + 1`, so anything meant to cover it
+// (this drawer) has to clear that, not `zIndex.appBar`.
+const DRAWER_Z_OFFSET = 2;
 
 const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '' }) => {
   const navigate = useNavigate();
@@ -86,7 +91,17 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
   const panel = (
     <>
       {/* Brand */}
-      <Box sx={{ px: 3, pt: 3, pb: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <Box
+        sx={{
+          flexShrink: 0,
+          px: { xs: 2, sm: 3 },
+          pt: { xs: 2, sm: 3 },
+          pb: { xs: 2, sm: 2.5 },
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+        }}
+      >
         <Box
           sx={{
             width: 42,
@@ -102,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
         >
           <Pets sx={{ color: '#fff', fontSize: 24 }} />
         </Box>
-        <Typography sx={{ fontWeight: 800, fontSize: 20, letterSpacing: 0.3 }}>
+        <Typography noWrap sx={{ fontWeight: 800, fontSize: { xs: 18, sm: 20 }, letterSpacing: 0.3, minWidth: 0 }}>
           VetsLinked
         </Typography>
         {isMobile && (
@@ -117,7 +132,7 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
       </Box>
 
       {/* User card */}
-      <Box sx={{ px: 2.5, mb: 1 }}>
+      <Box sx={{ flexShrink: 0, px: { xs: 2, sm: 2.5 }, mb: 1 }}>
         <Box
           sx={{
             display: 'flex',
@@ -167,15 +182,34 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
         </Box>
       </Box>
 
-      <Typography
-        variant="caption"
-        sx={{ px: 3.5, pt: 2, pb: 1, color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: 1.2 }}
+      {/* Navigation — the only scrolling region, so brand and footer never clip. */}
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch',
+          '&::-webkit-scrollbar': { width: 6 },
+          '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 3 },
+        }}
       >
-        MENU
-      </Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            display: 'block',
+            px: { xs: 3, sm: 3.5 },
+            pt: 2,
+            pb: 1,
+            color: 'rgba(255,255,255,0.45)',
+            fontWeight: 700,
+            letterSpacing: 1.2,
+          }}
+        >
+          MENU
+        </Typography>
 
-      {/* Navigation */}
-      <List sx={{ flex: 1, px: 1.5, py: 0 }}>
+        <List sx={{ px: 1.5, py: 0 }}>
         {menu.map((item) => {
           const isActive = location.pathname === item.path;
           return (
@@ -236,10 +270,11 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
             </ListItem>
           );
         })}
-      </List>
+        </List>
+      </Box>
 
       {/* Footer */}
-      <Box sx={{ p: 2.5, mt: 'auto' }}>
+      <Box sx={{ flexShrink: 0, p: { xs: 2, sm: 2.5 } }}>
         <Box
           sx={{
             p: 2,
@@ -267,7 +302,8 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
         <Box
           sx={{
             position: 'sticky',
-            top: { xs: '56px', sm: '64px' },
+            // Parks right under the fixed navbar instead of scrolling beneath it.
+            top: { xs: HEADER_H.xs, sm: HEADER_H.sm },
             zIndex: theme.zIndex.appBar - 1,
             display: 'flex',
             alignItems: 'center',
@@ -315,16 +351,24 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
           onClose={() => setMobileOpen(false)}
           ModalProps={{ keepMounted: true }}
           sx={{
-            // Sits above the fixed navbar so the drawer header stays reachable.
-            zIndex: theme.zIndex.appBar + 1,
+            // The navbar AppBar is at `zIndex.drawer + 1`; clear it, otherwise the
+            // drawer's brand row and close button slide under the fixed header.
+            zIndex: theme.zIndex.drawer + DRAWER_Z_OFFSET,
             '& .MuiDrawer-paper': {
-              width: { xs: '84vw', sm: SIDEBAR_WIDTH },
+              width: { xs: '86vw', sm: SIDEBAR_WIDTH },
               maxWidth: SIDEBAR_WIDTH,
+              height: '100%',
               display: 'flex',
               flexDirection: 'column',
+              overflow: 'hidden',
+              border: 'none',
               color: '#fff',
               background: PANEL_BG,
               backgroundImage: PANEL_BG,
+              boxShadow: '8px 0 32px -12px rgba(8,58,92,0.65)',
+              // Keeps content clear of notches / home indicator on phones.
+              pt: 'env(safe-area-inset-top)',
+              pb: 'env(safe-area-inset-bottom)',
             },
           }}
         >
@@ -337,19 +381,19 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
   return (
     <Box
       sx={{
-        width: SIDEBAR_WIDTH,
+        width: { md: 232, lg: SIDEBAR_WIDTH },
         flexShrink: 0,
-        height: '100vh',
+        // The page content starts below the fixed navbar, so the column has to
+        // stick below it too — at top: 0 its brand row hides under the header.
         position: 'sticky',
-        top: 0,
-        overflowY: 'auto',
+        top: HEADER_H.md,
+        height: `calc(100vh - ${HEADER_H.md})`,
         display: 'flex',
         flexDirection: 'column',
+        overflow: 'hidden',
         color: '#fff',
         background: PANEL_BG,
         boxShadow: '4px 0 24px -10px rgba(12,82,131,0.5)',
-        '&::-webkit-scrollbar': { width: 6 },
-        '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 3 },
       }}
     >
       {panel}

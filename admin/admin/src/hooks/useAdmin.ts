@@ -7,11 +7,15 @@ import type {
   ApplicationRow,
   ApplicationStatus,
   AssistantReply,
+  BannerPlacement,
+  BannerRow,
+  BannerUploadResult,
   CandidateRow,
   ChatMessage,
   DashboardAnalytics,
   DashboardStats,
   EmailSettingsView,
+  EmployerFilterOptions,
   EmployerImportSummary,
   EmployerRow,
   GrantSubscriptionInput,
@@ -220,7 +224,10 @@ export function useSaveResume() {
   });
 }
 
-export function useEmployers(params: ListQuery & { status?: string }) {
+export function useEmployers(
+  params: ListQuery & { status?: string; industry?: string; headquarters?: string },
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ['admin', 'employers', params],
     queryFn: async () => {
@@ -228,6 +235,19 @@ export function useEmployers(params: ListQuery & { status?: string }) {
       return unwrap(res.data);
     },
     placeholderData: (previous) => previous,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+/** Industry / headquarters values present on employer profiles, for the filter dropdowns. */
+export function useEmployerFilterOptions() {
+  return useQuery({
+    queryKey: ['admin', 'employers', 'filters'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<EmployerFilterOptions>>('/admin/employers/filters');
+      return unwrap(res.data);
+    },
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -303,7 +323,10 @@ export function useImportEmployers() {
   });
 }
 
-export function useImportedEmployers(params: ListQuery & { status?: string }) {
+export function useImportedEmployers(
+  params: ListQuery & { status?: string },
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ['admin', 'imported-employers', params],
     queryFn: async () => {
@@ -311,6 +334,7 @@ export function useImportedEmployers(params: ListQuery & { status?: string }) {
       return unwrap(res.data);
     },
     placeholderData: (previous) => previous,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -318,18 +342,32 @@ type EmployerExportArgs = {
   view: 'registered' | 'imported';
   search?: string;
   status?: string;
+  industry?: string;
+  headquarters?: string;
 };
 
 /**
  * Download the employers currently matching the admin's filters — the whole
- * result set, not just the page on screen.
+ * result set, not just the page on screen. Industry and headquarters only exist
+ * on registered profiles, so they are left off the imported-employer export.
  */
 export function useExportEmployers() {
   return useMutation({
-    mutationFn: async ({ view, search, status }: EmployerExportArgs) => {
-      const path = view === 'registered' ? '/admin/employers/export' : '/admin/imported-employers/export';
-      const fallbackName = view === 'registered' ? 'registered-employers.xlsx' : 'imported-employers.xlsx';
-      await downloadFile(path, { search: search || undefined, status: status || undefined }, fallbackName);
+    mutationFn: async ({ view, search, status, industry, headquarters }: EmployerExportArgs) => {
+      const registered = view === 'registered';
+      const path = registered ? '/admin/employers/export' : '/admin/imported-employers/export';
+      const fallbackName = registered ? 'registered-employers.xlsx' : 'imported-employers.xlsx';
+      await downloadFile(
+        path,
+        {
+          search: search || undefined,
+          status: status || undefined,
+          ...(registered
+            ? { industry: industry || undefined, headquarters: headquarters || undefined }
+            : {}),
+        },
+        fallbackName,
+      );
     },
   });
 }
@@ -990,5 +1028,98 @@ export function useDeleteSupportTicket() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'support-tickets'] });
     },
+  });
+}
+
+// ---- advertisement banners ----
+
+function invalidateBanners(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ['admin', 'banners'] });
+}
+
+/** The slots the website offers, so the admin form never invents a placement key. */
+export function useBannerPlacements() {
+  return useQuery({
+    queryKey: ['admin', 'banners', 'placements'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<BannerPlacement[]>>('/admin/banners/placements');
+      return unwrap(res.data);
+    },
+    staleTime: 30 * 60 * 1000,
+  });
+}
+
+export function useBanners() {
+  return useQuery({
+    queryKey: ['admin', 'banners', 'list'],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<BannerRow[]>>('/admin/banners');
+      return unwrap(res.data);
+    },
+  });
+}
+
+/**
+ * Uploads the image on its own and returns the hosted URL, which the create /
+ * update call then stores. Splitting it keeps the banner record itself plain
+ * JSON, so a cancelled form never leaves a half-written banner behind.
+ */
+export function useUploadBannerImage() {
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post<ApiResponse<BannerUploadResult>>(
+        '/admin/banners/upload',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 },
+      );
+      return unwrap(res.data);
+    },
+  });
+}
+
+export type BannerInput = {
+  title: string;
+  imageUrl: string;
+  linkUrl: string;
+  altText: string;
+  placements: string[];
+  isActive: boolean;
+  sortOrder: number;
+  startsAt: string | null;
+  endsAt: string | null;
+};
+
+export function useCreateBanner() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: BannerInput) => {
+      const res = await api.post<ApiResponse<BannerRow>>('/admin/banners', body);
+      return unwrap(res.data);
+    },
+    onSuccess: () => invalidateBanners(qc),
+  });
+}
+
+export function useUpdateBanner() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: Partial<BannerInput> }) => {
+      const res = await api.patch<ApiResponse<BannerRow>>(`/admin/banners/${id}`, body);
+      return unwrap(res.data);
+    },
+    onSuccess: () => invalidateBanners(qc),
+  });
+}
+
+export function useDeleteBanner() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/admin/banners/${id}`);
+      return id;
+    },
+    onSuccess: () => invalidateBanners(qc),
   });
 }

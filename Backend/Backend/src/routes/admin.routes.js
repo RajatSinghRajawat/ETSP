@@ -11,6 +11,7 @@ import {
   approveCandidate,
   rejectCandidate,
   getEmployers,
+  getEmployerFilters,
   getEmployer,
   removeEmployer,
   approveEmployer,
@@ -31,6 +32,14 @@ import {
   patchApplication,
   removeApplication,
 } from '../controllers/admin.controller.js';
+import {
+  getBannerPlacements,
+  getBanners,
+  patchBanner,
+  postBanner,
+  postBannerImage,
+  removeBanner,
+} from '../controllers/banner.controller.js';
 import { buildResume, fetchResume, saveResume } from '../controllers/resume.controller.js';
 import {
   getAdminPlans,
@@ -76,6 +85,7 @@ import { adminRespondTicketSchema } from '../validations/support-ticket.validati
 import { authenticate } from '../middlewares/auth.js';
 import { requireRole } from '../middlewares/rbac.js';
 import { validateBody } from '../middlewares/validate.js';
+import { createBannerSchema, updateBannerSchema } from '../validations/banner.validation.js';
 import { createPlanSchema, updatePlanSchema } from '../validations/plan.validation.js';
 import { grantSubscriptionSchema } from '../validations/subscription.validation.js';
 import {
@@ -115,6 +125,7 @@ export async function adminRoutes(app) {
 
   app.get('/employers', getEmployers);
   app.get('/employers/export', exportEmployersExcel);
+  app.get('/employers/filters', getEmployerFilters);
   app.get('/employers/:id', getEmployer);
   app.delete('/employers/:id', removeEmployer);
   app.patch('/employers/:id/approve', approveEmployer);
@@ -125,6 +136,13 @@ export async function adminRoutes(app) {
   app.get('/imported-employers/export', exportImportedEmployersExcel);
   app.get('/imported-employers/template', downloadEmployerImportTemplate);
   app.delete('/imported-employers/:id', removeImportedEmployer);
+
+  app.get('/banners/placements', getBannerPlacements);
+  app.get('/banners', getBanners);
+  app.post('/banners/upload', postBannerImage);
+  app.post('/banners', { preHandler: validateBody(createBannerSchema) }, postBanner);
+  app.patch('/banners/:id', { preHandler: validateBody(updateBannerSchema) }, patchBanner);
+  app.delete('/banners/:id', removeBanner);
 
   app.get('/jobs', getJobs);
   app.get('/jobs/:id', getJob);

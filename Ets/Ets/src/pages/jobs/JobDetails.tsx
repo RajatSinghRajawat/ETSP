@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
@@ -24,9 +24,11 @@ import {
   Edit,
   LocationOn,
   LoginOutlined,
+  Send,
   Work,
 } from '@mui/icons-material';
 import { JobCard } from '../../components/common/JobCard';
+import AdBanner from '../../components/common/AdBanner';
 import ShareButton from '../../components/common/ShareButton';
 import notify from '../../utils/toast';
 import { useGetJobQuery, useGetJobsQuery } from '../../store/api/jobApi';
@@ -39,6 +41,23 @@ import { useGetMyUsageQuery } from '../../store/api/subscriptionApi';
 import { useGetMyCandidateProfileQuery } from '../../store/api/candidateProfileApi';
 
 const BRAND_GRADIENT = 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)';
+
+// A plain `background` on a contained Button also paints the disabled state, so
+// the disabled look has to be restored explicitly.
+const mobileActionSx = {
+  borderRadius: 3,
+  fontWeight: 800,
+  py: 1.35,
+  fontSize: '1rem',
+  textTransform: 'none' as const,
+  background: BRAND_GRADIENT,
+  boxShadow: '0 10px 24px -10px rgba(12,82,131,0.7)',
+  '&.Mui-disabled': {
+    background: 'rgba(0,0,0,0.12)',
+    color: 'rgba(0,0,0,0.35)',
+    boxShadow: 'none',
+  },
+};
 
 const getStoredUser = (): { role: string | null; email: string | null } => {
   const token = localStorage.getItem('ets-access-token');
@@ -114,6 +133,12 @@ const JobDetails: React.FC = () => {
     applicationMeter && applicationMeter.limit !== null && applicationMeter.used >= applicationMeter.limit,
   );
 
+  const applyPanelRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToApplyPanel = () => {
+    applyPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
   const handleApply = async () => {
     setApplyMessage('');
     setApplyError('');
@@ -154,6 +179,18 @@ const JobDetails: React.FC = () => {
       setApplyError(message);
       notify.error(message);
     }
+  };
+
+  // The fixed mobile bar has no room for the form, so anything that needs it
+  // (unanswered screening questions) scrolls to the panel instead of applying.
+  const handleMobileApply = () => {
+    if (screeningQuestions.some((entry) => !screeningAnswers[entry.question]?.trim())) {
+      notify.warning('Please answer the screening questions before applying.');
+      scrollToApplyPanel();
+      return;
+    }
+
+    handleApply();
   };
 
   if (isLoading) {
@@ -294,7 +331,8 @@ const JobDetails: React.FC = () => {
         </Container>
       </Box>
 
-      <Container maxWidth="lg" sx={{ py: 5 }}>
+      {/* Bottom padding on mobile keeps the last card clear of the fixed apply bar. */}
+      <Container maxWidth="lg" sx={{ py: 5, pb: { xs: '112px', md: 5 } }}>
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 8 }}>
             <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 4, mb: 3 }}>
@@ -350,8 +388,17 @@ const JobDetails: React.FC = () => {
 
           <Grid size={{ xs: 12, md: 4 }}>
             <Card
+              ref={applyPanelRef}
               elevation={0}
-              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 4, position: 'sticky', top: 20 }}
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 4,
+                position: { xs: 'static', md: 'sticky' },
+                top: 20,
+                // Clears the fixed navbar when the mobile bar scrolls here.
+                scrollMarginTop: { xs: '72px', md: 0 },
+              }}
             >
               <CardContent sx={{ p: 3 }}>
                 {isCandidate && hasApplied && (
@@ -521,6 +568,8 @@ const JobDetails: React.FC = () => {
           </Grid>
         </Grid>
 
+        <AdBanner placement="job_detail" />
+
         {similarJobs.length > 0 && (
           <Box sx={{ mt: 6 }}>
             <Typography variant="h5" sx={{ fontWeight: 800, mb: 3 }}>
@@ -544,6 +593,103 @@ const JobDetails: React.FC = () => {
           </Box>
         )}
       </Container>
+
+      {/* Fixed mobile action bar — on phones the apply card sits far below the
+          fold, so the primary action follows the user down the page. */}
+      <Box
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: (theme) => theme.zIndex.appBar,
+          px: 2,
+          pt: 1.25,
+          pb: 'calc(10px + env(safe-area-inset-bottom))',
+          bgcolor: alpha('#ffffff', 0.94),
+          backdropFilter: 'blur(12px)',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          boxShadow: '0 -8px 24px -12px rgba(12,82,131,0.45)',
+        }}
+      >
+        {isCandidate && !hasApplied && isApprovalPending && (
+          <Typography variant="caption" sx={{ display: 'block', mb: 0.75, color: 'warning.main', fontWeight: 600 }}>
+            Applications open once your profile is approved.
+          </Typography>
+        )}
+        {isCandidate && !hasApplied && !isApprovalPending && applyQuotaExhausted && (
+          <Typography variant="caption" sx={{ display: 'block', mb: 0.75, color: 'warning.main', fontWeight: 600 }}>
+            Plan limit reached.{' '}
+            <Box component="span" onClick={() => navigate('/pricing')} sx={{ textDecoration: 'underline', cursor: 'pointer' }}>
+              Upgrade to apply
+            </Box>
+          </Typography>
+        )}
+
+        {/* The floating chat button sits bottom-right, so leave it a lane. */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: '68px' }}>
+          {isCandidate && hasApplied && (
+            <Button
+              fullWidth
+              variant="outlined"
+              size="large"
+              startIcon={<CheckCircle />}
+              onClick={() => navigate('/candidate/dashboard')}
+              sx={{ borderRadius: 3, fontWeight: 800, py: 1.35, fontSize: '1rem', textTransform: 'none' }}
+            >
+              Applied · View status
+            </Button>
+          )}
+
+          {isCandidate && !hasApplied && (
+            <Button
+              fullWidth
+              variant="contained"
+              size="large"
+              startIcon={<Send />}
+              disabled={
+                isApplying ||
+                isLoadingMyStatus ||
+                isProfileApprovalLoading ||
+                applyQuotaExhausted ||
+                isApprovalPending
+              }
+              onClick={handleMobileApply}
+              sx={mobileActionSx}
+            >
+              {isApplying ? 'Applying' : 'Apply Now'}
+            </Button>
+          )}
+
+          {isOwnerEmployer && (
+            <Button
+              fullWidth
+              variant="contained"
+              size="large"
+              startIcon={<Edit />}
+              onClick={() => navigate(`/employer/edit-job/${job._id}`)}
+              sx={mobileActionSx}
+            >
+              Edit Job
+            </Button>
+          )}
+
+          {!isCandidate && !isOwnerEmployer && (
+            <Button
+              fullWidth
+              variant="contained"
+              size="large"
+              startIcon={<LoginOutlined />}
+              onClick={() => navigate('/login')}
+              sx={mobileActionSx}
+            >
+              Sign in to apply
+            </Button>
+          )}
+        </Box>
+      </Box>
     </Box>
   );
 };

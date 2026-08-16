@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import { Close, FilterList } from '@mui/icons-material';
 import { JobCard } from '../../components/common/JobCard';
+import AdBanner from '../../components/common/AdBanner';
 import { useGetJobsQuery } from '../../store/api/jobApi';
 
 const locations = ['Mumbai', 'Bangalore', 'Delhi NCR', 'Hyderabad', 'Pune', 'Chennai'];
@@ -133,6 +134,8 @@ const JobListing: React.FC = () => {
           </Box>
         </Container>
       </Box>
+
+      <AdBanner placement="jobs_list" />
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>

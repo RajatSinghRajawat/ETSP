@@ -13,11 +13,13 @@ import {
   List,
   ListItem,
   ListItemText,
+  Paper,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
 import {
+  Add,
   AttachMoney,
   Badge,
   BookmarkBorder,
@@ -27,6 +29,7 @@ import {
   Category,
   CheckCircle,
   Construction,
+  Delete,
   Description,
   EmojiEvents,
   Email,
@@ -57,6 +60,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
+import LookupSelect from '../../components/common/LookupSelect';
 import notify from '../../utils/toast';
 import AutoApplyCard from '../../components/common/AutoApplyCard';
 import ExcelMembershipCard from '../../components/common/ExcelMembershipCard';
@@ -70,9 +74,7 @@ import {
 } from '../../store/api/candidateProfileApi';
 import { useGetMyApplicationsQuery, type ApplicationStatus } from '../../store/api/applicationApi';
 
-type CandidateEditableProfile = CandidateProfileForm & {
-  experiencesText: string;
-};
+type CandidateEditableProfile = CandidateProfileForm;
 
 type FieldDef = {
   key: keyof CandidateProfileForm;
@@ -192,9 +194,26 @@ const fromCsv = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const createEmptyExperience = (): CandidateExperience => ({
+  jobTitle: '',
+  employmentType: '',
+  organizationName: '',
+  joiningDate: '',
+  endDate: '',
+  roleDescription: '',
+});
+
+// Dates arrive as ISO strings from the API; the date inputs need `yyyy-MM-dd`.
+const toDateInputValue = (value: string) => (value ? value.slice(0, 10) : '');
+
 const buildCandidateDraft = (profile: CandidateProfileResponse): CandidateEditableProfile => ({
   ...profile,
-  experiencesText: JSON.stringify(profile.experiences ?? [], null, 2),
+  experiences: (profile.experiences ?? []).map((experience) => ({
+    ...createEmptyExperience(),
+    ...experience,
+    joiningDate: toDateInputValue(experience.joiningDate),
+    endDate: toDateInputValue(experience.endDate),
+  })),
 });
 
 // Shared modern input styling — rounded, soft surface, teal focus ring.
@@ -256,38 +275,52 @@ const CandidateDashboard: React.FC = () => {
     setSaveError('');
   };
 
+  const experiences = draft?.experiences ?? [];
+
+  const updateExperience = <K extends keyof CandidateExperience>(
+    index: number,
+    field: K,
+    value: CandidateExperience[K],
+  ) => {
+    updateField(
+      'experiences',
+      experiences.map((experience, experienceIndex) =>
+        experienceIndex === index ? { ...experience, [field]: value } : experience,
+      ),
+    );
+  };
+
+  const addExperience = () => updateField('experiences', [...experiences, createEmptyExperience()]);
+
+  const removeExperience = (index: number) =>
+    updateField(
+      'experiences',
+      experiences.filter((_, experienceIndex) => experienceIndex !== index),
+    );
+
   const handleSave = async () => {
     if (!draft) {
       return;
     }
 
-    let experiences: CandidateExperience[];
-    try {
-      experiences = JSON.parse(draft.experiencesText) as CandidateExperience[];
-      if (!Array.isArray(experiences)) {
-        throw new Error('Experiences must be an array');
-      }
-    } catch {
-      setSaveError('Experiences must be valid JSON array data.');
-      notify.warning('Experiences must be valid JSON array data.');
-      return;
-    }
+    // Drop rows the candidate added but never filled in.
+    const filledExperiences = draft.experiences.filter((experience) =>
+      Object.values(experience).some((value) => String(value ?? '').trim() !== ''),
+    );
 
     const {
       email,
       phone,
-      experiencesText,
       ...editableProfile
     } = draft;
 
     void email;
     void phone;
-    void experiencesText;
 
     try {
       await updateProfile({
         ...editableProfile,
-        experiences,
+        experiences: filledExperiences,
       }).unwrap();
       setDraftEdits({});
       setSaveMessage('Candidate profile updated successfully.');
@@ -620,28 +653,177 @@ const CandidateDashboard: React.FC = () => {
                   {csvField('preferredLocations', 'Preferred Locations', <LocationOn />)}
                   {csvField('skills', 'Skills', <Construction />)}
                   {csvField('certifications', 'Certifications', <CardMembership />)}
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      fullWidth
-                      multiline
-                      minRows={6}
-                      label="Job Experiences"
-                      helperText="JSON array format"
-                      value={draft.experiencesText}
-                      onChange={(event) => updateField('experiencesText', event.target.value)}
-                      slotProps={{
-                        input: {
-                          startAdornment: (
-                            <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5, color: '#0c5283', '& svg': { fontSize: 20 } }}>
-                              <WorkHistory />
-                            </InputAdornment>
-                          ),
-                        },
-                      }}
-                      sx={fieldSx}
-                    />
-                  </Grid>
                 </Grid>
+
+                {/* Job experiences */}
+                <Box sx={{ mt: 4 }}>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    sx={{ mb: 2, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between' }}
+                  >
+                    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 2.5,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#0c5283',
+                          bgcolor: 'rgba(12,82,131,0.10)',
+                          '& svg': { fontSize: 22 },
+                        }}
+                      >
+                        <WorkHistory />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                          Job Experiences
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Add each role you have worked in
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    <Button
+                      variant="outlined"
+                      startIcon={<Add />}
+                      onClick={addExperience}
+                      sx={{
+                        borderRadius: 2.5,
+                        fontWeight: 700,
+                        textTransform: 'none',
+                        color: '#0c5283',
+                        borderColor: 'rgba(12,82,131,0.35)',
+                        '&:hover': { borderColor: '#0c5283', bgcolor: 'rgba(12,82,131,0.06)' },
+                      }}
+                    >
+                      Add Experience
+                    </Button>
+                  </Stack>
+
+                  {experiences.length === 0 ? (
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        p: 3,
+                        borderRadius: 3,
+                        borderStyle: 'dashed',
+                        borderColor: 'rgba(12,82,131,0.25)',
+                        bgcolor: 'rgba(12,82,131,0.02)',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        No experience added yet. Click “Add Experience” to add your first role.
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    <Stack spacing={2}>
+                      {experiences.map((experience, index) => (
+                        <Paper
+                          key={`experience-${index}`}
+                          variant="outlined"
+                          sx={{
+                            p: { xs: 2, sm: 2.5 },
+                            borderRadius: 3,
+                            borderColor: 'rgba(12,82,131,0.16)',
+                            bgcolor: '#fbfdff',
+                          }}
+                        >
+                          <Stack
+                            direction="row"
+                            sx={{
+                              mb: 2,
+                              gap: 1,
+                              flexWrap: 'wrap',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                            }}
+                          >
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0c5283' }}>
+                              {experience.jobTitle?.trim() || `Experience ${index + 1}`}
+                            </Typography>
+                            <Button
+                              size="small"
+                              color="error"
+                              startIcon={<Delete />}
+                              onClick={() => removeExperience(index)}
+                              sx={{ textTransform: 'none', fontWeight: 600 }}
+                            >
+                              Remove
+                            </Button>
+                          </Stack>
+                          <Grid container spacing={2.5}>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                              <LookupSelect
+                                category="job_title"
+                                label="Job Title"
+                                value={experience.jobTitle}
+                                onChange={(value) => updateExperience(index, 'jobTitle', value)}
+                                valueMode="name"
+                              />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                              <TextField
+                                fullWidth
+                                label="Organization Name"
+                                value={experience.organizationName}
+                                onChange={(event) => updateExperience(index, 'organizationName', event.target.value)}
+                                sx={fieldSx}
+                              />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                              <LookupSelect
+                                category="employment_type"
+                                label="Employment Type"
+                                value={experience.employmentType}
+                                onChange={(value) => updateExperience(index, 'employmentType', value)}
+                                valueMode="name"
+                              />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                              <TextField
+                                fullWidth
+                                type="date"
+                                label="Joining Date"
+                                value={experience.joiningDate}
+                                onChange={(event) => updateExperience(index, 'joiningDate', event.target.value)}
+                                slotProps={{ inputLabel: { shrink: true } }}
+                                sx={fieldSx}
+                              />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                              <TextField
+                                fullWidth
+                                type="date"
+                                label="End Date"
+                                helperText="Leave empty if currently working here"
+                                value={experience.endDate}
+                                onChange={(event) => updateExperience(index, 'endDate', event.target.value)}
+                                slotProps={{ inputLabel: { shrink: true } }}
+                                sx={fieldSx}
+                              />
+                            </Grid>
+                            <Grid size={{ xs: 12 }}>
+                              <TextField
+                                fullWidth
+                                multiline
+                                minRows={3}
+                                label="Role Description"
+                                value={experience.roleDescription}
+                                onChange={(event) => updateExperience(index, 'roleDescription', event.target.value)}
+                                sx={fieldSx}
+                              />
+                            </Grid>
+                          </Grid>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
 
                 <Box sx={{ mt: 3, display: 'flex', justifyContent: { xs: 'stretch', sm: 'flex-end' } }}>
                   <Button

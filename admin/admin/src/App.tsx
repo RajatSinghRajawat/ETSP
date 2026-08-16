@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from './components/Toaster';
 import { AuthProvider } from './lib/auth';
 import Applications from './pages/Applications';
+import Banners from './pages/Banners';
 import Candidates from './pages/Candidates';
 import Dashboard from './pages/Dashboard';
 import Employers from './pages/Employers';
@@ -51,6 +52,7 @@ export default function App() {
                 <Route path="support-tickets" element={<SupportTickets />} />
                 <Route path="lookups" element={<Lookups />} />
                 <Route path="site-content" element={<SiteContent />} />
+                <Route path="banners" element={<Banners />} />
                 <Route path="plans" element={<Plans />} />
                 <Route path="subscriptions" element={<Subscriptions />} />
                 <Route path="purchases" element={<Purchases />} />

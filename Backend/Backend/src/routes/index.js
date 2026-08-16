@@ -1,5 +1,6 @@
 import { adminRoutes } from './admin.routes.js';
 import { aiAssistantRoutes } from './ai-assistant.routes.js';
+import { bannerRoutes } from './banner.routes.js';
 import { candidateProfileRoutes } from './candidate-profile.routes.js';
 import { chatRoutes } from './chat.routes.js';
 import { employerProfileRoutes } from './employer-profile.routes.js';
@@ -45,5 +46,6 @@ export async function apiRoutes(app) {
   app.register(purchaseRoutes, { prefix: '/purchases' });
   app.register(webhookRoutes, { prefix: '/webhooks' });
   app.register(siteContentRoutes, { prefix: '/site-content' });
+  app.register(bannerRoutes, { prefix: '/banners' });
   app.register(billingStatusRoutes, { prefix: '/billing-status' });
 }

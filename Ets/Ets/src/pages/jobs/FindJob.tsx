@@ -452,82 +452,188 @@ const FindJob: React.FC = () => {
       </Box>
 
       {/* Hero */}
-      <Box sx={{ background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)', color: 'white', py: { xs: 6, md: 9 } }}>
-        <Container maxWidth="xl" sx={{ px: { xs: 2, md: 4 } }}>
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography variant="h3" sx={{ fontWeight: 800, mb: 1.5, fontSize: { xs: '2rem', md: '2.8rem' } }}>
+      <Box
+        sx={{
+          position: 'relative',
+          overflow: 'hidden',
+          background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
+          color: 'white',
+          py: { xs: 5, sm: 7, md: 9 },
+        }}
+      >
+        {/* Soft decorative glow — keeps the flat gradient from feeling plain */}
+        <Box
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            top: { xs: -70, md: -110 },
+            right: { xs: -70, md: -60 },
+            width: { xs: 200, md: 340 },
+            height: { xs: 200, md: 340 },
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        <Container maxWidth="xl" sx={{ px: { xs: 2, md: 4 }, position: 'relative' }}>
+          <Box sx={{ textAlign: 'center', mb: { xs: 3, md: 4 } }}>
+            <Typography
+              variant="h3"
+              sx={{
+                fontWeight: 800,
+                mb: { xs: 1, md: 1.5 },
+                fontSize: { xs: '1.75rem', sm: '2.2rem', md: '2.8rem' },
+                lineHeight: 1.2,
+                letterSpacing: '-0.02em',
+              }}
+            >
               Find Your Dream Veterinary Job
             </Typography>
-            <Typography variant="h6" sx={{ opacity: 0.92, maxWidth: 620, mx: 'auto', fontWeight: 400, fontSize: { xs: '1rem', md: '1.15rem' } }}>
+            <Typography
+              variant="h6"
+              sx={{
+                opacity: 0.92,
+                maxWidth: 620,
+                mx: 'auto',
+                fontWeight: 400,
+                fontSize: { xs: '0.92rem', sm: '1rem', md: '1.15rem' },
+                lineHeight: 1.55,
+                px: { xs: 1, sm: 0 },
+              }}
+            >
               Search from {pagination?.total ?? 0}+ veterinary jobs from top animal hospitals and clinics across India
             </Typography>
           </Box>
 
-          <Paper elevation={0} sx={{ borderRadius: 999, p: 0.75, maxWidth: 820, mx: 'auto', bgcolor: 'white', boxShadow: '0 20px 50px rgba(0,0,0,0.18)' }}>
-            <Box sx={{ display: 'flex', gap: 1, flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center' }}>
-              <TextField
-                fullWidth
-                variant="standard"
-                placeholder="Search by job title, skills, or clinic..."
-                value={searchTerm}
-                onChange={(event) => {
-                  setPage(1);
-                  setSearchTerm(event.target.value);
+          {/* Search card — rounded card on mobile, single pill from sm up */}
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: { xs: 3.5, sm: 999 },
+              p: { xs: 1.25, sm: 0.75 },
+              maxWidth: 820,
+              mx: 'auto',
+              bgcolor: 'white',
+              boxShadow: { xs: '0 12px 30px rgba(0,0,0,0.16)', md: '0 20px 50px rgba(0,0,0,0.18)' },
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'stretch', sm: 'center' },
+                gap: { xs: 1.25, sm: 1 },
+              }}
+            >
+              {/* Input + filter trigger share one row so mobile stays compact */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flex: 1,
+                  minWidth: 0,
+                  gap: 0.5,
+                  pl: { xs: 1, sm: 0.5 },
+                  pr: { xs: 0.5, sm: 0 },
+                  py: { xs: 0.25, sm: 0 },
+                  borderRadius: { xs: 2.5, sm: 0 },
+                  bgcolor: { xs: 'rgba(12,82,131,0.04)', sm: 'transparent' },
+                  border: { xs: '1px solid rgba(12,82,131,0.10)', sm: 'none' },
                 }}
-                slotProps={{
-                  input: {
-                    disableUnderline: true,
-                    startAdornment: <SearchIcon sx={{ color: 'action.active', mx: 1.5 }} />,
-                  },
-                }}
-                sx={{ flex: 1, '& input': { py: 1.2 } }}
-              />
+              >
+                <SearchIcon sx={{ color: 'action.active', mx: { xs: 0.5, sm: 1 }, fontSize: { xs: 20, sm: 24 }, flexShrink: 0 }} />
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  placeholder="Search job title, skills, or clinic..."
+                  value={searchTerm}
+                  onChange={(event) => {
+                    setPage(1);
+                    setSearchTerm(event.target.value);
+                  }}
+                  slotProps={{ input: { disableUnderline: true } }}
+                  sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    '& input': { py: { xs: 1.1, sm: 1.2 }, fontSize: { xs: '0.9rem', sm: '1rem' } },
+                  }}
+                />
+                <IconButton
+                  onClick={() => setDrawerOpen(true)}
+                  aria-label="Open filters"
+                  sx={{
+                    flexShrink: 0,
+                    width: { xs: 38, sm: 46 },
+                    height: { xs: 38, sm: 46 },
+                    border: '1px solid',
+                    borderColor: 'rgba(12,82,131,0.14)',
+                    color: '#0c5283',
+                    '&:hover': { bgcolor: 'rgba(10,182,162,0.08)', borderColor: '#0ab6a2' },
+                  }}
+                >
+                  <Tune sx={{ fontSize: { xs: 19, sm: 22 } }} />
+                </IconButton>
+              </Box>
+
               <Button
                 variant="contained"
-                color="primary"
-                sx={{ px: 4, py: 1.5, borderRadius: 999, fontWeight: 700, flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
                 startIcon={<SearchIcon />}
                 onClick={() => setPage(1)}
+                sx={{
+                  px: { xs: 3, sm: 4 },
+                  py: { xs: 1.25, sm: 1.5 },
+                  borderRadius: 999,
+                  fontWeight: 700,
+                  fontSize: { xs: '0.9rem', sm: '0.95rem' },
+                  flexShrink: 0,
+                  width: { xs: '100%', sm: 'auto' },
+                  textTransform: 'none',
+                  boxShadow: 'none',
+                  background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #0ab6a2 0%, #0c5283 100%)',
+                    boxShadow: '0 8px 18px rgba(10,182,162,0.35)',
+                  },
+                }}
               >
                 Search Jobs
               </Button>
-              <IconButton
-                onClick={() => setDrawerOpen(true)}
-                aria-label="Open filters"
-                sx={{
-                  flexShrink: 0,
-                  width: 48,
-                  height: 48,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  color: '#0c5283',
-                  '&:hover': { bgcolor: 'rgba(10,182,162,0.08)', borderColor: '#0ab6a2' },
-                }}
-              >
-                <Tune />
-              </IconButton>
             </Box>
           </Paper>
 
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="subtitle2" sx={{ opacity: 0.9, mb: 1, textAlign: 'center', fontWeight: 700 }}>
-              Choose Jobs by City:
+          <Box sx={{ mt: { xs: 3, md: 4 } }}>
+            <Typography
+              variant="subtitle2"
+              sx={{ opacity: 0.9, mb: 1.25, textAlign: 'center', fontWeight: 700, fontSize: { xs: '0.8rem', md: '0.875rem' } }}
+            >
+              Choose Jobs by City
             </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
-              {locations.map((city) => (
-                <Chip
-                  key={city}
-                  label={city}
-                  clickable
-                  onClick={() => handleFilterChange('location', city === filters.location ? '' : city)}
-                  sx={{
-                    bgcolor: filters.location === city ? '#ffffff' : 'rgba(255,255,255,0.18)',
-                    color: filters.location === city ? '#0c5283' : '#ffffff',
-                    fontWeight: 700,
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
-                  }}
-                />
-              ))}
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: { xs: 0.75, md: 1 }, flexWrap: 'wrap' }}>
+              {locations.map((city) => {
+                const selected = filters.location === city;
+                return (
+                  <Chip
+                    key={city}
+                    label={city}
+                    clickable
+                    onClick={() => handleFilterChange('location', selected ? '' : city)}
+                    sx={{
+                      height: { xs: 30, md: 34 },
+                      fontSize: { xs: '0.75rem', md: '0.82rem' },
+                      fontWeight: 700,
+                      borderRadius: 999,
+                      bgcolor: selected ? '#ffffff' : 'rgba(255,255,255,0.16)',
+                      color: selected ? '#0c5283' : '#ffffff',
+                      border: '1px solid',
+                      borderColor: selected ? '#ffffff' : 'rgba(255,255,255,0.32)',
+                      backdropFilter: 'blur(6px)',
+                      transition: 'background-color 0.2s ease, color 0.2s ease',
+                      '&:hover': { bgcolor: selected ? '#ffffff' : 'rgba(255,255,255,0.3)' },
+                    }}
+                  />
+                );
+              })}
             </Box>
           </Box>
         </Container>

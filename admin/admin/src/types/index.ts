@@ -148,6 +148,40 @@ export interface EmployerRow {
   createdAt: string;
 }
 
+/** A slot on the public website where an advertisement banner can appear. */
+export interface BannerPlacement {
+  key: string;
+  label: string;
+  description: string;
+}
+
+export interface BannerRow {
+  _id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string;
+  altText?: string;
+  placements: string[];
+  isActive: boolean;
+  sortOrder: number;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  clickCount: number;
+  createdAt: string;
+}
+
+export interface BannerUploadResult {
+  fileName: string;
+  mimeType: string;
+  url: string;
+}
+
+/** Distinct values available to the employer filter dropdowns. */
+export interface EmployerFilterOptions {
+  industries: string[];
+  headquarters: string[];
+}
+
 export interface ImportedEmployerRow {
   _id: string;
   companyName: string;

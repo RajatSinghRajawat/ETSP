@@ -21,6 +21,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import {
   Visibility,
   VisibilityOff,
@@ -41,23 +42,47 @@ import { axiosInstance } from '../../../store/api/axiosInstance';
 import { API_ENDPOINTS } from '../../../store/api/endpoints';
 import { isValidPhone, phoneHtmlInputProps, sanitizePhone } from '../../../utils/phone';
 
-type LoginStep = 'method' | 'phone_otp' | 'email_otp';
+type LoginStep = 'method' | 'otp';
 type LoginMethod = 'phone' | 'email';
 
 /**
- * Where the OTP is delivered. Exactly one channel is used per request — the
- * backend sends the code to the email / mobile registered on the account, so
- * the choice is independent of which identifier the user typed.
+ * Where the OTP is delivered. Exactly one channel is used per request, and the
+ * channel also decides which identifier we ask for: an email code is looked up
+ * by email address, an SMS / WhatsApp code by mobile number.
  */
 type OtpChannel = 'email' | 'sms' | 'whatsapp';
 type ChannelAvailability = Record<OtpChannel, boolean>;
 
 const OTP_CHANNELS: OtpChannel[] = ['email', 'sms', 'whatsapp'];
 
-const OTP_CHANNEL_META: Record<OtpChannel, { labelKey: string; icon: React.ReactNode }> = {
-  email: { labelKey: 'otp_channel_email', icon: <Email fontSize="small" /> },
-  sms: { labelKey: 'otp_channel_sms', icon: <Sms fontSize="small" /> },
-  whatsapp: { labelKey: 'otp_channel_whatsapp', icon: <WhatsApp fontSize="small" /> },
+interface ChannelMeta {
+  labelKey: string;
+  /** Heading shown once this channel is selected. */
+  titleKey: string;
+  /** Which identifier field the form asks for. */
+  inputMode: LoginMethod;
+  icon: React.ReactNode;
+}
+
+const OTP_CHANNEL_META: Record<OtpChannel, ChannelMeta> = {
+  email: {
+    labelKey: 'otp_channel_email',
+    titleKey: 'email_login',
+    inputMode: 'email',
+    icon: <Email fontSize="small" />,
+  },
+  sms: {
+    labelKey: 'otp_channel_sms',
+    titleKey: 'phone_login',
+    inputMode: 'phone',
+    icon: <Sms fontSize="small" />,
+  },
+  whatsapp: {
+    labelKey: 'otp_channel_whatsapp',
+    titleKey: 'whatsapp_login',
+    inputMode: 'phone',
+    icon: <WhatsApp fontSize="small" />,
+  },
 };
 
 const isOtpChannel = (value: unknown): value is OtpChannel =>
@@ -68,6 +93,8 @@ const pickChannel = (
   preferred: OtpChannel[],
   availability: ChannelAvailability | null,
 ): OtpChannel => preferred.find((c) => !availability || availability[c]) ?? preferred[0];
+
+const WHATSAPP_GREEN = '#25D366';
 
 const HERO_IMAGE =
   'https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=1200&q=80';
@@ -93,7 +120,6 @@ const LoginPage: React.FC = () => {
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
 
   const [step, setStep] = useState<LoginStep>('method');
-  const [method, setMethod] = useState<LoginMethod | null>(null);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -137,38 +163,43 @@ const LoginPage: React.FC = () => {
     };
   }, []);
 
-  const handleEmailLogin = () => {
-    setMethod('email');
-    setStep('email_otp');
-    setChannel(pickChannel(['email', 'sms', 'whatsapp'], availability));
+  /** All three entry buttons open the same screen; only the pre-selected channel differs. */
+  const startLogin = (preferred: OtpChannel[]) => {
+    setStep('otp');
+    setChannel(pickChannel(preferred, availability));
     setSentInfo(null);
     setAuthError('');
   };
 
-  const handlePhoneLogin = () => {
-    setMethod('phone');
-    setStep('phone_otp');
-    setChannel(pickChannel(['sms', 'whatsapp', 'email'], availability));
-    setSentInfo(null);
-    setAuthError('');
-  };
+  const handleEmailLogin = () => startLogin(['email', 'sms', 'whatsapp']);
+
+  const handlePhoneLogin = () => startLogin(['sms', 'whatsapp', 'email']);
+
+  const handleWhatsappLogin = () => startLogin(['whatsapp', 'sms', 'email']);
+
+  const whatsappDisabled = availability !== null && !availability.whatsapp;
 
   /**
-   * The API takes either identifier; the backend resolves a mobile number to the
-   * account it was registered with and keys the OTP off that account either way.
+   * The selected channel drives the whole form: an email code is looked up by
+   * email address, an SMS / WhatsApp code by mobile number. Switching the
+   * channel therefore swaps the identifier field along with it.
    */
-  const identifier = method === 'email' ? { email } : { phone };
-  const identifierLabel = method === 'email' ? email : phone;
+  const inputMode: LoginMethod = OTP_CHANNEL_META[channel].inputMode;
+  const isEmailInput = inputMode === 'email';
+  const identifier = isEmailInput ? { email } : { phone };
+  const identifierLabel = isEmailInput ? email : phone;
+  const isIdentifierValid = isEmailInput ? email.includes('@') : isValidPhone(phone);
 
   const handleSendOtp = async () => {
     setAuthError('');
 
-    if (method === 'phone' && !isValidPhone(phone)) {
-      showToast('Please enter a valid 10 digit mobile number', 'error');
-      return;
-    }
-    if (method === 'email' && !email.includes('@')) {
-      showToast('Please enter a valid email', 'error');
+    if (!isIdentifierValid) {
+      showToast(
+        isEmailInput
+          ? 'Please enter a valid email'
+          : 'Please enter a valid 10 digit mobile number',
+        'error',
+      );
       return;
     }
     setLoading(true);
@@ -232,7 +263,6 @@ const LoginPage: React.FC = () => {
 
   const handleBack = () => {
     setStep('method');
-    setMethod(null);
     setPhone('');
     setEmail('');
     setOtp('');
@@ -346,6 +376,14 @@ const LoginPage: React.FC = () => {
           recommended
         />
         <MethodButton
+          icon={<WhatsApp />}
+          label={t('whatsapp_login')}
+          onClick={handleWhatsappLogin}
+          disabled={whatsappDisabled}
+          disabledHint={t('otp_channel_unavailable')}
+          accentColor={WHATSAPP_GREEN}
+        />
+        <MethodButton
           icon={<Email />}
           label={t('email_login')}
           onClick={handleEmailLogin}
@@ -387,14 +425,14 @@ const LoginPage: React.FC = () => {
     </Box>
   );
 
-  const renderOtpForm = (mode: LoginMethod) => {
-    const isEmail = mode === 'email';
+  const renderOtpForm = () => {
+    const isEmail = isEmailInput;
     const value = isEmail ? email : phone;
     const setValue = isEmail ? setEmail : setPhone;
     const placeholder = isEmail ? t('email_placeholder') : t('phone_placeholder');
-    const title = isEmail ? t('email_login') : t('phone_login');
-    const isValid = isEmail ? email.includes('@') : isValidPhone(phone);
-    const showOtpField = step === `${mode}_otp` && method === mode && isValid && sentInfo !== null;
+    const title = t(OTP_CHANNEL_META[channel].titleKey);
+    const isValid = isIdentifierValid;
+    const showOtpField = isValid && sentInfo !== null;
     const channelLabel = (c: OtpChannel) => t(OTP_CHANNEL_META[c].labelKey);
 
     return (
@@ -434,30 +472,6 @@ const LoginPage: React.FC = () => {
             : t('otp_hint_phone', { channel: channelLabel(channel) })}
         </Typography>
 
-        <TextField
-          fullWidth
-          type={isEmail ? 'email' : 'tel'}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            const next = isEmail ? e.target.value : sanitizePhone(e.target.value);
-            setValue(next);
-            setSentInfo(null);
-            setAuthError('');
-          }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  {isEmail ? <Email sx={{ color: '#0c5283' }} /> : <Phone sx={{ color: '#0c5283' }} />}
-                </InputAdornment>
-              ),
-            },
-            htmlInput: isEmail ? undefined : phoneHtmlInputProps,
-          }}
-          sx={{ mb: 2, ...fieldSx }}
-        />
-
         <Typography
           variant="caption"
           sx={{ display: 'block', mb: 1, fontWeight: 700, color: 'text.secondary', letterSpacing: 0.4 }}
@@ -471,6 +485,7 @@ const LoginPage: React.FC = () => {
           onChange={(_event, next: OtpChannel | null) => {
             if (!next) return;
             setChannel(next);
+            setOtp('');
             setSentInfo(null);
             setAuthError('');
           }}
@@ -502,6 +517,32 @@ const LoginPage: React.FC = () => {
             );
           })}
         </ToggleButtonGroup>
+
+        <TextField
+          fullWidth
+          // Remount on switch so the browser drops autofill/IME state from the other type.
+          key={inputMode}
+          type={isEmail ? 'email' : 'tel'}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            const next = isEmail ? e.target.value : sanitizePhone(e.target.value);
+            setValue(next);
+            setSentInfo(null);
+            setAuthError('');
+          }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  {isEmail ? <Email sx={{ color: '#0c5283' }} /> : <Phone sx={{ color: '#0c5283' }} />}
+                </InputAdornment>
+              ),
+            },
+            htmlInput: isEmail ? undefined : phoneHtmlInputProps,
+          }}
+          sx={{ mb: 2, ...fieldSx }}
+        />
 
         {authError && (
           <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
@@ -787,9 +828,7 @@ const LoginPage: React.FC = () => {
                 />
               </Box>
 
-              {step === 'method' && renderMethodSelection()}
-              {step === 'phone_otp' && renderOtpForm('phone')}
-              {step === 'email_otp' && renderOtpForm('email')}
+              {step === 'method' ? renderMethodSelection() : renderOtpForm()}
             </Box>
           </Grid>
         </Grid>
@@ -810,7 +849,11 @@ interface MethodButtonProps {
   label: string;
   onClick?: () => void;
   disabled?: boolean;
+  /** Shown in a tooltip while the button is disabled, so the row explains itself. */
+  disabledHint?: string;
   recommended?: boolean;
+  /** Overrides the teal brand tint for hover, border and icon (e.g. WhatsApp green). */
+  accentColor?: string;
 }
 
 const MethodButton: React.FC<MethodButtonProps> = ({
@@ -818,60 +861,79 @@ const MethodButton: React.FC<MethodButtonProps> = ({
   label,
   onClick,
   disabled,
+  disabledHint,
   recommended,
-}) => (
-  <Button
-    fullWidth
-    onClick={onClick}
-    disabled={disabled}
-    sx={{
-      position: 'relative',
-      py: 1.8,
-      px: 2.5,
-      borderRadius: 2.5,
-      border: '1.5px solid',
-      borderColor: recommended ? '#0ab6a2' : 'rgba(12,82,131,0.18)',
-      bgcolor: recommended ? 'rgba(10,182,162,0.06)' : 'transparent',
-      color: 'text.primary',
-      fontWeight: 600,
-      fontSize: 15,
-      textTransform: 'none',
-      justifyContent: 'flex-start',
-      transition: 'all 0.25s ease',
-      '& .MuiButton-startIcon': { mr: 2, color: recommended ? '#0ab6a2' : '#0c5283' },
-      '&:hover': {
-        borderColor: '#0ab6a2',
-        bgcolor: 'rgba(10,182,162,0.08)',
-        transform: 'translateY(-2px)',
-        boxShadow: '0 10px 25px -10px rgba(10,182,162,0.4)',
-      },
-      '&.Mui-disabled': {
-        borderColor: 'rgba(0,0,0,0.12)',
-        bgcolor: 'rgba(0,0,0,0.02)',
-        color: 'rgba(0,0,0,0.38)',
-      },
-    }}
-    startIcon={icon}
-  >
-    {label}
-    {recommended && (
-      <Chip
-        label="Recommended"
-        size="small"
-        sx={{
-          position: 'absolute',
-          right: 14,
-          top: '50%',
-          transform: 'translateY(-50%)',
-          height: 22,
-          fontSize: 10,
-          fontWeight: 700,
-          bgcolor: '#0ab6a2',
-          color: '#fff',
-        }}
-      />
-    )}
-  </Button>
-);
+  accentColor,
+}) => {
+  const accent = accentColor ?? '#0ab6a2';
+
+  const button = (
+    <Button
+      fullWidth
+      onClick={onClick}
+      disabled={disabled}
+      sx={{
+        position: 'relative',
+        py: 1.8,
+        px: 2.5,
+        borderRadius: 2.5,
+        border: '1.5px solid',
+        borderColor: recommended ? accent : 'rgba(12,82,131,0.18)',
+        bgcolor: recommended ? alpha(accent, 0.06) : 'transparent',
+        color: 'text.primary',
+        fontWeight: 600,
+        fontSize: 15,
+        textTransform: 'none',
+        justifyContent: 'flex-start',
+        transition: 'all 0.25s ease',
+        '& .MuiButton-startIcon': {
+          mr: 2,
+          color: recommended || accentColor ? accent : '#0c5283',
+        },
+        '&:hover': {
+          borderColor: accent,
+          bgcolor: alpha(accent, 0.08),
+          transform: 'translateY(-2px)',
+          boxShadow: `0 10px 25px -10px ${alpha(accent, 0.4)}`,
+        },
+        '&.Mui-disabled': {
+          borderColor: 'rgba(0,0,0,0.12)',
+          bgcolor: 'rgba(0,0,0,0.02)',
+          color: 'rgba(0,0,0,0.38)',
+          '& .MuiButton-startIcon': { color: 'rgba(0,0,0,0.26)' },
+        },
+      }}
+      startIcon={icon}
+    >
+      {label}
+      {recommended && (
+        <Chip
+          label="Recommended"
+          size="small"
+          sx={{
+            position: 'absolute',
+            right: 14,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            height: 22,
+            fontSize: 10,
+            fontWeight: 700,
+            bgcolor: accent,
+            color: '#fff',
+          }}
+        />
+      )}
+    </Button>
+  );
+
+  // A disabled MUI Button fires no events, so the tooltip needs a live wrapper.
+  return disabled && disabledHint ? (
+    <Tooltip title={disabledHint} arrow>
+      <span style={{ display: 'block', width: '100%' }}>{button}</span>
+    </Tooltip>
+  ) : (
+    button
+  );
+};
 
 export default LoginPage;
