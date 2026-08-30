@@ -2,6 +2,7 @@ import { getAutoApplyStatus, setAutoApply } from '../services/auto-apply.service
 import {
   createJobApplication,
   getEmployerApplication,
+  getEmployerApplicationCounts,
   getEmployerApplications,
   getMyApplicationForJob,
   getMyCandidateApplications,
@@ -50,6 +51,16 @@ export async function getMyEmployerApplications(request) {
   };
 }
 
+export async function getMyEmployerApplicationCounts(request) {
+  const counts = await getEmployerApplicationCounts(request.user);
+
+  return {
+    success: true,
+    message: 'Application counts fetched successfully',
+    data: counts,
+  };
+}
+
 export async function getMyEmployerApplication(request) {
   const application = await getEmployerApplication(request.user, request.params.id);
 
@@ -64,7 +75,7 @@ export async function patchEmployerApplication(request) {
   const application = await updateEmployerApplicationStatus(
     request.user,
     request.params.id,
-    request.body?.status,
+    request.body ?? {},
   );
 
   return {

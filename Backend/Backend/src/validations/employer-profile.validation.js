@@ -36,9 +36,13 @@ export const employerProfileSchema = z.object({
   status: z.enum(['draft', 'submitted']).default('submitted'),
 });
 
+// Identity and the verified badges are never client-editable: email/phone are
+// fixed at signup, and the two flags are only ever set by the OTP flow.
 export const employerProfileUpdateSchema = employerProfileSchema
   .omit({
     email: true,
     phoneNumber: true,
+    emailVerified: true,
+    phoneVerified: true,
   })
   .partial();

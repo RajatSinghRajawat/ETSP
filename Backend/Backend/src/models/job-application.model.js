@@ -43,6 +43,48 @@ const jobApplicationSchema = new mongoose.Schema(
       default: 'new',
       index: true,
     },
+
+    // Set the first time the employer opens the application detail page, so the
+    // candidate can see that their application was actually looked at.
+    viewedByEmployer: { type: Boolean, default: false, index: true },
+    viewedAt: { type: Date, default: null },
+
+    // The employer's latest note to the candidate — the rejection reason, the
+    // shortlist note, or the message that came with the interview invite.
+    employerMessage: { type: String, trim: true, default: '', maxlength: 1000 },
+
+    // Interview details, filled when the employer accepts (shortlists/hires).
+    interview: {
+      scheduledAt: { type: Date, default: null },
+      mode: {
+        type: String,
+        enum: ['in_person', 'video', 'phone', ''],
+        default: '',
+      },
+      location: { type: String, trim: true, default: '', maxlength: 300 },
+      message: { type: String, trim: true, default: '', maxlength: 1000 },
+    },
+
+    // Append-only trail of every stage move — this is what the candidate sees
+    // as the application timeline.
+    statusHistory: {
+      type: [
+        new mongoose.Schema(
+          {
+            status: {
+              type: String,
+              enum: ['new', 'reviewing', 'shortlisted', 'rejected', 'hired'],
+              required: true,
+            },
+            message: { type: String, trim: true, default: '', maxlength: 1000 },
+            interviewAt: { type: Date, default: null },
+            changedAt: { type: Date, default: Date.now },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
   },
   {
     timestamps: true,

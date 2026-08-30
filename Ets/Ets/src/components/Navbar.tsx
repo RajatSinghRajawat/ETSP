@@ -3,42 +3,17 @@ import { useTranslation } from 'react-i18next';
 import { AppBar, Toolbar, Box, Button, Tooltip, IconButton, Menu, MenuItem, Container, useMediaQuery, useTheme, Drawer, List, ListItem, ListItemText, ListItemButton, Avatar, Snackbar, Alert, CircularProgress } from '@mui/material';
 import { Language as LanguageIcon, Brightness4, Brightness7, Menu as MenuIcon, Close, Work, Business, Info, Phone, Home, AccountCircle, Dashboard, Logout, SwapHoriz, People, KeyboardArrowDown, PrivacyTip } from '@mui/icons-material';
 import HeaderChatButton from './common/HeaderChatButton';
+import NotificationBell from './common/NotificationBell';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import React from 'react';
 import { axiosInstance } from '../store/api/axiosInstance';
 import { API_ENDPOINTS } from '../store/api/endpoints';
+import { clearAuthSession, setAuthSession, useAuth } from '../hooks/useAuth';
 
 interface NavbarProps {
   mode: 'light' | 'dark';
   toggleMode: () => void;
 }
-
-interface StoredUser {
-  name?: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  role?: 'candidate' | 'employer' | 'admin' | string;
-}
-
-const getStoredUser = (): StoredUser | null => {
-  const token = localStorage.getItem('ets-access-token');
-  const user = localStorage.getItem('user');
-
-  if (!token) {
-    return null;
-  }
-
-  if (!user) {
-    return {};
-  }
-
-  try {
-    return JSON.parse(user) as StoredUser;
-  } catch {
-    return {};
-  }
-};
 
 const getApiErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === 'object' && error !== null && 'data' in error) {
@@ -67,8 +42,8 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
-  const currentUser = getStoredUser();
-  const switchTargetRole = currentUser?.role === 'employer' ? 'candidate' : 'employer';
+  const { role, isLoggedIn, displayName } = useAuth();
+  const switchTargetRole = role === 'employer' ? 'candidate' : 'employer';
   const switchTargetLabel = switchTargetRole === 'employer' ? t('switch_to_employer') : t('switch_to_candidate');
 
   const handleLanguageMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -101,11 +76,11 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
   };
 
   const getProfilePath = () => {
-    if (currentUser?.role === 'employer') {
+    if (role === 'employer') {
       return '/employer/dashboard';
     }
 
-    if (currentUser?.role === 'admin') {
+    if (role === 'admin') {
       return '/';
     }
 
@@ -119,15 +94,14 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('ets-access-token');
-    localStorage.removeItem('user');
+    clearAuthSession();
     handleProfileMenuClose();
     setMobileOpen(false);
     navigate('/');
   };
 
   const handleSwitchProfile = async () => {
-    if (!currentUser || currentUser.role === 'admin') {
+    if (!isLoggedIn || role === 'admin') {
       return;
     }
 
@@ -140,8 +114,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
       });
       const { accessToken, user } = response.data;
 
-      localStorage.setItem('ets-access-token', accessToken);
-      localStorage.setItem('user', JSON.stringify(user));
+      setAuthSession(accessToken, user);
       handleProfileMenuClose();
       setMobileOpen(false);
       navigate(switchTargetRole === 'employer' ? '/employer/dashboard' : '/candidate/dashboard');
@@ -157,7 +130,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
     }
   };
 
-  const isEmployer = currentUser?.role === 'employer';
+  const isEmployer = role === 'employer';
 
   // Only these three sit in the header bar; the rest live behind "More" so the
   // bar stays uncluttered.
@@ -184,11 +157,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
   const navItems = [...mainNavItems, ...moreNavItems];
 
   const isActive = (path: string) => location.pathname === path;
-  const userDisplayName =
-    currentUser?.name ||
-    [currentUser?.firstName, currentUser?.lastName].filter(Boolean).join(' ') ||
-    currentUser?.email ||
-    t('profile');
+  const userDisplayName = displayName || t('profile');
   const userInitial = userDisplayName.charAt(0).toUpperCase();
 
   const drawer = (
@@ -221,12 +190,12 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
         ))}
       </List>
       <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider', mt: 'auto' }}>
-        {currentUser ? (
+        {isLoggedIn ? (
           <Box sx={{ display: 'grid', gap: 1, mb: 2 }}>
             <Button onClick={handleOpenProfile} variant="outlined" fullWidth size="small" startIcon={<AccountCircle />}>
               {userDisplayName}
             </Button>
-            {currentUser.role !== 'admin' && (
+            {role !== 'admin' && (
               <Button
                 onClick={handleSwitchProfile}
                 variant="outlined"
@@ -431,8 +400,9 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                     </IconButton>
                   </Tooltip>
 
-                  {currentUser ? (
+                  {isLoggedIn ? (
                     <>
+                      <NotificationBell />
                       <HeaderChatButton />
                       {isEmployer && (
                         <Button
@@ -466,7 +436,7 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                           <Dashboard fontSize="small" sx={{ mr: 1 }} />
                           {t('dashboard')}
                         </MenuItem>
-                        {currentUser.role !== 'admin' && (
+                        {role !== 'admin' && (
                           <MenuItem onClick={handleSwitchProfile} disabled={Boolean(switchingRole)}>
                             {switchingRole ? (
                               <CircularProgress size={18} sx={{ mr: 1 }} />
@@ -540,7 +510,9 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                     <MenuItem onClick={() => changeLanguage('hi')} selected={currentLang === 'hi'}>हिन्दी (Hindi)</MenuItem>
                   </Menu>
 
-                  {!currentUser && (
+                  {isLoggedIn && <NotificationBell />}
+
+                  {!isLoggedIn && (
                     <Button
                       component={Link}
                       to="/login"

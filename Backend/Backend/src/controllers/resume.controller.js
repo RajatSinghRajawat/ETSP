@@ -5,6 +5,7 @@ import {
 } from '../services/candidate-masking.service.js';
 import { getEmployerContext } from '../services/entitlement.service.js';
 import * as resumeService from '../services/resume.service.js';
+import { uploadCandidateResumeFile } from '../services/resume-upload.service.js';
 import { AppError } from '../utils/app-error.js';
 
 function ok(message, data) {
@@ -56,6 +57,28 @@ export async function saveMyResume(request) {
   const { htmlContent } = request.body;
   const data = await resumeService.updateResumeByEmail(request.user.email, htmlContent);
   return ok('Resume saved successfully', data);
+}
+
+export async function uploadMyResume(request) {
+  if (request.user.role !== 'candidate') throw new AppError('Candidate account required', 403);
+
+  const file = await request.file();
+  const fileMeta = await uploadCandidateResumeFile(file);
+  const data = await resumeService.saveUploadedResumeByEmail(request.user.email, fileMeta);
+
+  return ok('Resume uploaded successfully', data);
+}
+
+export async function removeMyUploadedResume(request) {
+  if (request.user.role !== 'candidate') throw new AppError('Candidate account required', 403);
+  const data = await resumeService.deleteUploadedResumeByEmail(request.user.email);
+  return ok('Uploaded resume removed successfully', data);
+}
+
+export async function setMyResumeSource(request) {
+  if (request.user.role !== 'candidate') throw new AppError('Candidate account required', 403);
+  const data = await resumeService.setResumeSourceByEmail(request.user.email, request.body?.source);
+  return ok('Resume source updated successfully', data);
 }
 
 export async function refineMyResume(request) {

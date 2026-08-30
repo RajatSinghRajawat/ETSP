@@ -6,6 +6,7 @@ import { AppError } from '../utils/app-error.js';
 import { sendEmployerApplicationAck } from './auto-reply.service.js';
 import { maskApplicationsForEmployer } from './candidate-masking.service.js';
 import { assertCanApply, getEmployerContext } from './entitlement.service.js';
+import { notify } from './notification.service.js';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -42,7 +43,9 @@ async function getEmployerProfileForUser(user) {
     throw new AppError('Applications access requires employer account token', 403);
   }
 
-  const employerProfile = await EmployerProfile.findOne({ email: user.email }).select('_id').lean();
+  const employerProfile = await EmployerProfile.findOne({ email: user.email })
+    .select('_id email companyName')
+    .lean();
 
   if (!employerProfile) {
     throw new AppError('Employer profile not found for this account', 404);
@@ -51,13 +54,124 @@ async function getEmployerProfileForUser(user) {
   return employerProfile;
 }
 
+const STATUS_LABELS = {
+  new: 'Applied',
+  reviewing: 'Under Review',
+  shortlisted: 'Shortlisted',
+  rejected: 'Rejected',
+  hired: 'Hired',
+};
+
+const NOTIFICATION_TYPE_BY_STATUS = {
+  new: 'application_submitted',
+  reviewing: 'application_reviewing',
+  shortlisted: 'application_shortlisted',
+  rejected: 'application_rejected',
+  hired: 'application_hired',
+};
+
+function formatInterviewDate(value) {
+  const date = value ? new Date(value) : null;
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date.toLocaleString('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Kolkata',
+  });
+}
+
+/** The candidate-facing headline for a status move. */
+function buildStatusNotification({ status, jobTitle, companyName, message, interviewAt }) {
+  const at = companyName ? ` at ${companyName}` : '';
+  const role = jobTitle ? ` for "${jobTitle}"${at}` : '';
+  const parts = [];
+
+  if (status === 'rejected') {
+    parts.push(`Your application${role} was not taken forward.`);
+  } else if (status === 'shortlisted') {
+    parts.push(`You have been shortlisted${role}.`);
+  } else if (status === 'hired') {
+    parts.push(`Congratulations! You have been hired${role}.`);
+  } else if (status === 'reviewing') {
+    parts.push(`Your application${role} is under review.`);
+  } else {
+    parts.push(`Your application${role} was updated.`);
+  }
+
+  const interviewText = formatInterviewDate(interviewAt);
+  if (interviewText) {
+    parts.push(`Interview scheduled for ${interviewText}.`);
+  }
+
+  if (message) {
+    parts.push(`Employer's message: ${message}`);
+  }
+
+  return {
+    title:
+      status === 'rejected'
+        ? 'Application rejected'
+        : status === 'shortlisted'
+          ? 'You have been shortlisted'
+          : status === 'hired'
+            ? 'You have been hired'
+            : `Application ${STATUS_LABELS[status] ?? status}`,
+    message: parts.join(' '),
+  };
+}
+
+/**
+ * Stamp `viewedByEmployer` on applications the employer has just read, and tell
+ * each candidate once. Mutates the passed rows so the response reflects it.
+ */
+async function markApplicationsViewed(applications, employerProfile) {
+  const unseen = applications.filter((application) => !application.viewedByEmployer);
+
+  if (unseen.length === 0) {
+    return;
+  }
+
+  const viewedAt = new Date();
+
+  await JobApplication.updateMany(
+    { _id: { $in: unseen.map((application) => application._id) } },
+    { $set: { viewedByEmployer: true, viewedAt } },
+  );
+
+  for (const application of unseen) {
+    application.viewedByEmployer = true;
+    application.viewedAt = viewedAt;
+
+    notify({
+      recipientEmail: application.candidateEmail,
+      recipientRole: 'candidate',
+      type: 'application_viewed',
+      title: 'Your application was viewed',
+      message: `${employerProfile.companyName || 'The employer'} viewed your application for "${application.job?.title ?? 'a job'}".`,
+      link: '/candidate/dashboard',
+      meta: {
+        applicationId: String(application._id),
+        jobId: application.job?._id ? String(application.job._id) : null,
+        jobTitle: application.job?.title ?? '',
+        companyName: employerProfile.companyName ?? '',
+      },
+    });
+  }
+}
+
 export async function createJobApplication(user, input) {
   if (user.role !== 'candidate') {
     throw new AppError('Job application requires candidate account token', 403);
   }
 
   const [candidateProfile, job] = await Promise.all([
-    CandidateProfile.findOne({ email: user.email }).select('_id email approvalStatus').lean(),
+    CandidateProfile.findOne({ email: user.email })
+      .select('_id email approvalStatus firstName lastName')
+      .lean(),
     Job.findOne({
       _id: input.jobId,
       status: 'active',
@@ -113,9 +227,29 @@ export async function createJobApplication(user, input) {
       candidateEmail: candidateProfile.email,
       coverLetter: input.coverLetter,
       screeningAnswers,
+      statusHistory: [{ status: 'new', message: '', interviewAt: null, changedAt: new Date() }],
     });
 
     sendEmployerApplicationAck({ job, candidateProfileId: candidateProfile._id });
+
+    const candidateName =
+      [candidateProfile.firstName, candidateProfile.lastName].filter(Boolean).join(' ').trim() ||
+      'A candidate';
+
+    notify({
+      recipientEmail: job.employerEmail,
+      recipientRole: 'employer',
+      type: 'application_submitted',
+      title: 'New job application',
+      message: `${candidateName} applied for "${job.title}".`,
+      link: `/employer/applications/${application._id}`,
+      meta: {
+        applicationId: String(application._id),
+        jobId: String(job._id),
+        jobTitle: job.title,
+        candidateName,
+      },
+    });
 
     return application.toObject();
   } catch (error) {
@@ -156,6 +290,13 @@ export async function getEmployerApplications(user, query = {}) {
     JobApplication.countDocuments(filters),
   ]);
 
+  // Opening a single job's applicant list is the employer reading those
+  // applications, so stamp them the same way the detail page does. Only done
+  // for a job-scoped request — the unfiltered list is a dashboard overview.
+  if (query.job) {
+    await markApplicationsViewed(items, employerProfile);
+  }
+
   // Plan-driven masking: lock name/contact of applicants the employer has not
   // unlocked (EXCEL members are visible per the plan's rules).
   const { effectiveFeatures } = await getEmployerContext(user);
@@ -176,16 +317,52 @@ export async function getEmployerApplications(user, query = {}) {
   };
 }
 
+/**
+ * Application counts per job for the signed-in employer's dashboard, so the job
+ * list can show "12 applicants · 3 shortlisted" without fetching the rows.
+ */
+export async function getEmployerApplicationCounts(user) {
+  const employerProfile = await getEmployerProfileForUser(user);
+
+  const rows = await JobApplication.aggregate([
+    { $match: { employerProfile: employerProfile._id } },
+    { $group: { _id: { job: '$job', status: '$status' }, count: { $sum: 1 } } },
+  ]);
+
+  const byJob = {};
+  let total = 0;
+
+  for (const row of rows) {
+    const jobId = String(row._id.job);
+    const status = row._id.status;
+
+    byJob[jobId] ??= { total: 0, new: 0, reviewing: 0, shortlisted: 0, rejected: 0, hired: 0 };
+    byJob[jobId][status] = (byJob[jobId][status] ?? 0) + row.count;
+    byJob[jobId].total += row.count;
+    total += row.count;
+  }
+
+  return { byJob, total };
+}
+
 export async function getEmployerApplication(user, id) {
   const employerProfile = await getEmployerProfileForUser(user);
+
+  if (!/^[0-9a-fA-F]{24}$/.test(String(id))) {
+    throw new AppError('Invalid application id', 400);
+  }
+
   const application = await JobApplication.findOne({ _id: id, employerProfile: employerProfile._id })
-    .populate('job', 'title location type salary description skills experience education benefits status')
+    .populate('job', 'title companyName location type salary description skills experience education benefits status')
     .populate('candidateProfile')
     .lean();
 
   if (!application) {
     throw new AppError('Application not found', 404);
   }
+
+  // Opening the detail page is what counts as "the employer looked at it".
+  await markApplicationsViewed([application], employerProfile);
 
   const { effectiveFeatures } = await getEmployerContext(user);
   const [masked] = await maskApplicationsForEmployer({
@@ -196,6 +373,9 @@ export async function getEmployerApplication(user, id) {
 
   return masked;
 }
+
+const CANDIDATE_APPLICATION_FIELDS =
+  'job status coverLetter viewedByEmployer viewedAt employerMessage interview statusHistory createdAt updatedAt';
 
 export async function getMyCandidateApplications(user, query = {}) {
   const candidate = await getCandidateProfileForUser(user);
@@ -211,7 +391,7 @@ export async function getMyCandidateApplications(user, query = {}) {
   }
 
   return JobApplication.find(filters)
-    .select('job status coverLetter createdAt updatedAt')
+    .select(CANDIDATE_APPLICATION_FIELDS)
     .populate('job', 'title companyName location type salary status')
     .sort({ createdAt: -1 })
     .lean();
@@ -219,8 +399,16 @@ export async function getMyCandidateApplications(user, query = {}) {
 
 const APPLICATION_STATUSES = ['new', 'reviewing', 'shortlisted', 'rejected', 'hired'];
 
-export async function updateEmployerApplicationStatus(user, id, status) {
+/**
+ * Move an application through the hiring pipeline.
+ *
+ * The employer's decision carries a message (mandatory on a rejection) and,
+ * when they accept, an interview slot. Every move is appended to
+ * `statusHistory` and pushed to the candidate as a notification.
+ */
+export async function updateEmployerApplicationStatus(user, id, input = {}) {
   const employerProfile = await getEmployerProfileForUser(user);
+  const { status } = input;
 
   if (!/^[0-9a-fA-F]{24}$/.test(String(id))) {
     throw new AppError('Invalid application id', 400);
@@ -230,18 +418,100 @@ export async function updateEmployerApplicationStatus(user, id, status) {
     throw new AppError('Invalid application status', 400);
   }
 
+  const message = String(input.message ?? '').trim();
+
+  if (status === 'rejected' && !message) {
+    throw new AppError('Please add a message explaining the rejection', 400);
+  }
+
+  let interviewAt = null;
+
+  if (input.interviewAt) {
+    const parsed = new Date(input.interviewAt);
+
+    if (Number.isNaN(parsed.getTime())) {
+      throw new AppError('Interview date is not a valid date', 400);
+    }
+
+    if (status === 'rejected') {
+      throw new AppError('An interview cannot be scheduled on a rejected application', 400);
+    }
+
+    interviewAt = parsed;
+  }
+
+  const update = {
+    status,
+    employerMessage: message,
+    // Deciding on an application means it was read, whatever route got here.
+    viewedByEmployer: true,
+  };
+
+  if (status === 'rejected') {
+    // Clear any slot booked before the employer changed their mind.
+    update.interview = { scheduledAt: null, mode: '', location: '', message: '' };
+  } else if (interviewAt) {
+    update.interview = {
+      scheduledAt: interviewAt,
+      mode: input.interviewMode ?? '',
+      location: String(input.interviewLocation ?? '').trim(),
+      message,
+    };
+  }
+
   const application = await JobApplication.findOneAndUpdate(
     { _id: id, employerProfile: employerProfile._id },
-    { $set: { status } },
+    {
+      $set: update,
+      $push: {
+        statusHistory: { status, message, interviewAt, changedAt: new Date() },
+      },
+    },
     { new: true, runValidators: true },
   )
-    .populate('job', 'title location type salary description skills experience education benefits status')
+    .populate('job', 'title companyName location type salary description skills experience education benefits status')
     .populate('candidateProfile')
     .lean();
 
   if (!application) {
     throw new AppError('Application not found', 404);
   }
+
+  // Backfill the timestamp when the decision is what first marked it read.
+  if (!application.viewedAt) {
+    application.viewedAt = new Date();
+    await JobApplication.updateOne(
+      { _id: application._id },
+      { $set: { viewedAt: application.viewedAt } },
+    );
+  }
+
+  const companyName = application.job?.companyName || employerProfile.companyName || '';
+  const copy = buildStatusNotification({
+    status,
+    jobTitle: application.job?.title ?? '',
+    companyName,
+    message,
+    interviewAt,
+  });
+
+  notify({
+    recipientEmail: application.candidateEmail,
+    recipientRole: 'candidate',
+    type: interviewAt ? 'interview_scheduled' : (NOTIFICATION_TYPE_BY_STATUS[status] ?? 'general'),
+    title: interviewAt ? 'Interview scheduled' : copy.title,
+    message: copy.message,
+    link: '/candidate/dashboard',
+    meta: {
+      applicationId: String(application._id),
+      jobId: application.job?._id ? String(application.job._id) : null,
+      jobTitle: application.job?.title ?? '',
+      companyName,
+      status,
+      interviewAt,
+      employerMessage: message,
+    },
+  });
 
   const { effectiveFeatures } = await getEmployerContext(user);
   const [masked] = await maskApplicationsForEmployer({
@@ -263,7 +533,7 @@ export async function getMyApplicationForJob(user, jobId) {
     candidateProfile: candidate._id,
     job: jobId,
   })
-    .select('job status coverLetter createdAt updatedAt')
+    .select(CANDIDATE_APPLICATION_FIELDS)
     .lean();
 
   return application; // may be null — controller decides response shape

@@ -14,12 +14,27 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  Stack,
   Typography,
 } from '@mui/material';
-import { ArrowBack, LocationOn, LockOpen, PersonSearch, Work } from '@mui/icons-material';
+import {
+  ArrowBack,
+  CheckCircle,
+  EventAvailable,
+  HighlightOff,
+  LocationOn,
+  LockOpen,
+  PersonSearch,
+  Visibility,
+  Work,
+} from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
 import { PageHeader } from '../../components/common/PageHeader';
+import ApplicationDecisionDialog, {
+  INTERVIEW_MODES,
+  type DecisionKind,
+} from '../../components/common/ApplicationDecisionDialog';
 import {
   useGetEmployerApplicationQuery,
   useUpdateEmployerApplicationMutation,
@@ -30,7 +45,7 @@ import { useUnlockCandidateMutation } from '../../store/api/candidateProfileApi'
 
 const STATUS_OPTIONS: Array<{ value: ApplicationStatus; label: string }> = [
   { value: 'new', label: 'New' },
-  { value: 'reviewing', label: 'Reviewing' },
+  { value: 'reviewing', label: 'Under Review' },
   { value: 'shortlisted', label: 'Shortlisted' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'hired', label: 'Hired' },
@@ -38,10 +53,24 @@ const STATUS_OPTIONS: Array<{ value: ApplicationStatus; label: string }> = [
 
 const getApiErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === 'object' && error !== null && 'data' in error) {
-    const data = (error as { data?: { message?: string } }).data;
-    return data?.message ?? fallback;
+    const data = (error as { data?: { message?: string; errors?: Record<string, string[]> } }).data;
+    const validationMessages = data?.errors ? Object.values(data.errors).flat().filter(Boolean) : [];
+    return validationMessages[0] ?? data?.message ?? fallback;
   }
   return fallback;
+};
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
 const EmployerApplicationDetails: React.FC = () => {
@@ -53,9 +82,14 @@ const EmployerApplicationDetails: React.FC = () => {
   const [unlockCandidate, { isLoading: isUnlocking }] = useUnlockCandidateMutation();
   const [statusMessage, setStatusMessage] = useState('');
   const [statusError, setStatusError] = useState('');
+
+  // Which accept / reject flow is open, if any.
+  const [decision, setDecision] = useState<DecisionKind | null>(null);
+
   const companyName = employerData?.data.companyName || 'Employer';
   const application = data?.data;
   const isLocked = Boolean(application?.candidateProfile?.locked);
+  const interview = application?.interview ?? null;
 
   const handleUnlock = async () => {
     if (!application) return;
@@ -70,10 +104,30 @@ const EmployerApplicationDetails: React.FC = () => {
     }
   };
 
+  const openAccept = () => {
+    setStatusMessage('');
+    setStatusError('');
+    setDecision('accept');
+  };
+
+  const openReject = () => {
+    setStatusMessage('');
+    setStatusError('');
+    setDecision('reject');
+  };
+
+  /** Plain stage move from the dropdown — no message, no interview. */
   const handleStatusChange = async (nextStatus: ApplicationStatus) => {
     if (!id) return;
     setStatusMessage('');
     setStatusError('');
+
+    if (nextStatus === 'rejected') {
+      // Rejections must carry a reason, so route them through the dialog.
+      openReject();
+      return;
+    }
+
     try {
       await updateApplication({ id, status: nextStatus }).unwrap();
       setStatusMessage('Application status updated successfully.');
@@ -247,9 +301,42 @@ const EmployerApplicationDetails: React.FC = () => {
             <Grid size={{ xs: 12, lg: 5 }}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
                 <CardContent>
-                  <Typography variant="h6" sx={{ fontWeight: 900, mb: 2 }}>Application Status</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 900, mb: 2 }}>Your Decision</Typography>
                   {statusMessage && <Alert severity="success" sx={{ mb: 2 }}>{statusMessage}</Alert>}
                   {statusError && <Alert severity="error" sx={{ mb: 2 }}>{statusError}</Alert>}
+
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2.5 }}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="success"
+                      startIcon={<CheckCircle />}
+                      disabled={isUpdatingStatus}
+                      onClick={openAccept}
+                      sx={{ fontWeight: 700, textTransform: 'none', borderRadius: 2.5, py: 1.1 }}
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      color="error"
+                      startIcon={<HighlightOff />}
+                      disabled={isUpdatingStatus}
+                      onClick={openReject}
+                      sx={{ fontWeight: 700, textTransform: 'none', borderRadius: 2.5, py: 1.1 }}
+                    >
+                      Reject
+                    </Button>
+                  </Stack>
+
+                  <Typography variant="caption" color="text.secondary">
+                    Accepting lets you set an interview date and write a note. Rejecting requires a
+                    message — the candidate sees both on their dashboard.
+                  </Typography>
+
+                  <Divider sx={{ my: 2.5 }} />
+
                   <FormControl fullWidth disabled={isUpdatingStatus}>
                     <InputLabel>Hiring Stage</InputLabel>
                     <Select
@@ -270,8 +357,47 @@ const EmployerApplicationDetails: React.FC = () => {
                       Move the candidate through your hiring pipeline.
                     </Typography>
                   </Box>
+
+                  <Divider sx={{ my: 2.5 }} />
+
+                  <Stack spacing={1.25}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Visibility fontSize="small" color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {application.viewedAt
+                          ? `You viewed this application on ${formatDateTime(application.viewedAt)}`
+                          : 'Marked as viewed just now.'}
+                      </Typography>
+                    </Box>
+
+                    {interview?.scheduledAt && (
+                      <Alert icon={<EventAvailable />} severity="info" sx={{ borderRadius: 2.5 }}>
+                        <Typography sx={{ fontWeight: 800 }}>
+                          Interview on {formatDateTime(interview.scheduledAt)}
+                        </Typography>
+                        {interview.mode && (
+                          <Typography variant="body2">
+                            {INTERVIEW_MODES.find((mode) => mode.value === interview.mode)?.label ?? interview.mode}
+                          </Typography>
+                        )}
+                        {interview.location && <Typography variant="body2">{interview.location}</Typography>}
+                      </Alert>
+                    )}
+
+                    {application.employerMessage && (
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                          Your last message to the candidate
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-line' }}>
+                          {application.employerMessage}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Stack>
                 </CardContent>
               </Card>
+
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
                 <CardContent>
                   <Typography variant="h6" sx={{ fontWeight: 900, mb: 2 }}>Applied Job</Typography>
@@ -290,6 +416,19 @@ const EmployerApplicationDetails: React.FC = () => {
           </Grid>
         )}
       </Box>
+
+      <ApplicationDecisionDialog
+        decision={decision}
+        applicationId={id}
+        candidateName={
+          application
+            ? `${application.candidateProfile.firstName} ${application.candidateProfile.lastName}`.trim()
+            : undefined
+        }
+        currentStatus={application?.status}
+        onClose={() => setDecision(null)}
+        onDone={setStatusMessage}
+      />
     </Box>
   );
 };

@@ -3,9 +3,11 @@ import { Verified, Lock, TrendingUp, PeopleOutlined, LocationOn } from '@mui/ico
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useGetFeaturedCandidatesQuery, type FeaturedCandidate } from '../../../store/api/candidateProfileApi';
+import { useAuth } from '../../../hooks/useAuth';
 
 const FeaturedCandidates: React.FC = () => {
   const { t } = useTranslation();
+  const { isLoggedIn, isEmployer, isCandidate } = useAuth();
   const { data, isLoading } = useGetFeaturedCandidatesQuery({ limit: 4 });
   const candidates: FeaturedCandidate[] = data?.data?.items ?? [];
   const skeletonCount = 4;
@@ -37,7 +39,7 @@ const FeaturedCandidates: React.FC = () => {
                 fontSize: '0.85rem'
               }}
             >
-              {t('top_talent_overline')}
+              {isEmployer ? t('top_talent_overline_employer') : t('top_talent_overline')}
             </Typography>
           </Box>
           <Typography
@@ -49,10 +51,10 @@ const FeaturedCandidates: React.FC = () => {
               fontSize: { xs: '2rem', md: '2.5rem' }
             }}
           >
-            {t('featured_candidates_title')}
+            {isEmployer ? t('featured_candidates_title_employer') : t('featured_candidates_title')}
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
-            {t('featured_candidates_desc')}
+            {isEmployer ? t('featured_candidates_desc_employer') : t('featured_candidates_desc')}
           </Typography>
         </Box>
 
@@ -205,24 +207,26 @@ const FeaturedCandidates: React.FC = () => {
                     )}
                   </Box>
 
-                  <Button
-                    component={Link}
-                    to="/signup/employer"
-                    variant="contained"
-                    fullWidth
-                    sx={{
-                      borderRadius: 2,
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      py: 1,
-                      background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #0ab6a2 0%, #0c5283 100%)'
-                      }
-                    }}
-                  >
-                    {t('hire_this_candidate')}
-                  </Button>
+                  {(isEmployer || !isLoggedIn) && (
+                    <Button
+                      component={Link}
+                      to={isEmployer ? `/employer/employees/${candidate._id}` : '/signup/employer'}
+                      variant="contained"
+                      fullWidth
+                      sx={{
+                        borderRadius: 2,
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        py: 1,
+                        background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
+                        '&:hover': {
+                          background: 'linear-gradient(135deg, #0ab6a2 0%, #0c5283 100%)'
+                        }
+                      }}
+                    >
+                      {isEmployer ? t('member_view_candidate_profile') : t('hire_this_candidate')}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -231,11 +235,15 @@ const FeaturedCandidates: React.FC = () => {
 
         <Box sx={{ textAlign: 'center', mt: 8 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t('want_to_be_featured')}
+            {isEmployer
+              ? t('member_browse_candidates_hint')
+              : isCandidate
+                ? t('member_want_to_be_featured_candidate')
+                : t('want_to_be_featured')}
           </Typography>
           <Button
             component={Link}
-            to="/signup"
+            to={isEmployer ? '/employer/employees' : isCandidate ? '/candidate/profile' : '/signup'}
             variant="outlined"
             sx={{
               borderWidth: 2,
@@ -243,7 +251,11 @@ const FeaturedCandidates: React.FC = () => {
               '&:hover': { borderWidth: 2 }
             }}
           >
-            {t('create_profile')}
+            {isEmployer
+              ? t('member_action_browse_candidates')
+              : isCandidate
+                ? t('member_link_my_profile')
+                : t('create_profile')}
           </Button>
         </Box>
       </Container>

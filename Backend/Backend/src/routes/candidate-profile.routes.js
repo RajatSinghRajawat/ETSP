@@ -12,7 +12,16 @@ import {
   uploadProfileImage,
 } from '../controllers/candidate-profile.controller.js';
 import { z } from 'zod';
-import { buildMyResume, fetchCandidateResume, fetchMyResume, refineMyResume, saveMyResume } from '../controllers/resume.controller.js';
+import {
+  buildMyResume,
+  fetchCandidateResume,
+  fetchMyResume,
+  refineMyResume,
+  removeMyUploadedResume,
+  saveMyResume,
+  setMyResumeSource,
+  uploadMyResume,
+} from '../controllers/resume.controller.js';
 import { authenticate, authenticateOptional } from '../middlewares/auth.js';
 import {
   requireResumeBuilderAccess,
@@ -23,6 +32,10 @@ import {
   candidateProfileSchema,
   candidateProfileUpdateSchema,
 } from '../validations/candidate-profile.validation.js';
+
+const resumeSourceSchema = z.object({
+  source: z.enum(['ai', 'upload']),
+});
 
 const resumeRefineSchema = z.object({
   mode: z.enum(['design', 'data', 'regenerate']).default('design'),
@@ -50,6 +63,12 @@ export async function candidateProfileRoutes(app) {
   app.post('/me/resume', { preHandler: [authenticate, requireResumeBuilderAccess] }, buildMyResume);
   app.get('/me/resume', { preHandler: authenticate }, fetchMyResume);
   app.put('/me/resume', { preHandler: [authenticate, requireResumeEditAccess] }, saveMyResume);
+  // Uploading your own file is free — the paid gate is on AI generation only.
+  app.post('/me/resume/upload', { preHandler: authenticate }, uploadMyResume);
+  app.delete('/me/resume/upload', { preHandler: authenticate }, removeMyUploadedResume);
+  app.put('/me/resume/source', {
+    preHandler: [authenticate, validateBody(resumeSourceSchema)],
+  }, setMyResumeSource);
   app.post('/me/resume/refine', {
     preHandler: [authenticate, requireResumeEditAccess, validateBody(resumeRefineSchema)],
   }, refineMyResume);

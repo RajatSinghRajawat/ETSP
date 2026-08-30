@@ -86,19 +86,33 @@ const EmployerEmployeeView: React.FC = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [resumeHtml, setResumeHtml] = useState('');
   const [resumeError, setResumeError] = useState('');
+  // Set when the candidate uploaded their own file rather than building one.
+  const [resumeFile, setResumeFile] = useState<{ url: string; name: string; mimeType: string } | null>(null);
 
   const handleOpenResumePreview = async () => {
     if (!candidate || isFetchingResume) return;
     setResumeError('');
+    setResumeFile(null);
     setPreviewOpen(true);
 
     try {
       const response = await fetchCandidateResume(candidate._id).unwrap();
-      const html = response.data?.htmlContent;
-      if (!html) {
+      const resume = response.data;
+      const uploaded = resume?.uploadedFile;
+
+      if (resume?.source === 'upload' && uploaded?.url) {
+        setResumeFile({
+          url: uploaded.url,
+          name: uploaded.originalName || uploaded.fileName,
+          mimeType: uploaded.mimeType,
+        });
+        return;
+      }
+
+      if (!resume?.htmlContent) {
         throw new Error('No resume content was returned for this candidate.');
       }
-      setResumeHtml(html);
+      setResumeHtml(resume.htmlContent);
     } catch (error) {
       const apiMessage =
         (error as { data?: { message?: string }; message?: string })?.data?.message ??
@@ -374,8 +388,11 @@ const EmployerEmployeeView: React.FC = () => {
         onClose={handleClosePreview}
         candidateName={candidateFullName}
         htmlContent={resumeHtml}
-        isLoading={isFetchingResume && !resumeHtml && !resumeError}
+        isLoading={isFetchingResume && !resumeHtml && !resumeFile && !resumeError}
         loadError={resumeError}
+        fileUrl={resumeFile?.url}
+        fileName={resumeFile?.name}
+        fileMimeType={resumeFile?.mimeType}
       />
     </Box>
   );

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { useGetJobsQuery, type JobResponse } from '../../../store/api/jobApi';
 import { translateJobType } from '../../../i18n';
+import { useAuth } from '../../../hooks/useAuth';
 
 function timeAgo(iso: string, t: TFunction): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -21,6 +22,7 @@ function timeAgo(iso: string, t: TFunction): string {
 
 const FeaturedJobs: React.FC = () => {
   const { t } = useTranslation();
+  const { isCandidate } = useAuth();
   const { data, isLoading } = useGetJobsQuery({ limit: 4 });
   const jobs: JobResponse[] = data?.data?.items ?? [];
   const skeletonCount = 4;
@@ -52,7 +54,7 @@ const FeaturedJobs: React.FC = () => {
                 fontSize: '0.85rem'
               }}
             >
-              {t('featured_overline')}
+              {isCandidate ? t('featured_overline_candidate') : t('featured_overline')}
             </Typography>
           </Box>
           <Typography
@@ -64,10 +66,10 @@ const FeaturedJobs: React.FC = () => {
               fontSize: { xs: '2rem', md: '2.5rem' }
             }}
           >
-            {t('latest_jobs_title')}
+            {isCandidate ? t('latest_jobs_title_candidate') : t('latest_jobs_title')}
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
-            {t('latest_jobs_subtitle')}
+            {isCandidate ? t('latest_jobs_subtitle_candidate') : t('latest_jobs_subtitle')}
           </Typography>
         </Box>
 
@@ -149,6 +151,15 @@ const FeaturedJobs: React.FC = () => {
                 }
               }}
             >
+              {isCandidate && job.hasApplied && (
+                <Chip
+                  label={t('member_already_applied')}
+                  size="small"
+                  color="success"
+                  sx={{ position: 'absolute', top: -12, left: 12, zIndex: 1, fontWeight: 700, fontSize: '0.68rem', height: 24 }}
+                />
+              )}
+
               <Box sx={{ position: 'absolute', top: -10, right: -10, zIndex: 1 }}>
                 <IconButton
                   size="small"

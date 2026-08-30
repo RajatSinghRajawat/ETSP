@@ -20,16 +20,47 @@ import {
   Select,
   Typography,
 } from '@mui/material';
-import { Lock, LockOpen, Visibility } from '@mui/icons-material';
+import {
+  CheckCircle,
+  EventAvailable,
+  HighlightOff,
+  Lock,
+  LockOpen,
+  Visibility,
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
 import { PageHeader } from '../../components/common/PageHeader';
+import ApplicationDecisionDialog, { type DecisionKind } from '../../components/common/ApplicationDecisionDialog';
 import { useGetEmployerApplicationsQuery, type ApplicationStatus } from '../../store/api/applicationApi';
 import { useGetMyEmployerProfileQuery } from '../../store/api/employerProfileApi';
 import { useUnlockCandidateMutation } from '../../store/api/candidateProfileApi';
 import { useGetMyUsageQuery } from '../../store/api/subscriptionApi';
 
 const statuses: Array<ApplicationStatus | ''> = ['', 'new', 'reviewing', 'shortlisted', 'rejected', 'hired'];
+
+const STATUS_LABEL: Record<ApplicationStatus, string> = {
+  new: 'New',
+  reviewing: 'Under Review',
+  shortlisted: 'Shortlisted',
+  rejected: 'Rejected',
+  hired: 'Hired',
+};
+
+const STATUS_CHIP_COLOR: Record<ApplicationStatus, 'default' | 'warning' | 'success' | 'error' | 'info'> = {
+  new: 'info',
+  reviewing: 'warning',
+  shortlisted: 'success',
+  rejected: 'error',
+  hired: 'success',
+};
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
 
 const EmployerApplications: React.FC = () => {
   const navigate = useNavigate();
@@ -44,6 +75,14 @@ const EmployerApplications: React.FC = () => {
   const { data: usageData, refetch: refetchUsage } = useGetMyUsageQuery();
   const [unlockCandidate] = useUnlockCandidateMutation();
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
+  // Accept / reject can be run straight from the list, without opening the detail page.
+  const [decision, setDecision] = useState<{
+    kind: DecisionKind;
+    applicationId: string;
+    candidateName: string;
+    status: ApplicationStatus;
+  } | null>(null);
+  const [decisionMessage, setDecisionMessage] = useState('');
 
   const companyName = employerData?.data.companyName || 'Employer';
   const applications = data?.data.items ?? [];
@@ -100,7 +139,9 @@ const EmployerApplications: React.FC = () => {
                     }}
                   >
                     {statuses.map((item) => (
-                      <MenuItem key={item || 'all'} value={item}>{item || 'All statuses'}</MenuItem>
+                      <MenuItem key={item || 'all'} value={item}>
+                        {item ? STATUS_LABEL[item] : 'All statuses'}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -109,6 +150,11 @@ const EmployerApplications: React.FC = () => {
           </Grid>
         </Grid>
 
+        {decisionMessage && (
+          <Alert severity="success" sx={{ mb: 3 }} onClose={() => setDecisionMessage('')}>
+            {decisionMessage}
+          </Alert>
+        )}
         {isError && <Alert severity="error" sx={{ mb: 3 }}>Unable to load applications.</Alert>}
         {(isLoading || isFetching) && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -163,9 +209,17 @@ const EmployerApplications: React.FC = () => {
                         </Typography>
                       }
                       secondary={
-                        locked
-                          ? `${application.job.title} — contact details locked. Unlock to view name, phone and email.`
-                          : `${application.job.title} - ${candidate.currentLocation}`
+                        <>
+                          {locked
+                            ? `${application.job.title} — contact details locked. Unlock to view name, phone and email.`
+                            : `${application.job.title} - ${candidate.currentLocation}`}
+                          {application.interview?.scheduledAt && (
+                            <Box component="span" sx={{ display: 'block', color: 'secondary.main', fontWeight: 600 }}>
+                              <EventAvailable sx={{ fontSize: 14, verticalAlign: -2, mr: 0.5 }} />
+                              Interview {formatDateTime(application.interview.scheduledAt)}
+                            </Box>
+                          )}
+                        </>
                       }
                     />
                     <Box
@@ -179,7 +233,13 @@ const EmployerApplications: React.FC = () => {
                         width: { xs: '100%', sm: 'auto' },
                       }}
                     >
-                      <Chip label={application.status} size="small" sx={{ textTransform: 'capitalize' }} />
+                      <Chip
+                        label={STATUS_LABEL[application.status]}
+                        color={STATUS_CHIP_COLOR[application.status]}
+                        size="small"
+                        variant={application.status === 'new' ? 'outlined' : 'filled'}
+                        sx={{ fontWeight: 700 }}
+                      />
                       {locked ? (
                         <Button
                           variant="outlined"
@@ -192,13 +252,49 @@ const EmployerApplications: React.FC = () => {
                           {unlockingId === candidate._id ? 'Unlocking…' : 'Unlock (1 credit)'}
                         </Button>
                       ) : (
-                        <Button
-                          size="small"
-                          startIcon={<Visibility />}
-                          onClick={() => navigate(`/employer/applications/${application._id}`)}
-                        >
-                          View
-                        </Button>
+                        <>
+                          {application.status !== 'rejected' && application.status !== 'hired' && (
+                            <Button
+                              size="small"
+                              color="success"
+                              startIcon={<CheckCircle fontSize="small" />}
+                              onClick={() =>
+                                setDecision({
+                                  kind: 'accept',
+                                  applicationId: application._id,
+                                  candidateName: `${candidate.firstName} ${candidate.lastName}`.trim(),
+                                  status: application.status,
+                                })
+                              }
+                            >
+                              Accept
+                            </Button>
+                          )}
+                          {application.status !== 'rejected' && (
+                            <Button
+                              size="small"
+                              color="error"
+                              startIcon={<HighlightOff fontSize="small" />}
+                              onClick={() =>
+                                setDecision({
+                                  kind: 'reject',
+                                  applicationId: application._id,
+                                  candidateName: `${candidate.firstName} ${candidate.lastName}`.trim(),
+                                  status: application.status,
+                                })
+                              }
+                            >
+                              Reject
+                            </Button>
+                          )}
+                          <Button
+                            size="small"
+                            startIcon={<Visibility />}
+                            onClick={() => navigate(`/employer/applications/${application._id}`)}
+                          >
+                            View
+                          </Button>
+                        </>
                       )}
                     </Box>
                   </ListItem>
@@ -217,6 +313,15 @@ const EmployerApplications: React.FC = () => {
           <Pagination count={pagination?.totalPages ?? 1} page={page} onChange={(_, nextPage) => setPage(nextPage)} color="primary" siblingCount={0} sx={{ '& .MuiPagination-ul': { flexWrap: 'wrap', justifyContent: 'center' } }} />
         </Box>
       </Box>
+
+      <ApplicationDecisionDialog
+        decision={decision?.kind ?? null}
+        applicationId={decision?.applicationId ?? ''}
+        candidateName={decision?.candidateName}
+        currentStatus={decision?.status}
+        onClose={() => setDecision(null)}
+        onDone={setDecisionMessage}
+      />
     </Box>
   );
 };

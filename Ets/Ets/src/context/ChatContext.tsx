@@ -11,6 +11,7 @@ import {
 import { useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { chatApi, type ChatMessage } from '../store/api/chatApi';
+import { notificationApi } from '../store/api/notificationApi';
 import { connectChatSocket, disconnectChatSocket } from '../lib/chatSocket';
 import ChatPanel from '../components/common/ChatPanel';
 
@@ -85,12 +86,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       dispatch(chatApi.util.invalidateTags(['Conversations', 'Unread']));
     };
 
+    // The socket is already authenticated and joined to this user's personal
+    // room, so in-app notifications ride the same connection as chat.
+    const handleNewNotification = () => {
+      dispatch(notificationApi.util.invalidateTags(['Notifications', 'NotificationUnread']));
+    };
+
     socket.on('message:new', handleNewMessage);
     socket.on('conversation:updated', handleConversationUpdate);
+    socket.on('notification:new', handleNewNotification);
 
     return () => {
       socket.off('message:new', handleNewMessage);
       socket.off('conversation:updated', handleConversationUpdate);
+      socket.off('notification:new', handleNewNotification);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, role]);

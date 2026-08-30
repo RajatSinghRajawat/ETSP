@@ -20,6 +20,10 @@ interface CandidateResumePreviewModalProps {
   htmlContent: string;
   isLoading?: boolean;
   loadError?: string;
+  /** Set when the candidate uploaded their own file instead of building one. */
+  fileUrl?: string;
+  fileName?: string;
+  fileMimeType?: string;
 }
 
 const CandidateResumePreviewModal: React.FC<CandidateResumePreviewModalProps> = ({
@@ -29,7 +33,13 @@ const CandidateResumePreviewModal: React.FC<CandidateResumePreviewModalProps> = 
   htmlContent,
   isLoading = false,
   loadError,
+  fileUrl = '',
+  fileName = '',
+  fileMimeType = '',
 }) => {
+  // Browsers render PDFs in an iframe; Word files can only be handed over.
+  const isUploadedPdf = Boolean(fileUrl) && fileMimeType === 'application/pdf';
+  const isUploadedDoc = Boolean(fileUrl) && !isUploadedPdf;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
@@ -104,7 +114,7 @@ const CandidateResumePreviewModal: React.FC<CandidateResumePreviewModalProps> = 
               Resume Preview
             </Typography>
             <Typography variant="caption" color="text.secondary" noWrap>
-              {candidateName} — preview before downloading
+              {candidateName} — {fileUrl ? fileName || 'uploaded resume' : 'preview before downloading'}
             </Typography>
           </Box>
         </Stack>
@@ -112,9 +122,11 @@ const CandidateResumePreviewModal: React.FC<CandidateResumePreviewModalProps> = 
         <Stack direction="row" spacing={{ xs: 0.5, sm: 1.5 }} alignItems="center" sx={{ flexShrink: 0 }}>
           <Button
             variant="contained"
-            startIcon={isDownloading ? <CircularProgress size={16} color="inherit" /> : <Download />}
-            onClick={handleDownload}
-            disabled={isDownloading || isLoading || !htmlContent}
+            {...(fileUrl
+              ? { component: 'a' as const, href: fileUrl, target: '_blank', rel: 'noopener noreferrer' }
+              : { onClick: handleDownload })}
+            startIcon={isDownloading && !fileUrl ? <CircularProgress size={16} color="inherit" /> : <Download />}
+            disabled={fileUrl ? false : isDownloading || isLoading || !htmlContent}
             sx={{
               fontWeight: 700,
               textTransform: 'none',
@@ -137,7 +149,7 @@ const CandidateResumePreviewModal: React.FC<CandidateResumePreviewModalProps> = 
               },
             }}
           >
-            {isDownloading ? 'Generating PDF…' : 'Download PDF'}
+            {fileUrl ? 'Download' : isDownloading ? 'Generating PDF…' : 'Download PDF'}
           </Button>
           <IconButton onClick={onClose} aria-label="Close preview">
             <Close />
@@ -169,7 +181,48 @@ const CandidateResumePreviewModal: React.FC<CandidateResumePreviewModalProps> = 
           </Alert>
         )}
 
-        {!isLoading && !loadError && htmlContent && (
+        {!isLoading && !loadError && isUploadedPdf && (
+          <Box
+            sx={{
+              width: 'min(900px, 100%)',
+              height: '100%',
+              minHeight: 520,
+              boxShadow: '0 18px 40px -18px rgba(12,82,131,0.35)',
+              borderRadius: 2,
+              overflow: 'hidden',
+              bgcolor: '#fff',
+            }}
+          >
+            <iframe
+              src={fileUrl}
+              title={`${candidateName} resume`}
+              style={{ width: '100%', height: '100%', border: 0 }}
+            />
+          </Box>
+        )}
+
+        {!isLoading && !loadError && isUploadedDoc && (
+          <Stack spacing={2} sx={{ mt: 6, alignItems: 'center', textAlign: 'center' }}>
+            <PictureAsPdf sx={{ fontSize: 56, color: 'text.disabled' }} />
+            <Typography sx={{ fontWeight: 700 }}>{fileName || 'Uploaded resume'}</Typography>
+            <Typography color="text.secondary" sx={{ maxWidth: 420 }}>
+              Word documents cannot be previewed in the browser. Download the file to open it.
+            </Typography>
+            <Button
+              variant="contained"
+              component="a"
+              href={fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              startIcon={<Download />}
+              sx={{ fontWeight: 700, textTransform: 'none', borderRadius: 2.5 }}
+            >
+              Download resume
+            </Button>
+          </Stack>
+        )}
+
+        {!isLoading && !loadError && !fileUrl && htmlContent && (
           <Box
             sx={{
               width: 'min(820px, 100%)',

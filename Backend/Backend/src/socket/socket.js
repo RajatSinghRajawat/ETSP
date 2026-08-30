@@ -96,3 +96,9 @@ export function emitConversationUpdate(conversation) {
   io.to(userRoom(conversation.employerEmail)).emit('conversation:updated', payload);
   io.to(userRoom(conversation.candidateEmail)).emit('conversation:updated', payload);
 }
+
+/** Push a freshly created in-app notification to its recipient's personal room. */
+export function emitNotification(recipientEmail, notification) {
+  if (!io || !recipientEmail) return;
+  io.to(userRoom(recipientEmail)).emit('notification:new', notification);
+}

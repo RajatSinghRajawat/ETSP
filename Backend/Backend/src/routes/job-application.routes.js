@@ -4,6 +4,7 @@ import {
   getMyApplicationStatus,
   getMyApplications,
   getMyEmployerApplication,
+  getMyEmployerApplicationCounts,
   getMyEmployerApplications,
   patchEmployerApplication,
   postAutoApply,
@@ -31,6 +32,8 @@ export async function jobApplicationRoutes(app) {
   }, postAutoApply);
 
   app.get('/employer', { preHandler: authenticate }, getMyEmployerApplications);
+  // Declared before '/employer/:id' so "counts" is not read as an application id.
+  app.get('/employer/counts', { preHandler: authenticate }, getMyEmployerApplicationCounts);
   app.get('/employer/:id', { preHandler: authenticate }, getMyEmployerApplication);
   app.patch('/employer/:id', {
     preHandler: [authenticate, validateBody(applicationStatusUpdateSchema)],

@@ -41,6 +41,7 @@ import LoginAnimation from './LoginAnimation';
 import { axiosInstance } from '../../../store/api/axiosInstance';
 import { API_ENDPOINTS } from '../../../store/api/endpoints';
 import { isValidPhone, phoneHtmlInputProps, sanitizePhone } from '../../../utils/phone';
+import { setAuthSession } from '../../../hooks/useAuth';
 
 type LoginStep = 'method' | 'otp';
 type LoginMethod = 'phone' | 'email';
@@ -239,8 +240,7 @@ const LoginPage: React.FC = () => {
         otp,
       });
       const { accessToken, user } = response.data;
-      localStorage.setItem('ets-access-token', accessToken);
-      localStorage.setItem('user', JSON.stringify(user));
+      setAuthSession(accessToken, user);
       const roleLabel =
         user.role === 'employer' ? 'Employer' : user.role === 'admin' ? 'Admin' : 'Candidate';
       showToast(`Login successful — signed in as ${roleLabel}`, 'success');

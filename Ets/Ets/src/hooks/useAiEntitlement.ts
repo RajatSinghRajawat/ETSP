@@ -1,11 +1,12 @@
 import { useGetMySubscriptionQuery } from '../store/api/subscriptionApi';
+import { useAuth } from './useAuth';
 
 /**
  * Frontend view of the user's AI entitlement, driven by /subscriptions/me.
  * Purely a UX gate — the backend independently enforces every AI endpoint.
  */
 export function useAiEntitlement() {
-  const isLoggedIn = Boolean(localStorage.getItem('ets-access-token'));
+  const { isLoggedIn } = useAuth();
   const { data, isLoading } = useGetMySubscriptionQuery(undefined, {
     skip: !isLoggedIn,
     refetchOnMountOrArgChange: 60,

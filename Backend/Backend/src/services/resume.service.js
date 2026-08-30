@@ -3,6 +3,7 @@ import { env } from '../config/env.js';
 import { CandidateProfile } from '../models/candidate-profile.model.js';
 import { Resume } from '../models/resume.model.js';
 import { AppError } from '../utils/app-error.js';
+import { removeResumeFile } from './resume-upload.service.js';
 
 const openai = env.OPENAI_API_KEY ? new OpenAI({ apiKey: env.OPENAI_API_KEY }) : null;
 
@@ -216,6 +217,10 @@ export async function generateResume(candidateId) {
   // Strip markdown code fences if model wrapped it
   html = html.replace(/^```html\s*/i, '').replace(/\s*```$/i, '').trim();
 
+  if (!html) {
+    throw new AppError('The resume generator returned an empty document. Please try again.', 502);
+  }
+
   const resume = await Resume.findOneAndUpdate(
     { candidateId },
     { htmlContent: html },
@@ -228,10 +233,103 @@ export async function generateResume(candidateId) {
 export async function getResume(candidateId) {
   const resume = await Resume.findOne({ candidateId }).lean();
   if (!resume) throw new AppError('Resume not found. Please generate it first.', 404);
+
+  // An upload-only candidate has no HTML, and that is a valid resume.
+  if (!resume.htmlContent && !resume.uploadedFile?.url) {
+    throw new AppError('Resume not found. Please generate it first.', 404);
+  }
+
   return resume;
 }
 
+async function getCandidateIdByEmail(email) {
+  const candidate = await CandidateProfile.findOne({ email }).select('_id').lean();
+  if (!candidate) throw new AppError('Candidate profile not found', 404);
+  return String(candidate._id);
+}
+
+/**
+ * Attach a candidate-uploaded resume file and make it the resume employers see.
+ * Any previously uploaded file is deleted so old copies do not pile up on disk.
+ */
+export async function saveUploadedResumeByEmail(email, fileMeta) {
+  const candidateId = await getCandidateIdByEmail(email);
+  const previous = await Resume.findOne({ candidateId }).select('uploadedFile').lean();
+
+  const resume = await Resume.findOneAndUpdate(
+    { candidateId },
+    { $set: { uploadedFile: fileMeta, source: 'upload' } },
+    { upsert: true, new: true },
+  ).lean();
+
+  if (previous?.uploadedFile?.fileName && previous.uploadedFile.fileName !== fileMeta.fileName) {
+    await removeResumeFile(previous.uploadedFile.fileName);
+  }
+
+  return resume;
+}
+
+/** Drop the uploaded file and fall back to the AI resume, if there is one. */
+export async function deleteUploadedResumeByEmail(email) {
+  const candidateId = await getCandidateIdByEmail(email);
+  const existing = await Resume.findOne({ candidateId }).lean();
+
+  if (!existing?.uploadedFile?.url) {
+    throw new AppError('No uploaded resume to remove', 404);
+  }
+
+  const resume = await Resume.findOneAndUpdate(
+    { candidateId },
+    {
+      $set: {
+        uploadedFile: {
+          url: '',
+          fileName: '',
+          originalName: '',
+          mimeType: '',
+          size: 0,
+          uploadedAt: null,
+        },
+        source: 'ai',
+      },
+    },
+    { new: true },
+  ).lean();
+
+  await removeResumeFile(existing.uploadedFile.fileName);
+
+  return resume;
+}
+
+/** Choose which of the two resumes employers see. */
+export async function setResumeSourceByEmail(email, source) {
+  if (source !== 'ai' && source !== 'upload') {
+    throw new AppError('Resume source must be either "ai" or "upload"', 400);
+  }
+
+  const candidateId = await getCandidateIdByEmail(email);
+  const existing = await Resume.findOne({ candidateId }).lean();
+
+  if (!existing) {
+    throw new AppError('No resume yet. Build one with AI or upload a file first.', 404);
+  }
+
+  if (source === 'ai' && !existing.htmlContent) {
+    throw new AppError('You have not built an AI resume yet.', 400);
+  }
+
+  if (source === 'upload' && !existing.uploadedFile?.url) {
+    throw new AppError('You have not uploaded a resume file yet.', 400);
+  }
+
+  return Resume.findOneAndUpdate({ candidateId }, { $set: { source } }, { new: true }).lean();
+}
+
 export async function updateResume(candidateId, htmlContent) {
+  if (!String(htmlContent ?? '').trim()) {
+    throw new AppError('Resume content cannot be empty', 400);
+  }
+
   const resume = await Resume.findOneAndUpdate(
     { candidateId },
     { htmlContent },
@@ -252,7 +350,19 @@ export async function getOrBuildResume(candidateId) {
   if (!candidate) throw new AppError('Candidate not found', 404);
 
   const existing = await Resume.findOne({ candidateId }).lean();
-  if (existing && existing.htmlContent) {
+
+  // An uploaded file the candidate marked active is the resume — never spend an
+  // AI call to replace what they deliberately provided.
+  if (existing?.source === 'upload' && existing.uploadedFile?.url) {
+    return existing;
+  }
+
+  if (existing?.htmlContent) {
+    return existing;
+  }
+
+  // No AI resume, but a file exists (source left on 'ai' with nothing built).
+  if (existing?.uploadedFile?.url) {
     return existing;
   }
 

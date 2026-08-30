@@ -8,6 +8,34 @@ export type ApplicationStatus = 'new' | 'reviewing' | 'shortlisted' | 'rejected'
 
 export type ScreeningAnswer = { question: string; answer: string };
 
+export type InterviewMode = 'in_person' | 'video' | 'phone' | '';
+
+export type ApplicationInterview = {
+  scheduledAt: string | null;
+  mode: InterviewMode;
+  location: string;
+  message: string;
+};
+
+export type ApplicationStatusEvent = {
+  status: ApplicationStatus;
+  message: string;
+  interviewAt: string | null;
+  changedAt: string;
+};
+
+/** Employer decision sent with a status change. */
+export type ApplicationDecisionPayload = {
+  id: string;
+  status: ApplicationStatus;
+  /** Required when rejecting; optional note otherwise. */
+  message?: string;
+  /** `datetime-local` value or ISO string; only meaningful on an accept. */
+  interviewAt?: string | null;
+  interviewMode?: InterviewMode;
+  interviewLocation?: string;
+};
+
 export type JobApplicationPayload = {
   jobId: string;
   coverLetter?: string;
@@ -23,8 +51,28 @@ export type JobApplicationResponse = {
   coverLetter: string;
   screeningAnswers?: ScreeningAnswer[];
   status: ApplicationStatus;
+  viewedByEmployer?: boolean;
+  viewedAt?: string | null;
+  employerMessage?: string;
+  interview?: ApplicationInterview | null;
+  statusHistory?: ApplicationStatusEvent[];
   createdAt: string;
   updatedAt: string;
+};
+
+/** Per-job application tallies for the employer dashboard job list. */
+export type JobApplicationCounts = {
+  total: number;
+  new: number;
+  reviewing: number;
+  shortlisted: number;
+  rejected: number;
+  hired: number;
+};
+
+export type EmployerApplicationCounts = {
+  byJob: Record<string, JobApplicationCounts>;
+  total: number;
 };
 
 export type ApplicationListParams = {
@@ -55,6 +103,13 @@ export type MyApplicationSummary = {
   job: Pick<JobResponse, '_id' | 'title' | 'companyName' | 'location' | 'type' | 'salary' | 'status'>;
   status: ApplicationStatus;
   coverLetter: string;
+  /** True once the employer has opened the application. */
+  viewedByEmployer?: boolean;
+  viewedAt?: string | null;
+  /** The employer's latest note — rejection reason or interview message. */
+  employerMessage?: string;
+  interview?: ApplicationInterview | null;
+  statusHistory?: ApplicationStatusEvent[];
   createdAt: string;
   updatedAt: string;
 };
@@ -121,6 +176,12 @@ export const applicationApi = createApi({
       }),
       providesTags: ['Application'],
     }),
+    getEmployerApplicationCounts: builder.query<ApiResponse<EmployerApplicationCounts>, void>({
+      query: () => ({
+        url: API_ENDPOINTS.employerApplicationCounts,
+      }),
+      providesTags: ['Application'],
+    }),
     getEmployerApplication: builder.query<ApiResponse<JobApplicationResponse>, string>({
       query: (id) => ({
         url: API_ENDPOINTS.employerApplicationById(id),
@@ -143,12 +204,12 @@ export const applicationApi = createApi({
     }),
     updateEmployerApplication: builder.mutation<
       ApiResponse<JobApplicationResponse>,
-      { id: string; status: ApplicationStatus }
+      ApplicationDecisionPayload
     >({
-      query: ({ id, status }) => ({
+      query: ({ id, ...decision }) => ({
         url: API_ENDPOINTS.employerApplicationById(id),
         method: 'PATCH',
-        data: { status },
+        data: decision,
       }),
       invalidatesTags: (_result, _error, { id }) => ['Application', { type: 'Application', id }],
     }),
@@ -158,6 +219,7 @@ export const applicationApi = createApi({
 export const {
   useCreateApplicationMutation,
   useGetAutoApplyStatusQuery,
+  useGetEmployerApplicationCountsQuery,
   useGetEmployerApplicationQuery,
   useGetEmployerApplicationsQuery,
   useGetMyApplicationsQuery,

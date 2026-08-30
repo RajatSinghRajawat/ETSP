@@ -1,24 +1,13 @@
 import { useGetMyCandidateProfileQuery } from '../store/api/candidateProfileApi';
 import { useGetMyEmployerProfileQuery } from '../store/api/employerProfileApi';
+import { useAuth } from './useAuth';
 
 export type ProfileApprovalStatus = 'pending' | 'rejected' | 'approved';
 
-function getAuthenticatedRole() {
-  if (!localStorage.getItem('ets-access-token')) {
-    return null;
-  }
-
-  try {
-    const stored = localStorage.getItem('user');
-    const user = stored ? (JSON.parse(stored) as { role?: string }) : null;
-    return user?.role ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export function useProfileApproval() {
-  const role = getAuthenticatedRole();
+  // `useAuth` re-renders on login / logout / profile switch, so the banner
+  // follows the active role without a page reload.
+  const { role } = useAuth();
   const isCandidate = role === 'candidate';
   const isEmployer = role === 'employer';
   const candidateQuery = useGetMyCandidateProfileQuery(undefined, {

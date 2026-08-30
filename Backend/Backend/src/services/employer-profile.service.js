@@ -2,6 +2,7 @@ import { EmployerProfile } from '../models/employer-profile.model.js';
 import { User } from '../models/user.model.js';
 import { Job } from '../models/job.model.js';
 import { markImportedEmployerRegistered } from './imported-employer.service.js';
+import { consumeRegistrationVerification } from './registration-verification.service.js';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/app-error.js';
 
@@ -110,7 +111,9 @@ export async function createEmployerProfile(input) {
     throw new AppError('Valid email is required', 400);
   }
 
-  const payload = { ...input, email };
+  // `emailVerified` / `phoneVerified` are decided here, never taken from the
+  // request — a client could otherwise just post them as true.
+  const payload = { ...input, email, emailVerified: false, phoneVerified: false };
 
   const [existingProfile, existingUser] = await Promise.all([
     EmployerProfile.findOne({ email }).select('_id email').lean(),
@@ -141,6 +144,16 @@ export async function createEmployerProfile(input) {
       throw new AppError('Employer profile already exists with this phone number', 409);
     }
   }
+
+  // Both addresses must carry a live OTP confirmation from the signup form.
+  // This also clears them, so one verification cannot seed a second signup.
+  const verification = await consumeRegistrationVerification({
+    email,
+    phone: payload.phoneNumber,
+  });
+
+  payload.emailVerified = verification.emailVerified;
+  payload.phoneVerified = verification.phoneVerified;
 
   try {
     await User.updateOne(

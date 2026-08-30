@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import { indiaCityOptions, filterCityOptions } from '../../data/indiaCities';
 import LookupSelect from '../../components/common/LookupSelect';
+import OtpVerifyControl from '../../components/common/OtpVerifyControl';
 import {
   Add,
   CheckCircle,
@@ -106,6 +107,10 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
   const [logoUploadError, setLogoUploadError] = useState('');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
   const [formErrors, setFormErrors] = useState<EmployerProfileErrors>({});
+  // Signup only: the server will not create the profile until both the email and
+  // the phone carry a confirmed OTP, so the form gates on the same two flags.
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
   const [formData, setFormData] = useState<EmployerProfileForm>(() => {
     if (showSidebar) {
       return defaultEmployerProfile;
@@ -174,10 +179,17 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
   }, [logoPreviewUrl]);
 
   const updateField = <K extends keyof EmployerProfileForm>(field: K, value: EmployerProfileForm[K]) => {
-    setFormData((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+    setFormData((previous) => {
+      // A verified badge belongs to one address; editing it starts over.
+      if (field === 'email' && previous.email !== value) {
+        setEmailVerified(false);
+      }
+      if (field === 'phoneNumber' && previous.phoneNumber !== value) {
+        setPhoneVerified(false);
+      }
+
+      return { ...previous, [field]: value };
+    });
     setSaveState('idle');
     setSubmitError('');
     setFormErrors((previous) => ({
@@ -259,6 +271,17 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       nextErrors.email = 'Enter a valid email address';
+    }
+
+    // Editing an existing profile has no OTP step — email and phone are fixed.
+    if (!showSidebar) {
+      if (!nextErrors.email && !emailVerified) {
+        nextErrors.email = 'Verify your email address to continue';
+      }
+
+      if (!nextErrors.phoneNumber && !phoneVerified) {
+        nextErrors.phoneNumber = 'Verify your phone number to continue';
+      }
     }
 
     if (formData.foundedYear && !/^\d{4}$/.test(formData.foundedYear)) {
@@ -380,8 +403,19 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
     setSubmitError('');
 
     if (!validateProfile(2)) {
-      setSubmitError('Please fix the highlighted fields before submitting.');
-      notify.warning('Please fix the highlighted fields before submitting.');
+      // Those two fields live back on step 1, so name the real blocker.
+      const unverified = !showSidebar && (!emailVerified || !phoneVerified);
+      const message = unverified
+        ? 'Verify your email address and phone number on the Company Identity step before submitting.'
+        : 'Please fix the highlighted fields before submitting.';
+
+      setSubmitError(message);
+      notify.warning(message);
+
+      if (unverified) {
+        setActiveStep(0);
+      }
+
       return;
     }
 
@@ -700,6 +734,18 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
 
             {activeStep === 0 && (
               <Grid container spacing={3}>
+                {!showSidebar && (
+                  <Grid size={{ xs: 12 }}>
+                    <Alert
+                      severity={emailVerified && phoneVerified ? 'success' : 'info'}
+                      sx={{ borderRadius: 2.5 }}
+                    >
+                      {emailVerified && phoneVerified
+                        ? 'Email and phone number verified. You can continue with your registration.'
+                        : 'Before registering, verify your email address and phone number with the OTP buttons below.'}
+                    </Alert>
+                  </Grid>
+                )}
                 <Grid size={{ xs: 12, md: 8 }}>
                   <Grid container spacing={2.5}>
                     <Grid size={{ xs: 12, md: 6 }}>
@@ -764,6 +810,19 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
                           htmlInput: phoneHtmlInputProps,
                         }}
                       />
+                      {!showSidebar && (
+                        <OtpVerifyControl
+                          kind="phone"
+                          value={formData.phoneNumber}
+                          verified={phoneVerified}
+                          onVerified={() => {
+                            setPhoneVerified(true);
+                            setFormErrors((previous) => ({ ...previous, phoneNumber: '' }));
+                          }}
+                          canSend={!validatePhone(formData.phoneNumber)}
+                          disabledReason="Enter a valid 10-digit mobile number first."
+                        />
+                      )}
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
@@ -776,6 +835,19 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
                         helperText={formErrors.email}
                         onChange={(event) => updateField('email', event.target.value)}
                       />
+                      {!showSidebar && (
+                        <OtpVerifyControl
+                          kind="email"
+                          value={formData.email}
+                          verified={emailVerified}
+                          onVerified={() => {
+                            setEmailVerified(true);
+                            setFormErrors((previous) => ({ ...previous, email: '' }));
+                          }}
+                          canSend={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)}
+                          disabledReason="Enter a valid email address first."
+                        />
+                      )}
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }}>
                       <TextField
