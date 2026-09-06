@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppBar, Toolbar, Box, Button, Tooltip, IconButton, Menu, MenuItem, Container, useMediaQuery, useTheme, Drawer, List, ListItem, ListItemText, ListItemButton, Avatar, Snackbar, Alert, CircularProgress } from '@mui/material';
-import { Language as LanguageIcon, Brightness4, Brightness7, Menu as MenuIcon, Close, Work, Business, Info, Phone, Home, AccountCircle, Dashboard, Logout, SwapHoriz, People, KeyboardArrowDown, PrivacyTip } from '@mui/icons-material';
+import { Language as LanguageIcon, Menu as MenuIcon, Close, Work, Business, Info, Phone, Home, AccountCircle, Dashboard, Logout, SwapHoriz, People, KeyboardArrowDown, PrivacyTip } from '@mui/icons-material';
 import HeaderChatButton from './common/HeaderChatButton';
 import NotificationBell from './common/NotificationBell';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -9,11 +9,6 @@ import React from 'react';
 import { axiosInstance } from '../store/api/axiosInstance';
 import { API_ENDPOINTS } from '../store/api/endpoints';
 import { clearAuthSession, setAuthSession, useAuth } from '../hooks/useAuth';
-
-interface NavbarProps {
-  mode: 'light' | 'dark';
-  toggleMode: () => void;
-}
 
 const getApiErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === 'object' && error !== null && 'data' in error) {
@@ -29,7 +24,7 @@ const getApiErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
+const Navbar: React.FC = () => {
   const { t, i18n } = useTranslation();
   const currentLang = (i18n.resolvedLanguage ?? i18n.language ?? 'en').toLowerCase().startsWith('hi') ? 'hi' : 'en';
   const navigate = useNavigate();
@@ -221,9 +216,6 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
           <Tooltip title={t('language')}>
             <IconButton onClick={handleLanguageMenuOpen} size="small"><LanguageIcon /></IconButton>
           </Tooltip>
-          <Tooltip title={t('theme_mode')}>
-            <IconButton onClick={toggleMode} size="small">{mode === 'dark' ? <Brightness7 /> : <Brightness4 />}</IconButton>
-          </Tooltip>
         </Box>
       </Box>
     </Box>
@@ -383,22 +375,6 @@ const Navbar: React.FC<NavbarProps> = ({ mode, toggleMode }) => {
                     <MenuItem onClick={() => changeLanguage('en')} selected={currentLang === 'en'}>English</MenuItem>
                     <MenuItem onClick={() => changeLanguage('hi')} selected={currentLang === 'hi'}>हिन्दी (Hindi)</MenuItem>
                   </Menu>
-
-                  <Tooltip title={t('theme_mode')}>
-                    <IconButton
-                      onClick={toggleMode}
-                      size="small"
-                      sx={{
-                        color: 'text.primary',
-                        transition: 'color 0.3s ease',
-                        '&:hover': {
-                          bgcolor: 'rgba(0,0,0,0.05)'
-                        }
-                      }}
-                    >
-                      {mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
-                    </IconButton>
-                  </Tooltip>
 
                   {isLoggedIn ? (
                     <>

@@ -1,7 +1,6 @@
-import { useState, useMemo } from 'react';
 import { ThemeProvider, CssBaseline, Box } from '@mui/material';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { lightTheme, darkTheme } from './theme';
+import { lightTheme } from './theme';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import About from './pages/About';
@@ -25,6 +24,7 @@ import EmployerEmployees from './pages/employer/EmployerEmployees';
 import EmployerEmployeeView from './pages/employer/EmployerEmployeeView';
 import EmployerApplications from './pages/employer/EmployerApplications';
 import EmployerApplicationDetails from './pages/employer/EmployerApplicationDetails';
+import EmployerJobApplicants from './pages/employer/EmployerJobApplicants';
 import CandidateDashboard from './pages/candidate/CandidateDashboard';
 import SavedJobs from './pages/candidate/SavedJobs';
 import CandidateSupport from './pages/support/CandidateSupport';
@@ -42,21 +42,13 @@ import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
 function App() {
-  const [mode, setMode] = useState<'light' | 'dark'>('light');
-
-  const theme = useMemo(() => (mode === 'light' ? lightTheme : darkTheme), [mode]);
-
-  const toggleMode = () => {
-    setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
-  };
-
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={lightTheme}>
       <CssBaseline />
       <Router>
         <ChatProvider>
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-          <Navbar mode={mode} toggleMode={toggleMode} />
+          <Navbar />
           <Box
             component="main"
             sx={{
@@ -93,6 +85,7 @@ function App() {
               <Route path="/employer/employees/:id" element={<EmployerEmployeeView />} />
               <Route path="/employer/applications" element={<EmployerApplications />} />
               <Route path="/employer/applications/:id" element={<EmployerApplicationDetails />} />
+              <Route path="/employer/jobs/:id/applicants" element={<EmployerJobApplicants />} />
               <Route path="/employer/profile" element={<EmployerProfileCreate showSidebar />} />
               <Route path="/employer/profile/:id" element={<EmployerProfileView />} />
               <Route path="/candidate/dashboard" element={<CandidateDashboard />} />

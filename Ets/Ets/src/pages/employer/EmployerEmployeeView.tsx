@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Avatar,
@@ -14,12 +14,16 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import {
   ArrowBack,
   Badge,
   ChatBubbleOutlineOutlined as ChatBubbleOutline,
   CalendarMonth,
+  CheckCircle,
   Email,
+  EventAvailable,
+  HighlightOff,
   LocationOn,
   LockOpen,
   Phone,
@@ -33,6 +37,8 @@ import Sidebar from '../../components/common/Sidebar';
 import ShareButton from '../../components/common/ShareButton';
 import { PageHeader } from '../../components/common/PageHeader';
 import CandidateResumePreviewModal from '../../components/common/CandidateResumePreviewModal';
+import ApplicationDecisionDialog, { type DecisionKind } from '../../components/common/ApplicationDecisionDialog';
+import { useGetEmployerApplicationQuery, type ApplicationStatus } from '../../store/api/applicationApi';
 import {
   useGetCandidateProfileQuery,
   useUnlockCandidateMutation,
@@ -42,10 +48,39 @@ import { useGetMyUsageQuery } from '../../store/api/subscriptionApi';
 import { useGetCandidateResumeMutation } from '../../store/api/resumeApi';
 import { useChat } from '../../context/ChatContext';
 
+const STATUS_LABEL: Record<ApplicationStatus, string> = {
+  new: 'New',
+  reviewing: 'Under Review',
+  shortlisted: 'Shortlisted',
+  rejected: 'Rejected',
+  hired: 'Hired',
+};
+
+const STATUS_COLOR: Record<ApplicationStatus, string> = {
+  new: '#0c5283',
+  reviewing: '#d97706',
+  shortlisted: '#0ab6a2',
+  rejected: '#dc2626',
+  hired: '#10b981',
+};
+
 const formatDate = (value?: string) => {
   if (!value) return '—';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+};
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
 const InfoRow: React.FC<{ icon: React.ReactNode; label: string; value?: string | null }> = ({ icon, label, value }) => (
@@ -60,10 +95,18 @@ const InfoRow: React.FC<{ icon: React.ReactNode; label: string; value?: string |
 
 const EmployerEmployeeView: React.FC = () => {
   const { id = '' } = useParams();
+  const [searchParams] = useSearchParams();
+  // Present when opened from a job's applicants list; unlocks accept / reject here.
+  const applicationId = searchParams.get('application') ?? '';
   const navigate = useNavigate();
   const { startChatWith } = useChat();
   const { data: employerData } = useGetMyEmployerProfileQuery();
   const { data, isLoading, isError, refetch } = useGetCandidateProfileQuery(id, { skip: !id });
+  const { data: applicationData } = useGetEmployerApplicationQuery(applicationId, { skip: !applicationId });
+  const application = applicationData?.data;
+  const applicantsPath = application ? `/employer/jobs/${application.job._id}/applicants` : '';
+  const [decision, setDecision] = useState<DecisionKind | null>(null);
+  const [decisionMessage, setDecisionMessage] = useState('');
   const { data: usageData, refetch: refetchUsage } = useGetMyUsageQuery();
   const [unlockCandidate, { isLoading: isUnlocking }] = useUnlockCandidateMutation();
   const candidate = data?.data;
@@ -136,10 +179,18 @@ const EmployerEmployeeView: React.FC = () => {
         <PageHeader
           title="Candidate Details"
           subtitle="Complete profile of the selected candidate."
-          breadcrumbs={[
-            { label: 'Employees', path: '/employer/employees' },
-            { label: 'Details' },
-          ]}
+          breadcrumbs={
+            application
+              ? [
+                  { label: 'Dashboard', path: '/employer/dashboard' },
+                  { label: 'Applicants', path: applicantsPath },
+                  { label: 'Details' },
+                ]
+              : [
+                  { label: 'Employees', path: '/employer/employees' },
+                  { label: 'Details' },
+                ]
+          }
         />
 
         <Stack
@@ -149,8 +200,11 @@ const EmployerEmployeeView: React.FC = () => {
           justifyContent="space-between"
           sx={{ mb: 2 }}
         >
-          <Button startIcon={<ArrowBack />} onClick={() => navigate('/employer/employees')}>
-            Back to Employees
+          <Button
+            startIcon={<ArrowBack />}
+            onClick={() => navigate(application ? applicantsPath : '/employer/employees')}
+          >
+            {application ? 'Back to Applicants' : 'Back to Employees'}
           </Button>
           {candidate && isLocked && (
             <Button
@@ -233,6 +287,73 @@ const EmployerEmployeeView: React.FC = () => {
             </Stack>
           )}
         </Stack>
+
+        {decisionMessage && (
+          <Alert severity="success" sx={{ mb: 3, borderRadius: 2.5 }} onClose={() => setDecisionMessage('')}>
+            {decisionMessage}
+          </Alert>
+        )}
+
+        {/* Application for the job this profile was opened from */}
+        {application && candidate && (
+          <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
+                <Box sx={{ minWidth: 0, flex: '1 1 220px' }}>
+                  <Typography variant="overline" color="text.secondary">Applied for</Typography>
+                  <Typography sx={{ fontWeight: 800, wordBreak: 'break-word' }}>{application.job.title}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {application.job.location} · {application.job.type} · Applied {formatDate(application.createdAt)}
+                  </Typography>
+                </Box>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1, alignItems: 'center' }}>
+                  <Chip
+                    size="small"
+                    label={STATUS_LABEL[application.status]}
+                    sx={{
+                      fontWeight: 700,
+                      color: STATUS_COLOR[application.status],
+                      bgcolor: alpha(STATUS_COLOR[application.status], 0.12),
+                    }}
+                  />
+                  {application.interview?.scheduledAt && (
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      icon={<EventAvailable sx={{ fontSize: 16 }} />}
+                      label={`Interview ${formatDateTime(application.interview.scheduledAt)}`}
+                      sx={{ fontWeight: 700, color: '#7c3aed', borderColor: alpha('#7c3aed', 0.4) }}
+                    />
+                  )}
+                  {!isLocked && application.status !== 'rejected' && application.status !== 'hired' && (
+                    <Button
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                      startIcon={<CheckCircle fontSize="small" />}
+                      onClick={() => setDecision('accept')}
+                      sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
+                    >
+                      Accept
+                    </Button>
+                  )}
+                  {!isLocked && application.status !== 'rejected' && (
+                    <Button
+                      size="small"
+                      color="error"
+                      variant="outlined"
+                      startIcon={<HighlightOff fontSize="small" />}
+                      onClick={() => setDecision('reject')}
+                      sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
+                    >
+                      Reject
+                    </Button>
+                  )}
+                </Stack>
+              </Box>
+            </CardContent>
+          </Card>
+        )}
 
         {isLoading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
@@ -382,6 +503,15 @@ const EmployerEmployeeView: React.FC = () => {
           </Grid>
         )}
       </Box>
+
+      <ApplicationDecisionDialog
+        decision={decision}
+        applicationId={application?._id ?? ''}
+        candidateName={candidateFullName}
+        currentStatus={application?.status}
+        onClose={() => setDecision(null)}
+        onDone={setDecisionMessage}
+      />
 
       <CandidateResumePreviewModal
         open={previewOpen}
