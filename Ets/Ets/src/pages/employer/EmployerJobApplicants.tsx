@@ -7,13 +7,11 @@ import {
   Card,
   CardContent,
   CircularProgress,
-  Divider,
   IconButton,
   InputAdornment,
   Link as MuiLink,
   ListItemIcon,
   ListItemText,
-  ListSubheader,
   Menu,
   MenuItem,
   Pagination,
@@ -37,6 +35,7 @@ import {
   ArrowBack,
   AssignmentTurnedIn,
   CallOutlined,
+  DeleteOutlineOutlined,
   ChatBubbleOutlineOutlined as ChatBubbleOutline,
   CheckCircleOutlineOutlined as CheckCircleOutline,
   Close,
@@ -46,17 +45,14 @@ import {
   Lock,
   LockOpen,
   MoreHoriz,
-  PictureAsPdf,
-  PersonSearch,
   PlaceOutlined,
   Search,
   TuneOutlined,
   WorkspacePremium,
 } from '@mui/icons-material';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
 import ApplicationDecisionDialog, { type DecisionKind } from '../../components/common/ApplicationDecisionDialog';
-import CandidateResumePreviewModal from '../../components/common/CandidateResumePreviewModal';
 import {
   PageHero,
   SoftChip,
@@ -74,12 +70,10 @@ import { useEmployerPlan } from '../../hooks/useEmployerPlan';
 import { useGetMyEmployerProfileQuery } from '../../store/api/employerProfileApi';
 import { useGetMyJobsQuery } from '../../store/api/jobApi';
 import { useUnlockCandidateMutation } from '../../store/api/candidateProfileApi';
-import { useGetCandidateResumeMutation } from '../../store/api/resumeApi';
 import { useGetMyUsageQuery } from '../../store/api/subscriptionApi';
 import {
   useGetEmployerApplicationCountsQuery,
   useGetEmployerApplicationsQuery,
-  useSetEmployerApplicationInterestMutation,
   type ApplicationSort,
   type ApplicationStatus,
   type EmployerInterest,
@@ -129,36 +123,6 @@ const INTEREST_OPTIONS: Array<{ value: EmployerInterest | 'unmarked' | ''; label
   { value: 'not_interested', label: 'Not interested' },
   { value: 'unmarked', label: 'Not marked yet' },
 ];
-
-/** The three triage marks, as offered in the per-candidate actions menu. */
-const INTEREST_MARKS: Array<{
-  value: Exclude<EmployerInterest, ''>;
-  label: string;
-  tone: string;
-  icon: React.ReactElement;
-}> = [
-  {
-    value: 'interested',
-    label: 'Interested',
-    tone: TONE.green,
-    icon: <CheckCircleOutline fontSize="small" />,
-  },
-  { value: 'undecided', label: 'Undecided', tone: TONE.amber, icon: <HelpOutlined fontSize="small" /> },
-  {
-    value: 'not_interested',
-    label: 'Not interested',
-    tone: TONE.red,
-    icon: <Close fontSize="small" />,
-  },
-];
-
-const MARK_TONE = Object.fromEntries(
-  INTEREST_MARKS.map((mark) => [mark.value, mark.tone]),
-) as Record<Exclude<EmployerInterest, ''>, string>;
-
-const MARK_LABEL = Object.fromEntries(
-  INTEREST_MARKS.map((mark) => [mark.value, mark.label.toLowerCase()]),
-) as Record<Exclude<EmployerInterest, ''>, string>;
 
 const formatDate = (value?: string | null) => {
   if (!value) return '';
@@ -324,8 +288,6 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
   const { data: usageData, refetch: refetchUsage } = useGetMyUsageQuery();
   const { isPremium, showUpgrade } = useEmployerPlan();
   const [unlockCandidate] = useUnlockCandidateMutation();
-  const [setInterest] = useSetEmployerApplicationInterestMutation();
-  const [fetchCandidateResume, { isLoading: isFetchingResume }] = useGetCandidateResumeMutation();
 
   // The tab lives in the URL so the dashboard/job page can deep-link to it.
   const tabParam = (searchParams.get('tab') ?? 'all') as TabKey;
@@ -344,14 +306,6 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
   const [menuApplication, setMenuApplication] = useState<JobApplicationResponse | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [decision, setDecision] = useState<Decision | null>(null);
-
-  // Resume preview.
-  const [resumeOpen, setResumeOpen] = useState(false);
-  const [resumeHtml, setResumeHtml] = useState('');
-  const [resumeError, setResumeError] = useState('');
-  const [resumeName, setResumeName] = useState('Candidate');
-  // Set when the candidate uploaded their own file rather than building one.
-  const [resumeFile, setResumeFile] = useState<{ url: string; name: string; mimeType: string } | null>(null);
 
   // Typing in the search box must not fire a request per keystroke. A new
   // search term is also a new result set, so it resets the page with it.
@@ -428,18 +382,6 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
     }
   };
 
-  const handleInterest = async (application: JobApplicationResponse, next: EmployerInterest) => {
-    // Clicking the mark that is already set clears it.
-    const value = application.employerInterest === next ? '' : next;
-    setError('');
-    try {
-      await setInterest({ id: application._id, interest: value }).unwrap();
-    } catch (err) {
-      const message = (err as { data?: { message?: string } })?.data?.message;
-      setError(message ?? 'Could not save that mark. Please try again.');
-    }
-  };
-
   /**
    * Opens the accept/reject dialog for one application. `stage` and `heading`
    * let each action name what it does instead of dropping the employer into a
@@ -459,42 +401,6 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
       stage: options?.stage,
       heading: options?.heading,
     });
-  };
-
-  const handleOpenResume = async (candidateProfileId: string, candidateName: string) => {
-    if (isFetchingResume) return;
-    setResumeError('');
-    setResumeHtml('');
-    setResumeFile(null);
-    setResumeName(candidateName);
-    setResumeOpen(true);
-
-    try {
-      const response = await fetchCandidateResume(candidateProfileId).unwrap();
-      const resume = response.data;
-      const uploaded = resume?.uploadedFile;
-
-      if (resume?.source === 'upload' && uploaded?.url) {
-        setResumeFile({
-          url: uploaded.url,
-          name: uploaded.originalName || uploaded.fileName,
-          mimeType: uploaded.mimeType,
-        });
-        return;
-      }
-
-      if (!resume?.htmlContent) {
-        throw new Error('No resume content was returned for this candidate.');
-      }
-
-      setResumeHtml(resume.htmlContent);
-    } catch (error) {
-      const message =
-        (error as { data?: { message?: string }; message?: string })?.data?.message ??
-        (error as { message?: string })?.message ??
-        'Could not load the resume. Please try again.';
-      setResumeError(message);
-    }
   };
 
   const closeMenu = () => {
@@ -814,7 +720,6 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                             const statusColor = STATUS_COLOR[application.status];
                             const isRejected = application.status === 'rejected';
                             const isHired = application.status === 'hired';
-                            const markedInterest = application.employerInterest || '';
 
                             return (
                               <TableRow key={application._id} hover sx={{ '&:last-child td': { border: 0 } }}>
@@ -838,9 +743,25 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                                         spacing={0.75}
                                         sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5 }}
                                       >
-                                        <Typography sx={{ fontWeight: 800, wordBreak: 'break-word' }}>
-                                          {locked ? 'Locked candidate' : candidateName}
-                                        </Typography>
+                                        {locked ? (
+                                          <Typography sx={{ fontWeight: 800, wordBreak: 'break-word' }}>
+                                            Locked candidate
+                                          </Typography>
+                                        ) : (
+                                          <MuiLink
+                                            component={RouterLink}
+                                            to={`/employer/employees/${candidate._id}?application=${application._id}`}
+                                            underline="none"
+                                            sx={{
+                                              fontWeight: 800,
+                                              wordBreak: 'break-word',
+                                              color: 'text.primary',
+                                              '&:hover': { color: 'primary.main' },
+                                            }}
+                                          >
+                                            {candidateName}
+                                          </MuiLink>
+                                        )}
                                         {candidate.excelMember && !locked && (
                                           <SoftChip label="EXCEL" tone="amber" />
                                         )}
@@ -893,24 +814,6 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                                       />
                                     </Box>
                                   )}
-                                  {chatAllowed && !locked && (
-                                    <MuiLink
-                                      component="button"
-                                      type="button"
-                                      underline="hover"
-                                      onClick={() =>
-                                        startChatWith({
-                                          peerProfileId: candidate._id,
-                                          peerName: candidateName,
-                                          jobId: job._id,
-                                          jobTitle: job.title,
-                                        })
-                                      }
-                                      sx={{ display: 'block', mt: 0.75, fontWeight: 700, fontSize: '0.875rem' }}
-                                    >
-                                      Send message
-                                    </MuiLink>
-                                  )}
                                 </TableCell>
 
                                 {/* Interest — select, more actions, remove */}
@@ -954,15 +857,9 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                                         <CheckCircleOutline fontSize="small" />
                                       </ActionIcon>
                                       <ActionIcon
-                                        title={
-                                          markedInterest
-                                            ? `Marked ${MARK_LABEL[markedInterest]} — actions & interest`
-                                            : 'Actions & interest'
-                                        }
-                                        tone={markedInterest ? MARK_TONE[markedInterest] : TONE.amber}
-                                        active={
-                                          Boolean(markedInterest) || menuApplication?._id === application._id
-                                        }
+                                        title="More actions"
+                                        tone={TONE.amber}
+                                        active={menuApplication?._id === application._id}
                                         onClick={(event) => {
                                           setMenuAnchor(event.currentTarget);
                                           setMenuApplication(application);
@@ -1033,53 +930,31 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
         slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 224, mt: 0.5 } } }}
       >
         <MenuItem
+          disabled={!chatAllowed}
           onClick={() => {
-            if (menuApplication) {
-              navigate(
-                `/employer/employees/${menuApplication.candidateProfile._id}?application=${menuApplication._id}`,
-              );
+            if (menuApplication && job) {
+              startChatWith({
+                peerProfileId: menuApplication.candidateProfile._id,
+                peerName: menuCandidateName,
+                jobId: job._id,
+                jobTitle: job.title,
+              });
             }
             closeMenu();
           }}
         >
-          <ListItemIcon><PersonSearch fontSize="small" /></ListItemIcon>
-          <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>View profile</ListItemText>
+          <ListItemIcon><ChatBubbleOutline fontSize="small" /></ListItemIcon>
+          <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>Message</ListItemText>
         </MenuItem>
         <MenuItem
-          onClick={() => {
-            if (menuApplication) {
-              handleOpenResume(menuApplication.candidateProfile._id, menuCandidateName);
-            }
-            closeMenu();
-          }}
+          component="a"
+          href={menuCandidate?.phone ? `tel:${menuCandidate.phone}` : undefined}
+          disabled={!menuCandidate?.phone}
+          onClick={closeMenu}
         >
-          <ListItemIcon><PictureAsPdf fontSize="small" /></ListItemIcon>
-          <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>View resume</ListItemText>
+          <ListItemIcon><CallOutlined fontSize="small" /></ListItemIcon>
+          <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>Call</ListItemText>
         </MenuItem>
-        {chatAllowed && (
-          <MenuItem
-            onClick={() => {
-              if (menuApplication && job) {
-                startChatWith({
-                  peerProfileId: menuApplication.candidateProfile._id,
-                  peerName: menuCandidateName,
-                  jobId: job._id,
-                  jobTitle: job.title,
-                });
-              }
-              closeMenu();
-            }}
-          >
-            <ListItemIcon><ChatBubbleOutline fontSize="small" /></ListItemIcon>
-            <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>Message</ListItemText>
-          </MenuItem>
-        )}
-        {Boolean(menuCandidate?.phone) && (
-          <MenuItem component="a" href={`tel:${menuCandidate?.phone}`} onClick={closeMenu}>
-            <ListItemIcon><CallOutlined fontSize="small" /></ListItemIcon>
-            <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>Call</ListItemText>
-          </MenuItem>
-        )}
         <MenuItem
           disabled={menuApplication?.status === 'rejected'}
           onClick={() => {
@@ -1098,7 +973,18 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
           <ListItemIcon><EventAvailable fontSize="small" /></ListItemIcon>
           <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>Set up interview</ListItemText>
         </MenuItem>
-        <Divider />
+        <MenuItem
+          disabled={menuApplication?.status === 'rejected'}
+          onClick={() => {
+            if (menuApplication) {
+              openDecision(menuApplication, 'reject', { heading: 'Delete this candidate' });
+            }
+            closeMenu();
+          }}
+        >
+          <ListItemIcon><DeleteOutlineOutlined fontSize="small" /></ListItemIcon>
+          <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>Delete candidate</ListItemText>
+        </MenuItem>
         <MenuItem
           disabled={menuApplication?.status === 'hired' || menuApplication?.status === 'rejected'}
           onClick={() => {
@@ -1111,65 +997,13 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
             closeMenu();
           }}
         >
-          <ListItemIcon><EmojiEventsOutlined fontSize="small" /></ListItemIcon>
-          <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>Mark as hired</ListItemText>
+          <ListItemIcon sx={{ color: 'primary.main' }}><EmojiEventsOutlined fontSize="small" /></ListItemIcon>
+          <ListItemText
+            slotProps={{ primary: { sx: { fontWeight: 700, color: 'primary.main' } } }}
+          >
+            Mark as hired
+          </ListItemText>
         </MenuItem>
-        <MenuItem
-          disabled={menuApplication?.status === 'rejected'}
-          onClick={() => {
-            if (menuApplication) {
-              openDecision(menuApplication, 'reject', { heading: 'Remove this candidate' });
-            }
-            closeMenu();
-          }}
-        >
-          <ListItemIcon><Close fontSize="small" /></ListItemIcon>
-          <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>Remove candidate</ListItemText>
-        </MenuItem>
-
-        {/*
-          The private triage mark. It notifies nobody and does not move the
-          candidate along, so it sits apart from the pipeline actions above —
-          and it is what the "Interest marked" filter reads.
-        */}
-        <Divider />
-        <ListSubheader
-          sx={{
-            lineHeight: 2,
-            fontWeight: 800,
-            fontSize: '0.7rem',
-            letterSpacing: 0.6,
-            textTransform: 'uppercase',
-            bgcolor: 'transparent',
-          }}
-        >
-          Mark interest
-        </ListSubheader>
-        {INTEREST_MARKS.map((mark) => {
-          const selected = menuApplication?.employerInterest === mark.value;
-
-          return (
-            <MenuItem
-              key={mark.value}
-              selected={selected}
-              onClick={() => {
-                if (menuApplication) handleInterest(menuApplication, mark.value);
-                closeMenu();
-              }}
-            >
-              <ListItemIcon sx={{ color: selected ? mark.tone : undefined }}>
-                {mark.icon}
-              </ListItemIcon>
-              <ListItemText
-                slotProps={{
-                  primary: { sx: { fontWeight: selected ? 800 : 600, color: selected ? mark.tone : undefined } },
-                }}
-              >
-                {mark.label}
-              </ListItemText>
-            </MenuItem>
-          );
-        })}
       </Menu>
 
       <ApplicationDecisionDialog
@@ -1183,17 +1017,6 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
         onDone={setBanner}
       />
 
-      <CandidateResumePreviewModal
-        open={resumeOpen}
-        onClose={() => setResumeOpen(false)}
-        candidateName={resumeName}
-        htmlContent={resumeHtml}
-        isLoading={isFetchingResume}
-        loadError={resumeError}
-        fileUrl={resumeFile?.url}
-        fileName={resumeFile?.name}
-        fileMimeType={resumeFile?.mimeType}
-      />
     </Box>
   );
 };
