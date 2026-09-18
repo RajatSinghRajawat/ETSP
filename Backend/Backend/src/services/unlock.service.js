@@ -121,7 +121,7 @@ export async function getUnlockMeters(employerProfileId) {
     Job.find({
       employerProfile: employerProfileId,
       unlockCreditsTotal: { $gt: 0 },
-      status: { $in: ['active', 'closed', 'expired'] },
+      status: { $in: ['active', 'paused', 'closed', 'expired'] },
     })
       .select('title unlockCreditsTotal unlockCreditsUsed status')
       .sort({ createdAt: -1 })

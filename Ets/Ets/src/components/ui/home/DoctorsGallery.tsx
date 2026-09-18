@@ -1,15 +1,12 @@
-import { useTranslation } from 'react-i18next';
 import { Box, Container, Typography, Card, CardContent, Avatar, IconButton, Chip } from '@mui/material';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, Navigation } from 'swiper/modules';
 import { LinkedIn, Twitter, Language, Star, Verified } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 
 const DoctorsGallery: React.FC = () => {
-  const { t } = useTranslation();
 
   const doctors = [
     {

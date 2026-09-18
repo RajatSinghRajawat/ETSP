@@ -14,7 +14,6 @@ import {
   Divider,
   Grid,
   InputAdornment,
-  MenuItem,
   Paper,
   Snackbar,
   Stack,
@@ -31,7 +30,6 @@ import {
   AutoFixHigh,
   Badge as BadgeIcon,
   Business,
-  CalendarMonth,
   CheckCircle,
   Delete,
   Description,
@@ -51,7 +49,6 @@ import {
   Shield,
   TrendingUp,
   Verified,
-  Wc,
   Work,
   WorkOutlined,
   WorkspacePremium,
@@ -68,7 +65,7 @@ import {
   type CandidateExperience,
   type CandidateProfileForm,
 } from '../../data/profileData';
-import { indiaCityOptions, filterCityOptions } from '../../data/indiaCities';
+import { indiaCityOptions } from '../../data/indiaCities';
 import {
   useCreateCandidateProfileMutation,
   useGetMyCandidateProfileQuery,
@@ -83,6 +80,32 @@ interface CandidateProfileCreateProps {
 
 const STORAGE_KEY = 'ets-candidate-profile-draft';
 const steps = ['Personal Information', 'Professional Information', 'Education', 'Preview'];
+
+/** The fields the API rejects a profile without — all of them live on step 1. */
+type PersonalErrors = Partial<Record<'firstName' | 'lastName' | 'email' | 'phone', string>>;
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/**
+ * Validates the personal step. The server enforces exactly these rules, so
+ * catching them here is what stops someone filling three more steps only to be
+ * told at submit that their email was never valid.
+ */
+function validatePersonalStep(form: { firstName: string; lastName: string; email: string; phone: string }): PersonalErrors {
+  const errors: PersonalErrors = {};
+
+  if (!form.firstName.trim()) errors.firstName = 'First name is required';
+  if (!form.lastName.trim()) errors.lastName = 'Last name is required';
+
+  const email = form.email.trim();
+  if (!email) errors.email = 'Email address is required';
+  else if (!EMAIL_PATTERN.test(email)) errors.email = 'Enter a valid email address';
+
+  const phoneError = validatePhone(form.phone, { required: true });
+  if (phoneError) errors.phone = phoneError;
+
+  return errors;
+}
 
 const stepMeta: Array<{ label: string; icon: React.ReactNode; description: string; color: string }> = [
   {
@@ -236,6 +259,9 @@ const mapServerProfileToForm = (profile: CandidateProfileResponse): CandidatePro
 const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSidebar = false }) => {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
+  // Only populated once the visitor tries to leave the step, so the form does
+  // not scold them about fields they have not reached yet.
+  const [personalErrors, setPersonalErrors] = useState<PersonalErrors>({});
   const [resumeOpen, setResumeOpen] = useState(false);
   const [preferredLocationInput, setPreferredLocationInput] = useState('');
   const [skillInput, setSkillInput] = useState('');
@@ -531,8 +557,41 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
     }
   };
 
+  /**
+   * Advance a step, but never past the personal step while it still has errors
+   * the API would reject. Returns false when the move was blocked.
+   */
+  const goToStep = (nextStep: number) => {
+    if (nextStep > 0) {
+      const errors = validatePersonalStep(formData);
+
+      if (Object.keys(errors).length > 0) {
+        setPersonalErrors(errors);
+        setActiveStep(0);
+        notify.error('Please complete your name, email and mobile number first.');
+        return false;
+      }
+    }
+
+    setPersonalErrors({});
+    setActiveStep(nextStep);
+    return true;
+  };
+
   const submitProfile = async () => {
     setSubmitError('');
+
+    // The same rules the API applies — checked here so the failure lands on the
+    // field that caused it instead of arriving as a server message at step 4.
+    const errors = validatePersonalStep(formData);
+    if (Object.keys(errors).length > 0) {
+      setPersonalErrors(errors);
+      setActiveStep(0);
+      const message = Object.values(errors)[0] ?? 'Please complete the required fields.';
+      setSubmitError(message);
+      notify.error(message);
+      return;
+    }
 
     try {
       if (hasExistingProfile) {
@@ -716,7 +775,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                 ? 'Your candidate profile has been updated successfully.'
                 : 'Your profile and candidate account have been created! Click below to log in with your email and access your Candidate Dashboard.'}
             </Typography>
-            <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap">
+            <Stack direction="row" spacing={2} sx={{ justifyContent: "center", flexWrap: "wrap" }}>
               {!showSidebar && (
                 <Button
                   variant="contained"
@@ -786,7 +845,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                 pointerEvents: 'none',
               }}
             />
-            <Stack direction="row" spacing={2} alignItems="center" sx={{ position: 'relative' }}>
+            <Stack direction="row" spacing={2} sx={{ alignItems: "center", position: 'relative' }}>
               <Box
                 sx={{
                   width: 52,
@@ -903,8 +962,11 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                       <TextField
                         fullWidth
                         label="First Name"
+                        required
                         value={formData.firstName}
                         onChange={(event) => updateField('firstName', event.target.value)}
+                        error={Boolean(personalErrors.firstName)}
+                        helperText={personalErrors.firstName}
                         slotProps={adornment(<Person />)}
                       />
                     </Grid>
@@ -912,8 +974,11 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                       <TextField
                         fullWidth
                         label="Last Name"
+                        required
                         value={formData.lastName}
                         onChange={(event) => updateField('lastName', event.target.value)}
+                        error={Boolean(personalErrors.lastName)}
+                        helperText={personalErrors.lastName}
                         slotProps={adornment(<Person />)}
                       />
                     </Grid>
@@ -922,14 +987,17 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                         fullWidth
                         label="Email Address"
                         type="email"
+                        required
                         value={formData.email}
                         onChange={(event) => updateField('email', event.target.value)}
                         onBlur={() => updateField('email', formData.email.trim().toLowerCase())}
                         disabled={hasExistingProfile}
+                        error={Boolean(personalErrors.email)}
                         helperText={
-                          hasExistingProfile
-                            ? 'Email cannot be changed after registration'
-                            : 'One email can register only one candidate account'
+                          personalErrors.email
+                            ?? (hasExistingProfile
+                              ? 'Email cannot be changed after registration'
+                              : 'One email can register only one candidate account')
                         }
                         slotProps={adornment(<Email />)}
                       />
@@ -941,9 +1009,12 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                         placeholder="10 digit mobile number"
                         type="tel"
                         value={formData.phone}
+                        required
                         onChange={(event) => updateField('phone', sanitizePhone(event.target.value))}
-                        error={Boolean(validatePhone(formData.phone))}
-                        helperText={validatePhone(formData.phone) || '10 digits, without +91'}
+                        error={Boolean(validatePhone(formData.phone) || personalErrors.phone)}
+                        helperText={
+                          validatePhone(formData.phone) || personalErrors.phone || '10 digits, without +91'
+                        }
                         slotProps={{
                           input: {
                             startAdornment: (
@@ -972,16 +1043,19 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                             fullWidth
                             label="Current Location"
                             placeholder="Select or type city"
-                            InputProps={{
-                              ...(params.InputProps || {}),
-                              startAdornment: (
-                                <>
-                                  <InputAdornment position="start">
-                                    <LocationOn sx={{ color: '#0c5283', fontSize: 20 }} />
-                                  </InputAdornment>
-                                  {params.InputProps?.startAdornment}
-                                </>
-                              ),
+                            slotProps={{
+                              ...params.slotProps,
+                              input: {
+                                ...params.slotProps.input,
+                                startAdornment: (
+                                  <>
+                                    <InputAdornment position="start">
+                                      <LocationOn sx={{ color: '#0c5283', fontSize: 20 }} />
+                                    </InputAdornment>
+                                    {params.slotProps.input.startAdornment}
+                                  </>
+                                ),
+                              },
                             }}
                           />
                         )}
@@ -1026,7 +1100,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                     <Grid size={{ xs: 12 }}>
                       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
                         <CardContent>
-                          <Grid container spacing={2.5} alignItems="center">
+                          <Grid container spacing={2.5} sx={{ alignItems: "center" }}>
                             <Grid size={{ xs: 12, sm: 5 }}>
                               <Box
                                 sx={{
@@ -1049,11 +1123,11 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                                   />
                                 ) : (
-                                  <Stack alignItems="center" spacing={1}>
+                                  <Stack spacing={1} sx={{ alignItems: "center" }}>
                                     <Avatar sx={{ width: 64, height: 64, bgcolor: 'primary.main' }}>
                                       {candidateName.charAt(0)}
                                     </Avatar>
-                                    <Typography variant="body2" color="text.secondary" textAlign="center">
+                                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
                                       Image preview
                                     </Typography>
                                   </Stack>
@@ -1062,7 +1136,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                             </Grid>
 
                             <Grid size={{ xs: 12, sm: 7 }}>
-                              <Stack spacing={1.5} alignItems="flex-start">
+                              <Stack spacing={1.5} sx={{ alignItems: "flex-start" }}>
                                 <Box>
                                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                                     Profile Image
@@ -1432,16 +1506,19 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                         fullWidth
                         label="Level of Education"
                         placeholder="Select or search degree level"
-                        InputProps={{
-                          ...(params.InputProps || {}),
-                          startAdornment: (
-                            <>
-                              <InputAdornment position="start">
-                                <School sx={{ color: '#0c5283', fontSize: 20 }} />
-                              </InputAdornment>
-                              {params.InputProps?.startAdornment}
-                            </>
-                          ),
+                        slotProps={{
+                          ...params.slotProps,
+                          input: {
+                            ...params.slotProps.input,
+                            startAdornment: (
+                              <>
+                                <InputAdornment position="start">
+                                  <School sx={{ color: '#0c5283', fontSize: 20 }} />
+                                </InputAdornment>
+                                {params.slotProps.input.startAdornment}
+                              </>
+                            ),
+                          },
                         }}
                       />
                     )}
@@ -1752,7 +1829,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
               <Button
                 variant="outlined"
                 disabled={activeStep === 0}
-                onClick={() => setActiveStep((step) => step - 1)}
+                onClick={() => setActiveStep((step) => Math.max(step - 1, 0))}
                 sx={{ order: { xs: 2, sm: 0 }, width: { xs: '100%', sm: 'auto' } }}
               >
                 Previous
@@ -1770,7 +1847,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                   Save Draft
                 </Button>
                 {activeStep < steps.length - 1 ? (
-                  <Button variant="contained" onClick={() => setActiveStep((step) => step + 1)}>
+                  <Button variant="contained" onClick={() => goToStep(activeStep + 1)}>
                     Continue
                   </Button>
                 ) : (

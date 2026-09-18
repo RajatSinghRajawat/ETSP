@@ -80,7 +80,7 @@ const CandidateResumePreviewModal: React.FC<CandidateResumePreviewModalProps> = 
       fullScreen
       disableEnforceFocus
       disableRestoreFocus
-      PaperProps={{ sx: { bgcolor: '#f5f5f0' } }}
+      slotProps={{ paper: { sx: { bgcolor: '#f5f5f0' } } }}
     >
       <Box
         sx={{
@@ -95,7 +95,7 @@ const CandidateResumePreviewModal: React.FC<CandidateResumePreviewModalProps> = 
           bgcolor: 'background.paper',
         }}
       >
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", minWidth: 0 }}>
           <Box
             sx={{
               width: 40,
@@ -119,7 +119,7 @@ const CandidateResumePreviewModal: React.FC<CandidateResumePreviewModalProps> = 
           </Box>
         </Stack>
 
-        <Stack direction="row" spacing={{ xs: 0.5, sm: 1.5 }} alignItems="center" sx={{ flexShrink: 0 }}>
+        <Stack direction="row" spacing={{ xs: 0.5, sm: 1.5 }} sx={{ alignItems: "center", flexShrink: 0 }}>
           <Button
             variant="contained"
             {...(fileUrl
@@ -169,7 +169,7 @@ const CandidateResumePreviewModal: React.FC<CandidateResumePreviewModalProps> = 
         }}
       >
         {isLoading && (
-          <Stack alignItems="center" spacing={2} sx={{ mt: 6 }}>
+          <Stack spacing={2} sx={{ alignItems: "center", mt: 6 }}>
             <CircularProgress />
             <Typography color="text.secondary">Loading resume…</Typography>
           </Stack>

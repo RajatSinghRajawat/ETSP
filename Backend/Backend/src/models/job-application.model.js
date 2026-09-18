@@ -44,6 +44,16 @@ const jobApplicationSchema = new mongoose.Schema(
       index: true,
     },
 
+    // The employer's private triage mark from the applicant list (the ✓ / ? / ✗
+    // buttons). Deliberately separate from `status`: it never notifies the
+    // candidate and never moves the application through the hiring pipeline.
+    employerInterest: {
+      type: String,
+      enum: ['', 'interested', 'undecided', 'not_interested'],
+      default: '',
+      index: true,
+    },
+
     // Set the first time the employer opens the application detail page, so the
     // candidate can see that their application was actually looked at.
     viewedByEmployer: { type: Boolean, default: false, index: true },

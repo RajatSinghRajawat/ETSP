@@ -4,10 +4,11 @@ import {
   getJobPosts,
   getMyJobPosts,
   updateJobPost,
+  updateJobPostStatus,
 } from '../controllers/job.controller.js';
 import { authenticate, authenticateOptional } from '../middlewares/auth.js';
 import { validateBody } from '../middlewares/validate.js';
-import { jobSchema } from '../validations/job.validation.js';
+import { jobSchema, jobStatusSchema } from '../validations/job.validation.js';
 
 export async function jobRoutes(app) {
   app.get('/my', { preHandler: authenticate }, getMyJobPosts);
@@ -21,4 +22,7 @@ export async function jobRoutes(app) {
   app.put('/:id', {
     preHandler: [authenticate, validateBody(jobSchema)],
   }, updateJobPost);
+  app.patch('/:id/status', {
+    preHandler: [authenticate, validateBody(jobStatusSchema)],
+  }, updateJobPostStatus);
 }

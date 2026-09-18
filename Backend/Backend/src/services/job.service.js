@@ -6,7 +6,7 @@ import { AppError } from '../utils/app-error.js';
 import { autoApplyNewJobInBackground } from './auto-apply.service.js';
 import { assertCanPostJob, consumeJobCredit } from './entitlement.service.js';
 import { notifyCandidatesOfJobInBackground } from './job-alert.service.js';
-import { indexJobInBackground } from './job-rag.service.js';
+import { indexJobInBackground, syncJobEmbeddingStatusInBackground } from './job-rag.service.js';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 9;
@@ -24,6 +24,22 @@ function toPositiveNumber(value, fallback) {
   }
 
   return Math.floor(parsed);
+}
+
+/**
+ * Job performance counters. Fire-and-forget: a failed counter must never break
+ * the listing or detail response the visitor actually asked for.
+ */
+function countImpressionsInBackground(jobIds) {
+  if (!jobIds.length) {
+    return;
+  }
+
+  Job.updateMany({ _id: { $in: jobIds } }, { $inc: { 'metrics.impressions': 1 } }).catch(() => {});
+}
+
+function countClickInBackground(jobId) {
+  Job.updateOne({ _id: jobId }, { $inc: { 'metrics.clicks': 1 } }).catch(() => {});
 }
 
 // Public listings only ever show live jobs: active, admin-approved AND not
@@ -231,6 +247,70 @@ export async function updateJob(user, id, input) {
     autoApplyNewJobInBackground(job.toObject());
   }
 
+  syncJobEmbeddingStatusInBackground(job._id, job.status);
+
+  return job.toObject();
+}
+
+/**
+ * Flip a job between draft / active / paused / closed without re-sending the
+ * whole post. Pausing or closing is always allowed; bringing a job back online
+ * goes through the same entitlement gate as posting it, so a paused job cannot
+ * be used to sidestep the plan's concurrent-active limit or its validity.
+ */
+export async function updateJobStatus(user, id, { status, useJobCredit = false }) {
+  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+    throw new AppError('Job not found', 404);
+  }
+
+  const employerProfile = await getEmployerForJob(user, { requireApproved: true });
+  const job = await Job.findById(id);
+
+  if (!job) {
+    throw new AppError('Job not found', 404);
+  }
+
+  if (String(job.employerProfile) !== String(employerProfile._id)) {
+    throw new AppError('You can only change the status of your own job postings', 403);
+  }
+
+  if (job.status === status) {
+    return job.toObject();
+  }
+
+  const wasLive =
+    job.status === 'active' && (!job.expiresAt || new Date(job.expiresAt) > new Date());
+
+  if (status === 'active' && !wasLive) {
+    const { jobSetup } = await assertCanPostJob(user, employerProfile._id, {
+      useJobCredit: useJobCredit || job.postedVia === 'pay_per_job',
+      wantsFeatured: Boolean(job.isFeatured),
+      hasScreeningQuestions: (job.screeningQuestions ?? []).length > 0,
+      excludeJobId: job._id,
+    });
+
+    job.postedVia = jobSetup.postedVia;
+    job.expiresAt = jobSetup.expiresAt;
+
+    if (jobSetup.jobCreditId) {
+      job.jobCredit = jobSetup.jobCreditId;
+      job.unlockCreditsTotal = job.unlockCreditsTotal + jobSetup.unlockCreditsTotal;
+      await consumeJobCredit(jobSetup.jobCreditId, job._id);
+    } else {
+      job.unlockCreditsTotal = Math.max(job.unlockCreditsTotal, jobSetup.unlockCreditsTotal);
+    }
+  }
+
+  job.status = status;
+  await job.save();
+
+  if (job.status === 'active') {
+    indexJobInBackground(job._id);
+    autoApplyNewJobInBackground(job.toObject());
+  }
+
+  syncJobEmbeddingStatusInBackground(job._id, job.status);
+
   return job.toObject();
 }
 
@@ -265,6 +345,8 @@ export async function getJobs(query, user) {
     applicationStatus: applicationMap ? applicationMap.get(String(job._id)) ?? null : null,
   }));
 
+  countImpressionsInBackground(items.map((job) => job._id));
+
   return {
     items: annotatedItems,
     pagination: {
@@ -284,6 +366,11 @@ export async function getJobById(id, user = null) {
   const job = await Job.findOne({ _id: id, ...liveJobFilter() }).lean();
 
   if (job) {
+    // The owner reviewing their own post is not a candidate click.
+    if (!user || (user.role !== 'admin' && job.employerEmail !== user.email)) {
+      countClickInBackground(job._id);
+    }
+
     return job;
   }
 

@@ -6,6 +6,7 @@ import {
   getEmployerApplications,
   getMyApplicationForJob,
   getMyCandidateApplications,
+  setEmployerApplicationInterest,
   updateEmployerApplicationStatus,
 } from '../services/job-application.service.js';
 
@@ -67,6 +68,20 @@ export async function getMyEmployerApplication(request) {
   return {
     success: true,
     message: 'Application fetched successfully',
+    data: application,
+  };
+}
+
+export async function patchEmployerApplicationInterest(request) {
+  const application = await setEmployerApplicationInterest(
+    request.user,
+    request.params.id,
+    request.body ?? {},
+  );
+
+  return {
+    success: true,
+    message: 'Candidate interest updated successfully',
     data: application,
   };
 }

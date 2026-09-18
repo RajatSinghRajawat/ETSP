@@ -1,6 +1,6 @@
 import { type ChangeEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -42,6 +42,7 @@ import { axiosInstance } from '../../../store/api/axiosInstance';
 import { API_ENDPOINTS } from '../../../store/api/endpoints';
 import { isValidPhone, phoneHtmlInputProps, sanitizePhone } from '../../../utils/phone';
 import { setAuthSession } from '../../../hooks/useAuth';
+import { safeRedirectPath } from '../../../utils/loginRedirect';
 
 type LoginStep = 'method' | 'otp';
 type LoginMethod = 'phone' | 'email';
@@ -117,7 +118,12 @@ const getApiErrorMessage = (error: unknown, fallback: string) => {
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const theme = useTheme();
+
+  // Set when the visitor was bounced here from a page that needed a session —
+  // sign-in takes them back to it instead of to the generic dashboard.
+  const redirectTo = safeRedirectPath(searchParams.get('redirect'));
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
 
   const [step, setStep] = useState<LoginStep>('method');
@@ -245,7 +251,9 @@ const LoginPage: React.FC = () => {
         user.role === 'employer' ? 'Employer' : user.role === 'admin' ? 'Admin' : 'Candidate';
       showToast(`Login successful — signed in as ${roleLabel}`, 'success');
 
-      if (user.role === 'candidate') {
+      if (redirectTo) {
+        navigate(redirectTo, { replace: true });
+      } else if (user.role === 'candidate') {
         navigate('/candidate/dashboard');
       } else if (user.role === 'employer') {
         navigate('/employer/dashboard');
@@ -396,7 +404,7 @@ const LoginPage: React.FC = () => {
         </Typography>
       </Divider>
 
-      <Stack direction="row" spacing={1.2} alignItems="center" justifyContent="center" sx={{ mb: 3 }}>
+      <Stack direction="row" spacing={1.2} sx={{ alignItems: "center", justifyContent: "center", mb: 3 }}>
         <LockOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
         <Typography variant="caption" color="text.secondary">
           Your data is encrypted and protected
@@ -719,7 +727,7 @@ const LoginPage: React.FC = () => {
                 <LoginAnimation />
 
                 <Box sx={{ position: 'relative', zIndex: 1 }}>
-                  <Stack direction="row" alignItems="center" spacing={1.2} sx={{ mb: 4 }}>
+                  <Stack direction="row" spacing={1.2} sx={{ alignItems: "center", mb: 4 }}>
                     <Box
                       sx={{
                         width: 44,
@@ -756,8 +764,7 @@ const LoginPage: React.FC = () => {
                       <Stack
                         key={item.label}
                         direction="row"
-                        spacing={1.5}
-                        alignItems="center"
+                        spacing={1.5} sx={{ alignItems: "center" }}
                       >
                         <Box
                           sx={{

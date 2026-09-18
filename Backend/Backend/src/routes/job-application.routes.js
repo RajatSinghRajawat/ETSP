@@ -7,11 +7,13 @@ import {
   getMyEmployerApplicationCounts,
   getMyEmployerApplications,
   patchEmployerApplication,
+  patchEmployerApplicationInterest,
   postAutoApply,
 } from '../controllers/job-application.controller.js';
 import { authenticate } from '../middlewares/auth.js';
 import { validateBody } from '../middlewares/validate.js';
 import {
+  applicationInterestSchema,
   applicationStatusUpdateSchema,
   autoApplySchema,
   jobApplicationSchema,
@@ -38,4 +40,7 @@ export async function jobApplicationRoutes(app) {
   app.patch('/employer/:id', {
     preHandler: [authenticate, validateBody(applicationStatusUpdateSchema)],
   }, patchEmployerApplication);
+  app.patch('/employer/:id/interest', {
+    preHandler: [authenticate, validateBody(applicationInterestSchema)],
+  }, patchEmployerApplicationInterest);
 }

@@ -29,6 +29,7 @@ export const API_ENDPOINTS = {
   jobs: `${API_VERSION}/jobs`,
   myJobs: `${API_VERSION}/jobs/my`,
   jobById: (id: string) => `${API_VERSION}/jobs/${id}`,
+  jobStatusById: (id: string) => `${API_VERSION}/jobs/${id}/status`,
   applications: `${API_VERSION}/applications`,
   myApplications: `${API_VERSION}/applications/me`,
   myApplicationStatus: (jobId: string) => `${API_VERSION}/applications/me/job/${jobId}`,
@@ -36,6 +37,8 @@ export const API_ENDPOINTS = {
   employerApplications: `${API_VERSION}/applications/employer`,
   employerApplicationCounts: `${API_VERSION}/applications/employer/counts`,
   employerApplicationById: (id: string) => `${API_VERSION}/applications/employer/${id}`,
+  employerApplicationInterestById: (id: string) =>
+    `${API_VERSION}/applications/employer/${id}/interest`,
   verificationStatus: `${API_VERSION}/verification/status`,
   verifyEmailSend: `${API_VERSION}/verification/email/send`,
   verifyEmailConfirm: `${API_VERSION}/verification/email/confirm`,

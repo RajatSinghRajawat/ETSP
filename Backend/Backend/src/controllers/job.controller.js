@@ -4,6 +4,7 @@ import {
   getJobs,
   getMyJobs,
   updateJob,
+  updateJobStatus,
 } from '../services/job.service.js';
 
 export async function createJobPost(request, reply) {
@@ -22,6 +23,16 @@ export async function updateJobPost(request) {
   return {
     success: true,
     message: 'Job updated successfully',
+    data: job,
+  };
+}
+
+export async function updateJobPostStatus(request) {
+  const job = await updateJobStatus(request.user, request.params.id, request.body);
+
+  return {
+    success: true,
+    message: 'Job status updated successfully',
     data: job,
   };
 }

@@ -1,6 +1,5 @@
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -39,7 +38,7 @@ interface ChatContextValue {
 
 const ChatContext = createContext<ChatContextValue | null>(null);
 
-function readAuth() {
+function readAuth(): { token: string | null; role: 'employer' | 'candidate' | null } {
   try {
     const token = localStorage.getItem('ets-access-token');
     const raw = localStorage.getItem('user');

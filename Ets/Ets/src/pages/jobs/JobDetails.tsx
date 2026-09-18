@@ -283,7 +283,7 @@ const JobDetails: React.FC = () => {
               }}
             />
           </Box>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3, flexWrap: 'wrap', gap: 1 }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 3, flexWrap: 'wrap', gap: 1 }}>
             <Typography variant="h6" sx={{ fontWeight: 400, opacity: 0.9 }}>
               {job.companyName}
             </Typography>

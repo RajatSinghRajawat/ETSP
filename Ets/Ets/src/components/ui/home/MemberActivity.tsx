@@ -38,6 +38,7 @@ const APPLICATION_STATUS_COLOR: Record<ApplicationStatus, 'default' | 'info' | '
 const JOB_STATUS_COLOR: Record<JobStatus, 'default' | 'success' | 'warning' | 'error'> = {
   draft: 'default',
   active: 'success',
+  paused: 'warning',
   closed: 'warning',
   expired: 'error',
 };

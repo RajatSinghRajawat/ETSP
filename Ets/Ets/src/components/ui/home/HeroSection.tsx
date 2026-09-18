@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Container, Typography, TextField, Chip, Paper, Grid } from '@mui/material';
+import { Box, Container, Typography, TextField, Chip, Paper } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
 import { CustomButton } from '../../common';
 

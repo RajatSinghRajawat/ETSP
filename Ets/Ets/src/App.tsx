@@ -25,6 +25,7 @@ import EmployerEmployeeView from './pages/employer/EmployerEmployeeView';
 import EmployerApplications from './pages/employer/EmployerApplications';
 import EmployerApplicationDetails from './pages/employer/EmployerApplicationDetails';
 import EmployerJobApplicants from './pages/employer/EmployerJobApplicants';
+import EmployerJobView from './pages/employer/EmployerJobView';
 import CandidateDashboard from './pages/candidate/CandidateDashboard';
 import SavedJobs from './pages/candidate/SavedJobs';
 import CandidateSupport from './pages/support/CandidateSupport';
@@ -35,6 +36,8 @@ import BillingSuccess from './pages/billing/BillingSuccess';
 import ChatBotWidget from './components/common/ChatBotWidget';
 import UpgradeDialog from './components/common/UpgradeDialog';
 import ProfileApprovalBanner from './components/common/ProfileApprovalBanner';
+import RequireAuth from './components/common/RequireAuth';
+import SessionExpiredRedirect from './components/common/SessionExpiredRedirect';
 import AdBanner from './components/common/AdBanner';
 import { ChatProvider } from './context/ChatContext';
 import { ToastContainer } from 'react-toastify';
@@ -78,26 +81,28 @@ function App() {
               <Route path="/jobs/:id" element={<JobDetails />} />
               <Route path="/find-job" element={<FindJob />} />
               <Route path="/employers" element={<Employers />} />
-              <Route path="/employer/dashboard" element={<EmployerDashboard />} />
-              <Route path="/employer/post-job" element={<EmployerPostJob />} />
-              <Route path="/employer/edit-job/:id" element={<EmployerPostJob />} />
-              <Route path="/employer/employees" element={<EmployerEmployees />} />
-              <Route path="/employer/employees/:id" element={<EmployerEmployeeView />} />
-              <Route path="/employer/applications" element={<EmployerApplications />} />
-              <Route path="/employer/applications/:id" element={<EmployerApplicationDetails />} />
-              <Route path="/employer/jobs/:id/applicants" element={<EmployerJobApplicants />} />
-              <Route path="/employer/profile" element={<EmployerProfileCreate showSidebar />} />
+              <Route path="/employer/dashboard" element={<RequireAuth role="employer"><EmployerDashboard /></RequireAuth>} />
+              <Route path="/employer/post-job" element={<RequireAuth role="employer"><EmployerPostJob /></RequireAuth>} />
+              <Route path="/employer/edit-job/:id" element={<RequireAuth role="employer"><EmployerPostJob /></RequireAuth>} />
+              <Route path="/employer/employees" element={<RequireAuth role="employer"><EmployerEmployees /></RequireAuth>} />
+              <Route path="/employer/employees/:id" element={<RequireAuth role="employer"><EmployerEmployeeView /></RequireAuth>} />
+              <Route path="/employer/applications" element={<RequireAuth role="employer"><EmployerApplications /></RequireAuth>} />
+              <Route path="/employer/applications/:id" element={<RequireAuth role="employer"><EmployerApplicationDetails /></RequireAuth>} />
+              <Route path="/employer/jobs/:id" element={<RequireAuth role="employer"><EmployerJobView /></RequireAuth>} />
+              <Route path="/employer/jobs/:id/applicants" element={<RequireAuth role="employer"><EmployerJobApplicants /></RequireAuth>} />
+              <Route path="/employer/profile" element={<RequireAuth role="employer"><EmployerProfileCreate showSidebar /></RequireAuth>} />
               <Route path="/employer/profile/:id" element={<EmployerProfileView />} />
-              <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
-              <Route path="/candidate/saved-jobs" element={<SavedJobs />} />
-              <Route path="/candidate/profile" element={<CandidateProfileCreate showSidebar />} />
-              <Route path="/candidate/support" element={<CandidateSupport />} />
-              <Route path="/employer/support" element={<EmployerSupport />} />
+              <Route path="/candidate/dashboard" element={<RequireAuth role="candidate"><CandidateDashboard /></RequireAuth>} />
+              <Route path="/candidate/saved-jobs" element={<RequireAuth role="candidate"><SavedJobs /></RequireAuth>} />
+              <Route path="/candidate/profile" element={<RequireAuth role="candidate"><CandidateProfileCreate showSidebar /></RequireAuth>} />
+              <Route path="/candidate/support" element={<RequireAuth role="candidate"><CandidateSupport /></RequireAuth>} />
+              <Route path="/employer/support" element={<RequireAuth role="employer"><EmployerSupport /></RequireAuth>} />
               <Route path="/pricing" element={<Pricing />} />
-              <Route path="/billing/success" element={<BillingSuccess />} />
+              <Route path="/billing/success" element={<RequireAuth><BillingSuccess /></RequireAuth>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Box>
+          <SessionExpiredRedirect />
           <ChatBotWidget />
           <UpgradeDialog />
           {/* Sits above the fixed navbar (zIndex 1201) and the chat drawer. */}

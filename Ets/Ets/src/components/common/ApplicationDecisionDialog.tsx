@@ -58,6 +58,10 @@ type Props = {
   candidateName?: string;
   /** Pre-selected stage when accepting. */
   currentStatus?: ApplicationStatus;
+  /** Overrides the stage the accept flow opens on — set by the quick actions. */
+  initialStage?: 'shortlisted' | 'hired';
+  /** Overrides the dialog heading so a quick action can name what it does. */
+  heading?: string;
   onClose: () => void;
   onDone?: (message: string) => void;
 };
@@ -73,6 +77,8 @@ const ApplicationDecisionDialog: React.FC<Props> = ({
   applicationId,
   candidateName,
   currentStatus,
+  initialStage,
+  heading,
   onClose,
   onDone,
 }) => {
@@ -87,13 +93,13 @@ const ApplicationDecisionDialog: React.FC<Props> = ({
   // Reset the form each time a dialog is opened for a (possibly new) application.
   useEffect(() => {
     if (!decision) return;
-    setAcceptStage(currentStatus === 'hired' ? 'hired' : 'shortlisted');
+    setAcceptStage(initialStage ?? (currentStatus === 'hired' ? 'hired' : 'shortlisted'));
     setInterviewAt('');
     setInterviewMode('');
     setInterviewLocation('');
     setMessage('');
     setError('');
-  }, [decision, applicationId, currentStatus]);
+  }, [decision, applicationId, currentStatus, initialStage]);
 
   const handleSubmit = async () => {
     const trimmed = message.trim();
@@ -143,7 +149,7 @@ const ApplicationDecisionDialog: React.FC<Props> = ({
       slotProps={{ paper: { sx: { borderRadius: 4 } } }}
     >
       <DialogTitle sx={{ fontWeight: 800 }}>
-        {decision === 'reject' ? 'Reject this application' : 'Accept this candidate'}
+        {heading ?? (decision === 'reject' ? 'Reject this application' : 'Accept this candidate')}
         {candidateName && (
           <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
             {candidateName}

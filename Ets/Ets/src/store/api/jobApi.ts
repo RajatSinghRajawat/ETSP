@@ -2,7 +2,16 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './axiosBaseQuery';
 import { API_ENDPOINTS } from './endpoints';
 
-export type JobStatus = 'draft' | 'active' | 'closed' | 'expired';
+export type JobStatus = 'draft' | 'active' | 'paused' | 'closed' | 'expired';
+
+/** Statuses the employer can set themselves — 'expired' is set by the sweep. */
+export type EditableJobStatus = Exclude<JobStatus, 'expired'>;
+
+/** Job performance counters, tracked server-side on public listings/views. */
+export type JobMetrics = {
+  impressions: number;
+  clicks: number;
+};
 
 export type ScreeningQuestion = { question: string };
 
@@ -38,6 +47,7 @@ export type JobResponse = JobPayload & {
   postedVia?: 'free' | 'pay_per_job' | 'premium';
   unlockCreditsTotal?: number;
   unlockCreditsUsed?: number;
+  metrics?: JobMetrics;
   screeningQuestions?: ScreeningQuestion[];
   // Present on public job listings when a candidate is signed in.
   hasApplied?: boolean;
@@ -114,6 +124,18 @@ export const jobApi = createApi({
       }),
       invalidatesTags: (_result, _error, { id }) => ['Job', { type: 'Job', id }],
     }),
+    /** Pause / reopen / close without re-sending the whole job post. */
+    updateJobStatus: builder.mutation<
+      ApiResponse<JobResponse>,
+      { id: string; status: EditableJobStatus; useJobCredit?: boolean }
+    >({
+      query: ({ id, status, useJobCredit = false }) => ({
+        url: API_ENDPOINTS.jobStatusById(id),
+        method: 'PATCH',
+        data: { status, useJobCredit },
+      }),
+      invalidatesTags: (_result, _error, { id }) => ['Job', { type: 'Job', id }],
+    }),
   }),
 });
 
@@ -123,4 +145,5 @@ export const {
   useGetJobsQuery,
   useGetMyJobsQuery,
   useUpdateJobMutation,
+  useUpdateJobStatusMutation,
 } = jobApi;

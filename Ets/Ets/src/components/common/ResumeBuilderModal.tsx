@@ -155,7 +155,7 @@ export default function ResumeBuilderModal({ open, onClose, candidateName = 'Can
       fullScreen
       disableEnforceFocus
       disableRestoreFocus
-      PaperProps={{ sx: { bgcolor: '#f5f5f0' } }}
+      slotProps={{ paper: { sx: { bgcolor: '#f5f5f0' } } }}
     >
       {/* Header */}
       <DialogTitle
@@ -298,7 +298,7 @@ export default function ResumeBuilderModal({ open, onClose, candidateName = 'Can
         {/* Fetching saved resume */}
         {isFetching && (
           <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Stack alignItems="center" spacing={2}>
+            <Stack spacing={2} sx={{ alignItems: "center" }}>
               <CircularProgress sx={{ color: '#0ab6a2' }} />
               <Typography variant="body2" color="text.secondary">Loading your resume…</Typography>
             </Stack>
@@ -316,7 +316,7 @@ export default function ResumeBuilderModal({ open, onClose, candidateName = 'Can
               bgcolor: 'background.paper',
             }}
           >
-            <Stack alignItems="center" spacing={3}>
+            <Stack spacing={3} sx={{ alignItems: "center" }}>
               <Box
                 sx={{
                   width: 72,
@@ -330,7 +330,7 @@ export default function ResumeBuilderModal({ open, onClose, candidateName = 'Can
               >
                 <CircularProgress sx={{ color: '#0ab6a2' }} size={36} />
               </Box>
-              <Box textAlign="center">
+              <Box sx={{ textAlign: "center" }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Crafting your resume…
                 </Typography>
@@ -353,7 +353,7 @@ export default function ResumeBuilderModal({ open, onClose, candidateName = 'Can
               bgcolor: 'background.paper',
             }}
           >
-            <Stack alignItems="center" spacing={3} sx={{ maxWidth: 400, textAlign: 'center', p: 4 }}>
+            <Stack spacing={3} sx={{ alignItems: "center", maxWidth: 400, textAlign: 'center', p: 4 }}>
               <Box
                 sx={{
                   width: 80,
@@ -434,7 +434,7 @@ export default function ResumeBuilderModal({ open, onClose, candidateName = 'Can
               fullWidth
               value={htmlDraft}
               onChange={(e) => setHtmlDraft(e.target.value)}
-              inputProps={{ style: { fontFamily: 'monospace', fontSize: 12 } }}
+              slotProps={{ htmlInput: { style: { fontFamily: 'monospace', fontSize: 12 } } }}
               sx={{ flex: 1, '& .MuiInputBase-root': { height: '100%', alignItems: 'flex-start' } }}
               minRows={30}
             />

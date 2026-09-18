@@ -12,6 +12,10 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function toPositiveNumber(value, fallback) {
   const parsed = Number(value);
 
@@ -261,6 +265,12 @@ export async function createJobApplication(user, input) {
   }
 }
 
+const APPLICATION_SORTS = {
+  newest: { createdAt: -1 },
+  oldest: { createdAt: 1 },
+  status: { status: 1, createdAt: -1 },
+};
+
 export async function getEmployerApplications(user, query = {}) {
   const employerProfile = await getEmployerProfileForUser(user);
   const page = toPositiveNumber(query.page, DEFAULT_PAGE);
@@ -276,14 +286,45 @@ export async function getEmployerApplications(user, query = {}) {
     filters.job = String(query.job).trim();
   }
 
+  if (query.interest) {
+    const interest = String(query.interest).trim();
+    filters.employerInterest = interest === 'unmarked' ? { $in: ['', null] } : interest;
+  }
+
+  // Candidate-side filters (name / location / search) have to be resolved
+  // against CandidateProfile first, since they are not on the application.
+  const candidateFilters = {};
+
+  if (query.location) {
+    candidateFilters.currentLocation = new RegExp(escapeRegex(String(query.location).trim()), 'i');
+  }
+
+  if (query.search) {
+    const keyword = new RegExp(escapeRegex(String(query.search).trim()), 'i');
+    candidateFilters.$or = [
+      { firstName: keyword },
+      { lastName: keyword },
+      { currentJobTitle: keyword },
+      { currentLocation: keyword },
+      { skills: keyword },
+    ];
+  }
+
+  if (Object.keys(candidateFilters).length > 0) {
+    const matches = await CandidateProfile.find(candidateFilters).select('_id').lean();
+    filters.candidateProfile = { $in: matches.map((row) => row._id) };
+  }
+
+  const sort = APPLICATION_SORTS[String(query.sort ?? '').trim()] ?? APPLICATION_SORTS.newest;
+
   const [items, total] = await Promise.all([
     JobApplication.find(filters)
       .populate('job', 'title location type salary status')
       .populate(
         'candidateProfile',
-        'firstName lastName email phone currentJobTitle currentLocation skills photoUrl degree subscriptionTier subscriptionExpiresAt emailVerified phoneVerified',
+        'firstName lastName email phone currentJobTitle currentLocation skills photoUrl degree educationLevel subscriptionTier subscriptionExpiresAt emailVerified phoneVerified',
       )
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limit)
       .lean(),
@@ -343,6 +384,48 @@ export async function getEmployerApplicationCounts(user) {
   }
 
   return { byJob, total };
+}
+
+const EMPLOYER_INTERESTS = ['', 'interested', 'undecided', 'not_interested'];
+
+/**
+ * The employer's private ✓ / ? / ✗ triage mark on an applicant. Intentionally
+ * does NOT touch `status` or notify the candidate — moving someone through the
+ * pipeline is `updateEmployerApplicationStatus`.
+ */
+export async function setEmployerApplicationInterest(user, id, input = {}) {
+  const employerProfile = await getEmployerProfileForUser(user);
+  const interest = String(input.interest ?? '');
+
+  if (!/^[0-9a-fA-F]{24}$/.test(String(id))) {
+    throw new AppError('Invalid application id', 400);
+  }
+
+  if (!EMPLOYER_INTERESTS.includes(interest)) {
+    throw new AppError('Invalid interest value', 400);
+  }
+
+  const application = await JobApplication.findOneAndUpdate(
+    { _id: id, employerProfile: employerProfile._id },
+    { $set: { employerInterest: interest, viewedByEmployer: true } },
+    { new: true, runValidators: true },
+  )
+    .populate('job', 'title location type salary status')
+    .populate('candidateProfile')
+    .lean();
+
+  if (!application) {
+    throw new AppError('Application not found', 404);
+  }
+
+  const { effectiveFeatures } = await getEmployerContext(user);
+  const [masked] = await maskApplicationsForEmployer({
+    effectiveFeatures,
+    employerProfileId: employerProfile._id,
+    applications: [application],
+  });
+
+  return masked;
 }
 
 export async function getEmployerApplication(user, id) {

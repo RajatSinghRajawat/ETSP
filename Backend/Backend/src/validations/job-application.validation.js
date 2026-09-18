@@ -51,6 +51,11 @@ export const applicationStatusUpdateSchema = z
     }
   });
 
+/** The employer's private triage mark on an applicant (the checkmark row). */
+export const applicationInterestSchema = z.object({
+  interest: z.enum(['', 'interested', 'undecided', 'not_interested']),
+});
+
 export const autoApplySchema = z.object({
   enabled: z.boolean(),
 });

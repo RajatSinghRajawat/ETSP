@@ -6,6 +6,9 @@ import { API_ENDPOINTS } from './endpoints';
 
 export type ApplicationStatus = 'new' | 'reviewing' | 'shortlisted' | 'rejected' | 'hired';
 
+/** The employer's private ✓ / ? / ✗ triage mark; '' means not marked yet. */
+export type EmployerInterest = '' | 'interested' | 'undecided' | 'not_interested';
+
 export type ScreeningAnswer = { question: string; answer: string };
 
 export type InterviewMode = 'in_person' | 'video' | 'phone' | '';
@@ -51,6 +54,7 @@ export type JobApplicationResponse = {
   coverLetter: string;
   screeningAnswers?: ScreeningAnswer[];
   status: ApplicationStatus;
+  employerInterest?: EmployerInterest;
   viewedByEmployer?: boolean;
   viewedAt?: string | null;
   employerMessage?: string;
@@ -75,9 +79,18 @@ export type EmployerApplicationCounts = {
   total: number;
 };
 
+/** Order of the employer's applicant list. */
+export type ApplicationSort = 'newest' | 'oldest' | 'status';
+
 export type ApplicationListParams = {
   status?: ApplicationStatus | '';
   job?: string;
+  /** Matches candidate name, headline, location or skills. */
+  search?: string;
+  location?: string;
+  /** An interest mark, or 'unmarked' for applicants not triaged yet. */
+  interest?: EmployerInterest | 'unmarked';
+  sort?: ApplicationSort;
   page?: number;
   limit?: number;
 };
@@ -202,6 +215,21 @@ export const applicationApi = createApi({
       }),
       invalidatesTags: ['AutoApply', 'MyApplication'],
     }),
+    /**
+     * Private triage mark. Kept separate from the status mutation because it
+     * must not notify the candidate or move them through the pipeline.
+     */
+    setEmployerApplicationInterest: builder.mutation<
+      ApiResponse<JobApplicationResponse>,
+      { id: string; interest: EmployerInterest }
+    >({
+      query: ({ id, interest }) => ({
+        url: API_ENDPOINTS.employerApplicationInterestById(id),
+        method: 'PATCH',
+        data: { interest },
+      }),
+      invalidatesTags: (_result, _error, { id }) => ['Application', { type: 'Application', id }],
+    }),
     updateEmployerApplication: builder.mutation<
       ApiResponse<JobApplicationResponse>,
       ApplicationDecisionPayload
@@ -225,5 +253,6 @@ export const {
   useGetMyApplicationsQuery,
   useGetMyApplicationStatusQuery,
   useSetAutoApplyMutation,
+  useSetEmployerApplicationInterestMutation,
   useUpdateEmployerApplicationMutation,
 } = applicationApi;

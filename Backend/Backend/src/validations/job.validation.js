@@ -10,7 +10,7 @@ export const jobSchema = z.object({
   experience: z.string().trim().min(1, 'Experience is required').max(40),
   education: z.string().trim().min(1, 'Education is required').max(120),
   benefits: z.string().trim().default(''),
-  status: z.enum(['draft', 'active', 'closed']).default('active'),
+  status: z.enum(['draft', 'active', 'paused', 'closed']).default('active'),
   // Premium feature — gated in the service against the plan's featured limit.
   isFeatured: z.boolean().default(false),
   // Paid-plan feature — gated in the service.
@@ -19,5 +19,12 @@ export const jobSchema = z.object({
     .max(5)
     .default([]),
   // Post using a purchased Pay Per Job credit instead of the base plan slot.
+  useJobCredit: z.boolean().default(false),
+});
+
+/** Quick status flip from the employer's job list / job detail header. */
+export const jobStatusSchema = z.object({
+  status: z.enum(['draft', 'active', 'paused', 'closed']),
+  // Only read when reopening a job that was posted with a Pay Per Job credit.
   useJobCredit: z.boolean().default(false),
 });

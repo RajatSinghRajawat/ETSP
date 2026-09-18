@@ -17,7 +17,6 @@ import {
   Verified,
   ArrowForward,
   AttachMoney,
-  AccessTime,
   Bolt,
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';

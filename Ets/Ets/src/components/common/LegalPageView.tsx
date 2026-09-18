@@ -8,7 +8,7 @@ import {
   ContactSupport,
   Description,
 } from '@mui/icons-material';
-import type { SiteLegalPage } from '../store/api/siteContentApi';
+import type { SiteLegalPage } from '../../store/api/siteContentApi';
 
 const SECTION_ICONS = [Storage, Lock, Share, Cookie, Gavel, Description];
 

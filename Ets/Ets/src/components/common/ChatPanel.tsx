@@ -150,7 +150,7 @@ const ChatPanel: React.FC = () => {
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>{threadHeader.name}</Typography>
               {threadHeader.jobTitle && (
-                <Stack direction="row" spacing={0.5} alignItems="center">
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
                   <WorkOutline sx={{ fontSize: 13, opacity: 0.85 }} />
                   <Typography variant="caption" sx={{ opacity: 0.9 }} noWrap>{threadHeader.jobTitle}</Typography>
                 </Stack>

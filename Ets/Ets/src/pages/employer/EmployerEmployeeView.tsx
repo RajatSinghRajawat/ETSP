@@ -195,10 +195,7 @@ const EmployerEmployeeView: React.FC = () => {
 
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
-          spacing={1.5}
-          alignItems={{ xs: 'stretch', sm: 'center' }}
-          justifyContent="space-between"
-          sx={{ mb: 2 }}
+          spacing={1.5} sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: "space-between", mb: 2 }}
         >
           <Button
             startIcon={<ArrowBack />}

@@ -673,7 +673,7 @@ const ChatBotWidget: React.FC = () => {
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography sx={{ fontWeight: 700, lineHeight: 1.2 }}>VetBot</Typography>
-              <Stack direction="row" spacing={0.8} alignItems="center">
+              <Stack direction="row" spacing={0.8} sx={{ alignItems: "center" }}>
                 <Box
                   sx={{
                     width: 8,
@@ -1043,7 +1043,7 @@ const ChatBotWidget: React.FC = () => {
                 },
               }}
             />
-            <Stack direction="row" spacing={0.6} alignItems="center" sx={{ mt: 0.8, pl: 0.5 }}>
+            <Stack direction="row" spacing={0.6} sx={{ alignItems: "center", mt: 0.8, pl: 0.5 }}>
               <AutoAwesome sx={{ fontSize: 12, color: '#0ab6a2' }} />
               <Typography variant="caption" color="text.secondary">
                 Powered by VetsLinked AI
@@ -1243,7 +1243,7 @@ const JobMatchCard: React.FC<JobMatchCardProps> = ({ job, onOpen }) => {
         },
       }}
     >
-      <Stack direction="row" alignItems="flex-start" spacing={1.2}>
+      <Stack direction="row" spacing={1.2} sx={{ alignItems: "flex-start" }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography
             sx={{

@@ -325,9 +325,9 @@ export function LookupChipPicker({
           }
           onChange([...new Set(next.map((item) => getKey(item)))]);
         }}
-        renderTags={(tagValue, getTagProps) =>
-          tagValue.map((option, index) => {
-            const { key, ...tagProps } = getTagProps({ index });
+        renderValue={(selected, getItemProps) =>
+          selected.map((option, index) => {
+            const { key, ...tagProps } = getItemProps({ index });
             return (
               <Chip
                 key={key}

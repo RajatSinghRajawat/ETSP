@@ -137,7 +137,7 @@ const Signup: React.FC = () => {
                 />
 
                 <Box sx={{ position: 'relative', zIndex: 1 }}>
-                  <Stack direction="row" alignItems="center" spacing={1.2} sx={{ mb: 3 }}>
+                  <Stack direction="row" spacing={1.2} sx={{ alignItems: "center", mb: 3 }}>
                     <Box
                       sx={{
                         width: 44,
@@ -177,8 +177,7 @@ const Signup: React.FC = () => {
                       <Stack
                         key={item.label}
                         direction="row"
-                        spacing={1.5}
-                        alignItems="center"
+                        spacing={1.5} sx={{ alignItems: "center" }}
                       >
                         <Box
                           sx={{
@@ -311,9 +310,7 @@ const Signup: React.FC = () => {
 
               <Stack
                 direction={{ xs: 'column-reverse', sm: 'row' }}
-                spacing={2}
-                justifyContent="space-between"
-                alignItems="center"
+                spacing={2} sx={{ alignItems: "center", justifyContent: "space-between" }}
               >
                 <Button
                   variant="text"
@@ -437,7 +434,7 @@ const RoleCard: React.FC<RoleCardProps> = ({
         />
       )}
 
-      <Stack direction="row" spacing={2.5} alignItems="flex-start">
+      <Stack direction="row" spacing={2.5} sx={{ alignItems: "flex-start" }}>
         <Box
           sx={{
             flexShrink: 0,

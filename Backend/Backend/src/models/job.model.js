@@ -28,7 +28,10 @@ const jobSchema = new mongoose.Schema(
     benefits: { type: String, trim: true, default: '' },
     status: {
       type: String,
-      enum: ['draft', 'active', 'closed', 'expired'],
+      // 'paused' keeps the post and its applicants but pulls it out of every
+      // candidate-facing surface, so the employer can reopen it later without
+      // re-posting (and without burning another job credit).
+      enum: ['draft', 'active', 'paused', 'closed', 'expired'],
       default: 'active',
       index: true,
     },
@@ -59,6 +62,14 @@ const jobSchema = new mongoose.Schema(
     unlockCreditsUsed: { type: Number, default: 0 },
     // Paid-plan feature: questions candidates answer while applying (max 5).
     screeningQuestions: { type: [screeningQuestionSchema], default: [] },
+    // Job performance counters shown on the employer's job detail page.
+    // Incremented in the background; never part of any candidate response.
+    metrics: {
+      // Times the job was returned in a public listing page.
+      impressions: { type: Number, default: 0 },
+      // Times a visitor other than the owner opened the job detail.
+      clicks: { type: Number, default: 0 },
+    },
   },
   {
     timestamps: true,

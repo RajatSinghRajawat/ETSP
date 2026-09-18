@@ -116,6 +116,18 @@ export async function indexJob(jobId) {
   ).lean();
 }
 
+/**
+ * Mirror a status change onto the job's embedding so AI search stops returning
+ * a job the moment it is paused, closed or expired — re-embedding is only
+ * needed when the job's *text* changes, not its status.
+ */
+export function syncJobEmbeddingStatusInBackground(jobId, status) {
+  JobEmbedding.updateOne({ jobId }, { $set: { status } })
+    .catch((error) =>
+      logger.warn('syncJobEmbeddingStatus failed', { jobId: String(jobId), error: error.message }),
+    );
+}
+
 // Fire-and-forget wrapper so request handlers don't block on embedding calls.
 export function indexJobInBackground(jobId) {
   Promise.resolve()

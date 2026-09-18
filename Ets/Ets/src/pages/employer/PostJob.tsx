@@ -45,6 +45,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { indiaCityOptions, filterCityOptions } from '../../data/indiaCities';
 import Sidebar from '../../components/common/Sidebar';
 import { PageHeader } from '../../components/common/PageHeader';
+import { JOB_STATUS_META } from '../../components/employer/jobStatus';
 import {
   useCreateJobMutation,
   useGetJobQuery,
@@ -120,13 +121,6 @@ const actionAlertSx = {
     pt: { xs: 1, sm: 0.5 },
   },
 } as const;
-
-const STATUS_META: Record<JobPayload['status'], { label: string; color: string }> = {
-  active: { label: 'Active', color: '#0ab6a2' },
-  draft: { label: 'Draft', color: '#64748b' },
-  closed: { label: 'Closed', color: '#ef4444' },
-  expired: { label: 'Expired', color: '#b45309' },
-};
 
 const defaultJobForm: JobPayload = {
   title: '',
@@ -448,7 +442,9 @@ const PostJob: React.FC = () => {
     .map((item) => item.trim())
     .filter(Boolean);
   const salaryLabel = getSalaryLabel();
-  const statusMeta = STATUS_META[formData.status];
+  // Shared with the job list and job detail header, so a status added in one
+  // place can never leave another with an undefined label.
+  const statusMeta = JOB_STATUS_META[formData.status] ?? JOB_STATUS_META.draft;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
@@ -886,6 +882,7 @@ const PostJob: React.FC = () => {
                           onChange={(event) => updateField('status', event.target.value as JobPayload['status'])}
                         >
                           <MenuItem value="active">Active — visible to candidates</MenuItem>
+                          <MenuItem value="paused">Paused — hidden, applicants kept</MenuItem>
                           <MenuItem value="draft">Draft — hidden from candidates</MenuItem>
                           <MenuItem value="closed">Closed — not accepting applications</MenuItem>
                           {formData.status === 'expired' && (
