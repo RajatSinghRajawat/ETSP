@@ -1,11 +1,28 @@
-import { Box, Container, Typography, Card, CardContent, Chip, Button, Avatar, IconButton, Skeleton } from '@mui/material';
-import { LocationOn, AttachMoney, ArrowForward, AccessTime, Verified, BookmarkBorder, WorkOutlined } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
+import React, { useMemo } from 'react';
+import {
+  Box,
+  Container,
+  Typography,
+  Button,
+  Paper,
+  Stack,
+  Skeleton,
+} from '@mui/material';
+import {
+  ArrowForward,
+  WorkOutlineRounded,
+  LocalHospitalOutlined,
+} from '@mui/icons-material';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { useGetJobsQuery, type JobResponse } from '../../../store/api/jobApi';
-import { translateJobType } from '../../../i18n';
+import { useGetMySavedJobsQuery, useSaveJobMutation, useUnsaveJobMutation } from '../../../store/api/savedJobApi';
 import { useAuth } from '../../../hooks/useAuth';
+import { JobCard } from '../../common/JobCard';
+import SectionHeader from './SectionHeader';
+import { sectionActionSx } from './sectionStyles';
+import notify from '../../../utils/toast';
 
 function timeAgo(iso: string, t: TFunction): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -20,288 +37,190 @@ function timeAgo(iso: string, t: TFunction): string {
   return t('time_months_ago', { count: months });
 }
 
+const FeaturedJobsSkeleton: React.FC = () => (
+  <Paper
+    elevation={0}
+    sx={{
+      height: '100%',
+      borderRadius: '18px',
+      border: '1px solid #e2e8f0',
+      p: 2.5,
+      display: 'flex',
+      flexDirection: 'column',
+      bgcolor: '#ffffff',
+    }}
+  >
+    <Stack direction="row" spacing={1.75} sx={{ alignItems: 'flex-start' }}>
+      <Skeleton variant="rounded" width={50} height={50} sx={{ borderRadius: '14px', flexShrink: 0 }} />
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Skeleton variant="text" width="80%" height={24} sx={{ borderRadius: 1 }} />
+        <Skeleton variant="text" width="45%" height={18} sx={{ borderRadius: 1, mt: 0.5 }} />
+      </Box>
+      <Skeleton variant="rounded" width={36} height={36} sx={{ borderRadius: '10px' }} />
+    </Stack>
+    <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+      <Skeleton variant="rounded" width={65} height={24} sx={{ borderRadius: '8px' }} />
+      <Skeleton variant="rounded" width={80} height={24} sx={{ borderRadius: '8px' }} />
+    </Stack>
+    <Skeleton variant="rounded" width="100%" height={44} sx={{ borderRadius: '12px', mt: 2 }} />
+    <Stack direction="row" spacing={0.75} sx={{ mt: 2 }}>
+      <Skeleton variant="rounded" width={75} height={24} sx={{ borderRadius: '8px' }} />
+      <Skeleton variant="rounded" width={65} height={24} sx={{ borderRadius: '8px' }} />
+    </Stack>
+    <Box sx={{ mt: 'auto', pt: 2, borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Skeleton variant="text" width={70} height={16} />
+      <Skeleton variant="rounded" width={90} height={32} sx={{ borderRadius: '9px' }} />
+    </Box>
+  </Paper>
+);
+
+/** One card's slot in the centred row: grows to fill, never gets unwieldy. */
+const cardSlotSx = { flex: '1 1 260px', maxWidth: { xs: '100%', sm: 320 }, minWidth: 0 } as const;
+
 const FeaturedJobs: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { isCandidate } = useAuth();
   const { data, isLoading } = useGetJobsQuery({ limit: 4 });
   const jobs: JobResponse[] = data?.data?.items ?? [];
   const skeletonCount = 4;
 
+  const { data: savedJobsData } = useGetMySavedJobsQuery(undefined, { skip: !isCandidate });
+  const [saveJob] = useSaveJobMutation();
+  const [unsaveJob] = useUnsaveJobMutation();
+
+  const savedJobIds = useMemo(
+    () => new Set((savedJobsData?.data?.items ?? []).map((entry) => entry.job._id)),
+    [savedJobsData],
+  );
+
+  const toggleSave = async (jobId: string) => {
+    if (!isCandidate) {
+      notify.info('Sign in with a candidate account to save jobs.');
+      return;
+    }
+
+    const wasSaved = savedJobIds.has(jobId);
+    try {
+      if (wasSaved) {
+        await unsaveJob(jobId).unwrap();
+        notify.success('Removed from saved jobs.');
+      } else {
+        await saveJob(jobId).unwrap();
+        notify.success('Job saved. Find it under Saved Jobs.');
+      }
+    } catch (error) {
+      notify.apiError(error, wasSaved ? 'Could not remove this job.' : 'Could not save this job.');
+    }
+  };
+
   return (
-    <Box sx={{ py: 10, bgcolor: 'background.default', position: 'relative', overflow: 'hidden' }}>
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '300px',
-          background: 'linear-gradient(180deg, rgba(12, 82, 131, 0.03) 0%, transparent 100%)',
-          pointerEvents: 'none'
-        }}
-      />
-
+    <Box
+      sx={{
+        py: { xs: 8, md: 12 },
+        bgcolor: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
       <Container maxWidth="lg">
-        <Box sx={{ textAlign: 'center', mb: 7 }}>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <Verified sx={{ color: 'secondary.main', fontSize: 24 }} />
-            <Typography
-              variant="overline"
-              sx={{
-                color: 'secondary.main',
-                fontWeight: 600,
-                letterSpacing: 2,
-                fontSize: '0.85rem'
-              }}
+        <SectionHeader
+          tone="teal"
+          eyebrowIcon={<LocalHospitalOutlined />}
+          eyebrow={isCandidate ? t('featured_overline_candidate') : t('featured_overline')}
+          title={isCandidate ? t('latest_jobs_title_candidate') : t('latest_jobs_title')}
+          subtitle={isCandidate ? t('latest_jobs_subtitle_candidate') : t('latest_jobs_subtitle')}
+          action={
+            <Button
+              component={Link}
+              to="/jobs"
+              variant="outlined"
+              endIcon={<ArrowForward />}
+              sx={sectionActionSx}
             >
-              {isCandidate ? t('featured_overline_candidate') : t('featured_overline')}
-            </Typography>
-          </Box>
-          <Typography
-            variant="h3"
-            sx={{
-              fontWeight: 800,
-              mb: 2,
-              color: 'primary.main',
-              fontSize: { xs: '2rem', md: '2.5rem' }
-            }}
-          >
-            {isCandidate ? t('latest_jobs_title_candidate') : t('latest_jobs_title')}
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
-            {isCandidate ? t('latest_jobs_subtitle_candidate') : t('latest_jobs_subtitle')}
-          </Typography>
-        </Box>
+              {t('view_all')}
+            </Button>
+          }
+        />
 
+        {/* Jobs Grid */}
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
-            gap: 3
+            // Cards keep a sane width and stay centred, so two open jobs read as
+            // a deliberate row rather than a grid that failed to fill.
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: { xs: 2.5, md: 3 },
           }}
         >
           {isLoading &&
             Array.from({ length: skeletonCount }).map((_, idx) => (
-              <Card key={`sk-${idx}`} elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                    <Skeleton variant="rounded" width={56} height={56} />
-                    <Box sx={{ flex: 1 }}>
-                      <Skeleton variant="text" height={22} />
-                      <Skeleton variant="text" height={16} width="60%" />
-                    </Box>
-                  </Box>
-                  <Skeleton variant="text" height={18} />
-                  <Skeleton variant="text" height={18} width="80%" />
-                  <Skeleton variant="text" height={18} width="50%" />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                    <Skeleton variant="rounded" width={70} height={26} />
-                    <Skeleton variant="rounded" width={70} height={26} />
-                  </Box>
-                </CardContent>
-              </Card>
+              <Box key={`sk-${idx}`} sx={cardSlotSx}>
+                <FeaturedJobsSkeleton />
+              </Box>
             ))}
 
           {!isLoading && jobs.length === 0 && (
             <Box
               sx={{
-                gridColumn: '1 / -1',
-                py: 6,
+                flex: '1 1 100%',
+                maxWidth: 'none',
+                py: 8,
                 textAlign: 'center',
-                border: '1px dashed',
-                borderColor: 'divider',
-                borderRadius: 3,
-                color: 'text.secondary'
+                border: '1.5px dashed #cbd5e1',
+                borderRadius: '18px',
+                bgcolor: '#f8fafc',
+                p: 4,
               }}
             >
-              <WorkOutlined sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-              <Typography variant="body1" sx={{ fontWeight: 600 }}>
+              <WorkOutlineRounded sx={{ fontSize: 52, color: '#94a3b8', mb: 1.5 }} />
+              <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b', mb: 0.5 }}>
                 {t('no_active_jobs')}
               </Typography>
-              <Typography variant="body2">
+              <Typography variant="body2" color="text.secondary">
                 {t('no_active_jobs_hint')}
               </Typography>
             </Box>
           )}
 
-          {!isLoading && jobs.map((job) => (
-            <Card
-              key={job._id}
-              elevation={0}
-              sx={{
-                height: '100%',
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: 'divider',
-                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                position: 'relative',
-                overflow: 'visible',
-                background: 'linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%)',
-                '&:hover': {
-                  transform: 'translateY(-10px)',
-                  boxShadow: '0 20px 40px rgba(12, 82, 131, 0.12)',
-                  borderColor: 'primary.main',
-                  '& .job-card-arrow': {
-                    transform: 'translateX(5px)',
-                    opacity: 1
-                  },
-                  '& .job-card-logo': {
-                    transform: 'scale(1.08)'
-                  }
-                }
-              }}
-            >
-              {isCandidate && job.hasApplied && (
-                <Chip
-                  label={t('member_already_applied')}
-                  size="small"
-                  color="success"
-                  sx={{ position: 'absolute', top: -12, left: 12, zIndex: 1, fontWeight: 700, fontSize: '0.68rem', height: 24 }}
+          {!isLoading &&
+            jobs.map((job) => (
+              <Box key={job._id} sx={cardSlotSx}>
+                <JobCard
+                  title={job.title}
+                  clinic={job.companyName}
+                  location={job.location}
+                  salary={job.salary}
+                  type={job.type}
+                  skills={job.skills}
+                  experience={job.experience}
+                  postedAt={timeAgo(job.createdAt, t)}
+                  applied={isCandidate && Boolean(job.hasApplied)}
+                  featured={Boolean(job.isFeatured)}
+                  urgent={Boolean(job.isUrgent)}
+                  saved={savedJobIds.has(job._id)}
+                  onSave={isCandidate ? () => void toggleSave(job._id) : undefined}
+                  onClick={() => navigate(`/jobs/${job._id}`)}
                 />
-              )}
-
-              <Box sx={{ position: 'absolute', top: -10, right: -10, zIndex: 1 }}>
-                <IconButton
-                  size="small"
-                  sx={{
-                    bgcolor: 'background.paper',
-                    boxShadow: 2,
-                    '&:hover': { bgcolor: 'primary.50', color: 'primary.main' }
-                  }}
-                >
-                  <BookmarkBorder sx={{ fontSize: 20 }} />
-                </IconButton>
               </Box>
-
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-                  <Avatar
-                    variant="rounded"
-                    sx={{
-                      width: 56,
-                      height: 56,
-                      border: '2px solid',
-                      borderColor: 'divider',
-                      transition: 'transform 0.3s ease',
-                      bgcolor: 'primary.50',
-                      color: 'primary.main',
-                      fontWeight: 800
-                    }}
-                    className="job-card-logo"
-                  >
-                    {(job.companyName || job.title || '?').charAt(0).toUpperCase()}
-                  </Avatar>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 700,
-                        fontSize: '1rem',
-                        lineHeight: 1.3,
-                        mb: 0.5,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      {job.title}
-                    </Typography>
-                    <Typography
-                      variant="subtitle2"
-                      color="primary"
-                      sx={{
-                        fontWeight: 600,
-                        fontSize: '0.8rem',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      {job.companyName || '—'}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, mb: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-                      {job.location || t('remote_anywhere')}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <AttachMoney sx={{ fontSize: 18, color: 'success.main' }} />
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.dark', fontSize: '0.9rem' }}>
-                      {job.salary || t('negotiable')}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <AccessTime sx={{ fontSize: 18, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                      {timeAgo(job.createdAt, t)}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Chip
-                    label={translateJobType(job.type)}
-                    size="small"
-                    sx={{
-                      bgcolor: job.type === 'Full-time' ? 'rgba(10, 182, 162, 0.1)' : 'rgba(12, 82, 131, 0.1)',
-                      color: job.type === 'Full-time' ? '#0ab6a2' : '#0c5283',
-                      fontWeight: 700,
-                      fontSize: '0.7rem',
-                      height: 26
-                    }}
-                  />
-                  <Button
-                    component={Link}
-                    to={`/jobs/${job._id}`}
-                    variant="text"
-                    color="primary"
-                    sx={{
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      transition: 'all 0.3s ease',
-                      '& .job-card-arrow': {
-                        transition: 'all 0.3s ease',
-                        transform: 'translateX(-5px)',
-                        opacity: 0
-                      }
-                    }}
-                  >
-                    {t('view')}
-                    <ArrowForward className="job-card-arrow" sx={{ fontSize: 18 }} />
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          ))}
+            ))}
         </Box>
 
-        <Box sx={{ textAlign: 'center', mt: 8 }}>
+        {/* Mobile View All Button */}
+        <Box sx={{ textAlign: 'center', mt: 4, display: { xs: 'block', md: 'none' } }}>
           <Button
             component={Link}
             to="/jobs"
             variant="outlined"
-            size="large"
+            fullWidth
             endIcon={<ArrowForward />}
             sx={{
-              px: 5,
               py: 1.5,
               borderRadius: 3,
               fontWeight: 700,
-              fontSize: '1rem',
-              borderWidth: 2,
-              '&:hover': {
-                borderWidth: 2,
-                transform: 'translateY(-2px)',
-                boxShadow: '0 8px 20px rgba(12, 82, 131, 0.15)'
-              }
+              color: '#0c5283',
+              borderColor: '#cbd5e1',
             }}
           >
             {t('view_all')}

@@ -585,6 +585,9 @@ const JobDetails: React.FC = () => {
                     salary={similarJob.salary}
                     type={similarJob.type}
                     skills={similarJob.skills}
+                    experience={similarJob.experience}
+                    featured={Boolean(similarJob.isFeatured)}
+                    urgent={Boolean(similarJob.isUrgent)}
                     onClick={() => navigate(`/jobs/${similarJob._id}`)}
                   />
                 </Grid>

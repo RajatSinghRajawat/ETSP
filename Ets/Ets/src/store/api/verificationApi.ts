@@ -4,6 +4,13 @@ import { API_ENDPOINTS } from './endpoints';
 
 export type OtpPhoneChannel = 'sms' | 'whatsapp';
 
+/**
+ * Which signup form is asking. It decides which profile collection the server
+ * checks for a duplicate — a candidate must still be able to verify an address
+ * that already holds an employer profile, and vice versa.
+ */
+export type RegistrationRole = 'candidate' | 'employer';
+
 type ApiResponse<T> = {
   success: boolean;
   message: string;
@@ -25,7 +32,7 @@ export const verificationApi = createApi({
   reducerPath: 'verificationApi',
   baseQuery: axiosBaseQuery(),
   endpoints: (builder) => ({
-    sendEmailOtp: builder.mutation<ApiResponse<SendOtpResult>, { email: string }>({
+    sendEmailOtp: builder.mutation<ApiResponse<SendOtpResult>, { email: string; role?: RegistrationRole }>({
       query: (body) => ({ url: API_ENDPOINTS.verifyEmailSend, method: 'POST', data: body }),
     }),
     confirmEmailOtp: builder.mutation<
@@ -36,7 +43,7 @@ export const verificationApi = createApi({
     }),
     sendPhoneOtp: builder.mutation<
       ApiResponse<SendOtpResult>,
-      { phone: string; channel?: OtpPhoneChannel }
+      { phone: string; channel?: OtpPhoneChannel; role?: RegistrationRole }
     >({
       query: (body) => ({ url: API_ENDPOINTS.verifyPhoneSend, method: 'POST', data: body }),
     }),

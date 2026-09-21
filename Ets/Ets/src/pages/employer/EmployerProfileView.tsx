@@ -101,7 +101,7 @@ const EmployerProfileView: React.FC = () => {
                     fontWeight: 800,
                   }}
                 >
-                  {employer.companyName.charAt(0)}
+                  {(employer.companyName || 'E').charAt(0)}
                 </Avatar>
                 <Box sx={{ minWidth: 0, flex: '1 1 240px' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, minWidth: 0 }}>
@@ -273,6 +273,9 @@ const EmployerProfileView: React.FC = () => {
                         salary={job.salary}
                         type={job.type}
                         skills={job.skills}
+                        experience={job.experience}
+                        featured={Boolean(job.isFeatured)}
+                        urgent={Boolean(job.isUrgent)}
                         onClick={() => navigate(`/jobs/${job._id}`)}
                       />
                     </Grid>

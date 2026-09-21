@@ -200,7 +200,8 @@ export default function LookupSelect({
 export function LookupChipPicker({
   category,
   label,
-  values,
+  values: valuesProp,
+  value: valueProp,
   onChange,
   allowPropose = true,
   valueMode = 'name',
@@ -208,10 +209,12 @@ export function LookupChipPicker({
   error = false,
   required = false,
   placeholder,
+  hideHeader = false,
 }: {
   category: LookupCategory;
   label: string;
-  values: string[];
+  values?: string[];
+  value?: string[];
   onChange: (next: string[]) => void;
   allowPropose?: boolean;
   valueMode?: 'value' | 'name';
@@ -219,22 +222,34 @@ export function LookupChipPicker({
   error?: boolean;
   required?: boolean;
   placeholder?: string;
+  hideHeader?: boolean;
 }) {
   const { data, isLoading } = useGetLookupsQuery({ category });
   const [propose, { isLoading: proposing }] = useProposeLookupMutation();
   const options = useMemo(() => data?.data ?? [], [data]);
   const [inputValue, setInputValue] = useState('');
 
+  const values = useMemo(() => {
+    const raw = valuesProp ?? valueProp;
+    if (Array.isArray(raw)) return raw.filter(Boolean).map(String);
+    if (typeof raw === 'string' && raw.trim().length > 0) {
+      return raw.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    return [];
+  }, [valuesProp, valueProp]);
+
   const getKey = (item: { name: string; value: string }) =>
     valueMode === 'name' ? item.name : item.value;
 
   const selectedOptions = useMemo((): LookupItem[] => {
-    return values.map((selected) => {
-      const match = options.find(
+    const safeList = Array.isArray(values) ? values : [];
+    const safeOptions = Array.isArray(options) ? options : [];
+    return safeList.map((selected) => {
+      const match = safeOptions.find(
         (o) =>
-          (valueMode === 'name' ? o.name : o.value) === selected ||
-          o.name === selected ||
-          o.value === selected,
+          (valueMode === 'name' ? o?.name : o?.value) === selected ||
+          o?.name === selected ||
+          o?.value === selected,
       );
       return (
         match ?? {
@@ -260,7 +275,8 @@ export function LookupChipPicker({
       const created = res.data;
       if (created) {
         const key = getKey(created);
-        if (!values.includes(key)) onChange([...values, key]);
+        const safeValues = Array.isArray(values) ? values : [];
+        if (!safeValues.includes(key)) onChange([...safeValues, key]);
         notify.success(res.message || `"${created.name}" added.`);
       }
       setInputValue('');
@@ -279,22 +295,24 @@ export function LookupChipPicker({
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-          {label}
-          {required ? ' *' : ''}
-        </Typography>
-        <Chip
-          size="small"
-          label={`${values.length} selected`}
-          sx={{
-            fontWeight: 700,
-            bgcolor: values.length ? 'rgba(10,182,162,0.12)' : 'action.hover',
-            color: values.length ? '#0ab6a2' : 'text.secondary',
-          }}
-        />
-      </Box>
+    <Box sx={{ width: '100%' }}>
+      {!hideHeader && (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            {label}
+            {required ? ' *' : ''}
+          </Typography>
+          <Chip
+            size="small"
+            label={`${(values || []).length} selected`}
+            sx={{
+              fontWeight: 700,
+              bgcolor: (values || []).length ? 'rgba(10,182,162,0.12)' : 'action.hover',
+              color: (values || []).length ? '#0ab6a2' : 'text.secondary',
+            }}
+          />
+        </Box>
+      )}
 
       <Autocomplete
         multiple
@@ -326,16 +344,20 @@ export function LookupChipPicker({
           onChange([...new Set(next.map((item) => getKey(item)))]);
         }}
         renderValue={(selected, getItemProps) =>
-          selected.map((option, index) => {
+          (selected || []).map((option, index) => {
             const { key, ...tagProps } = getItemProps({ index });
             return (
               <Chip
                 key={key}
                 label={option.name}
                 size="small"
-                color="primary"
-                variant="filled"
-                sx={{ fontWeight: 600, borderRadius: 2 }}
+                sx={{
+                  fontWeight: 600,
+                  borderRadius: 1.5,
+                  bgcolor: 'rgba(12, 82, 131, 0.1)',
+                  color: '#0c5283',
+                  border: '1px solid rgba(12, 82, 131, 0.2)',
+                }}
                 {...tagProps}
               />
             );
@@ -366,7 +388,7 @@ export function LookupChipPicker({
         renderInput={(params) => (
           <TextField
             {...params}
-            label={`Select ${label.toLowerCase()}`}
+            label={hideHeader ? `${label}${required ? ' *' : ''}` : `Select ${label.toLowerCase()}`}
             placeholder={
               values.length
                 ? ''

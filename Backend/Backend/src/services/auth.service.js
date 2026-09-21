@@ -140,7 +140,26 @@ class AuthService {
     return {
       user,
       role,
+      candidateProfile,
+      employerProfile,
     };
+  }
+
+  /**
+   * Which dashboards this email can actually open. An account that registered
+   * as both a candidate and an employer gets two entries, and the login page
+   * asks which one to open instead of silently picking for them.
+   */
+  listAvailableRoles({ user, candidateProfile, employerProfile }) {
+    if (user?.role === 'admin') {
+      return ['admin'];
+    }
+
+    const roles = [];
+    if (candidateProfile) roles.push('candidate');
+    if (employerProfile) roles.push('employer');
+
+    return roles;
   }
 
   /**
@@ -310,19 +329,22 @@ class AuthService {
     return preferredRole === 'employer' ? 'employer' : 'candidate';
   }
 
-  async issueTokenForUser(user) {
+  async issueTokenForUser(user, availableRoles = null) {
     user.lastLoginAt = new Date();
     await user.save();
 
     const accessToken = this.createAccessToken(user);
+    const roles = availableRoles?.length ? availableRoles : [user.role];
 
     return {
       message: 'Logged in successfully',
       accessToken,
+      availableRoles: roles,
       user: {
         id: user._id,
         email: user.email,
         role: user.role,
+        availableRoles: roles,
       },
     };
   }
@@ -392,7 +414,7 @@ class AuthService {
       { $set: { emailVerified: true } },
     ).catch(() => {});
 
-    return this.issueTokenForUser(user);
+    return this.issueTokenForUser(user, this.listAvailableRoles(registeredAccount));
   }
 
   async switchProfile(authorizationHeader, targetRole) {
@@ -444,13 +466,21 @@ class AuthService {
 
     const accessToken = this.createAccessToken(user);
 
+    const availableRoles = this.listAvailableRoles({
+      user,
+      candidateProfile: currentRole === 'candidate' ? currentProfile : targetProfile,
+      employerProfile: currentRole === 'employer' ? currentProfile : targetProfile,
+    });
+
     return {
       message: `Switched to ${targetRole} profile successfully`,
       accessToken,
+      availableRoles,
       user: {
         id: user._id,
         email: user.email,
         role: user.role,
+        availableRoles,
       },
     };
   }

@@ -35,9 +35,11 @@ import {
   ArrowBack,
   AssignmentTurnedIn,
   CallOutlined,
+  ClearRounded,
   DeleteOutlineOutlined,
   ChatBubbleOutlineOutlined as ChatBubbleOutline,
   CheckCircleOutlineOutlined as CheckCircleOutline,
+  CheckCircleRounded,
   Close,
   EmojiEventsOutlined,
   EventAvailable,
@@ -47,6 +49,8 @@ import {
   MoreHoriz,
   PlaceOutlined,
   Search,
+  ThumbDownAltOutlined,
+  ThumbUpAltOutlined,
   TuneOutlined,
   WorkspacePremium,
 } from '@mui/icons-material';
@@ -74,6 +78,7 @@ import { useGetMyUsageQuery } from '../../store/api/subscriptionApi';
 import {
   useGetEmployerApplicationCountsQuery,
   useGetEmployerApplicationsQuery,
+  useSetEmployerApplicationInterestMutation,
   type ApplicationSort,
   type ApplicationStatus,
   type EmployerInterest,
@@ -208,25 +213,62 @@ const MatchChips: React.FC<{ jobSkills: string[]; candidateSkills?: string[] }> 
     );
   }
 
+  // A score plus the skills the candidate actually has. Stacking every
+  // requirement vertically made a single row as tall as five chips, so the
+  // misses collapse into one chip that names them on hover.
+  const total = matched.length + missing.length;
+  const pct = total === 0 ? 0 : Math.round((matched.length / total) * 100);
+  const tone = pct >= 67 ? TONE.green : pct >= 34 ? TONE.amber : TONE.slate;
+
   return (
-    <Stack spacing={0.625} sx={{ alignItems: 'flex-start' }}>
-      {matched.slice(0, 3).map((skill) => (
-        <SoftChip
-          key={`match-${skill}`}
-          tone="green"
-          icon={<CheckCircleOutline sx={{ fontSize: 14 }} />}
-          label={skill}
-        />
-      ))}
-      {missing.slice(0, 2).map((skill) => (
-        <SoftChip
-          key={`miss-${skill}`}
-          tone="slate"
-          icon={<Close sx={{ fontSize: 14 }} />}
-          label={skill}
-        />
-      ))}
-    </Stack>
+    <Box sx={{ maxWidth: 260 }}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 0.875 }}>
+        <Box
+          sx={{
+            flex: 1,
+            height: 6,
+            minWidth: 56,
+            borderRadius: 999,
+            overflow: 'hidden',
+            bgcolor: alpha(tone, 0.16),
+          }}
+        >
+          <Box sx={{ width: `${pct}%`, height: '100%', borderRadius: 999, bgcolor: tone }} />
+        </Box>
+        <Typography variant="caption" sx={{ fontWeight: 800, color: tone, whiteSpace: 'nowrap' }}>
+          {matched.length}/{total} skills
+        </Typography>
+      </Stack>
+
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+        {matched.slice(0, 3).map((skill) => (
+          <SoftChip
+            key={`match-${skill}`}
+            tone="green"
+            icon={<CheckCircleOutline sx={{ fontSize: 14 }} />}
+            label={skill}
+          />
+        ))}
+        {matched.length > 3 && (
+          <Tooltip title={matched.slice(3).join(', ')}>
+            <Box sx={{ display: 'inline-flex' }}>
+              <SoftChip tone="green" label={`+${matched.length - 3}`} />
+            </Box>
+          </Tooltip>
+        )}
+        {missing.length > 0 && (
+          <Tooltip title={`Missing: ${missing.join(', ')}`}>
+            <Box sx={{ display: 'inline-flex' }}>
+              <SoftChip
+                tone="slate"
+                icon={<Close sx={{ fontSize: 14 }} />}
+                label={`${missing.length} missing`}
+              />
+            </Box>
+          </Tooltip>
+        )}
+      </Box>
+    </Box>
   );
 };
 
@@ -253,12 +295,23 @@ const ActionIcon: React.FC<{
         sx={{
           width: 34,
           height: 34,
-          border: '1px solid',
-          borderColor: active ? alpha(tone, 0.45) : 'divider',
+          border: '1.5px solid',
+          borderColor: active ? tone : 'divider',
           color: active ? tone : 'text.secondary',
-          bgcolor: active ? alpha(tone, 0.14) : 'background.paper',
-          transition: 'color 150ms ease, background-color 150ms ease, border-color 150ms ease',
-          '&:hover': { color: tone, bgcolor: alpha(tone, 0.14), borderColor: alpha(tone, 0.45) },
+          bgcolor: active ? alpha(tone, 0.16) : 'background.paper',
+          transition: 'all 150ms ease',
+          '&.Mui-disabled': {
+            color: active ? tone : 'text.disabled',
+            borderColor: active ? tone : 'divider',
+            bgcolor: active ? alpha(tone, 0.16) : 'transparent',
+            opacity: active ? 1 : 0.45,
+          },
+          '&:hover': {
+            color: tone,
+            bgcolor: alpha(tone, 0.22),
+            borderColor: tone,
+            transform: 'scale(1.08)',
+          },
         }}
       >
         {children}
@@ -305,7 +358,10 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
   const [error, setError] = useState('');
   const [menuApplication, setMenuApplication] = useState<JobApplicationResponse | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [interestApp, setInterestApp] = useState<JobApplicationResponse | null>(null);
+  const [interestAnchor, setInterestAnchor] = useState<HTMLElement | null>(null);
   const [decision, setDecision] = useState<Decision | null>(null);
+  const [setEmployerApplicationInterest] = useSetEmployerApplicationInterestMutation();
 
   // Typing in the search box must not fire a request per keystroke. A new
   // search term is also a new result set, so it resets the page with it.
@@ -406,6 +462,38 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
   const closeMenu = () => {
     setMenuAnchor(null);
     setMenuApplication(null);
+  };
+
+  const closeInterestMenu = () => {
+    setInterestAnchor(null);
+    setInterestApp(null);
+  };
+
+  const handleUpdateInterest = async (value: EmployerInterest) => {
+    if (!interestApp) return;
+    const candidate = interestApp.candidateProfile;
+    const name = `${candidate?.firstName ?? ''} ${candidate?.lastName ?? ''}`.trim() || 'Candidate';
+    try {
+      await setEmployerApplicationInterest({
+        id: interestApp._id,
+        interest: value,
+      }).unwrap();
+      const labelMap: Record<string, string> = {
+        interested: 'Interested 👍',
+        undecided: 'Undecided / Maybe ❓',
+        not_interested: 'Not interested 👎',
+        '': 'Rating cleared',
+      };
+      setBanner(
+        value
+          ? `Marked ${name} as "${labelMap[value]}" (Private note)`
+          : `Cleared rating for ${name}`
+      );
+    } catch {
+      setError('Failed to update candidate rating. Please try again.');
+    } finally {
+      closeInterestMenu();
+    }
   };
 
   const menuCandidate = menuApplication?.candidateProfile;
@@ -704,11 +792,11 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                     >
                       <Table sx={{ minWidth: 900 }}>
                         <TableHead>
-                          <TableRow sx={{ bgcolor: 'action.hover' }}>
-                            <TableCell sx={{ fontWeight: 800 }}>Candidates</TableCell>
-                            <TableCell sx={{ fontWeight: 800 }}>Matches to job post</TableCell>
-                            <TableCell sx={{ fontWeight: 800 }}>Activity</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 800 }}>Interest</TableCell>
+                          <TableRow sx={{ bgcolor: '#f8fafc', borderBottom: '1px solid #eef2f6' }}>
+                            <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b', py: 1.25 }}>Candidates</TableCell>
+                            <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b', py: 1.25 }}>Matches to job post</TableCell>
+                            <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b', py: 1.25 }}>Activity</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b', py: 1.25 }}>Interest</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -720,22 +808,28 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                             const statusColor = STATUS_COLOR[application.status];
                             const isRejected = application.status === 'rejected';
                             const isHired = application.status === 'hired';
+                            const interestLabel = application.employerInterest
+                              ? INTEREST_OPTIONS.find(
+                                  (option) => option.value === application.employerInterest,
+                                )?.label
+                              : undefined;
 
                             return (
                               <TableRow key={application._id} hover sx={{ '&:last-child td': { border: 0 } }}>
                                 {/* Candidate */}
-                                <TableCell sx={{ verticalAlign: 'top' }}>
+                                <TableCell sx={{ verticalAlign: 'top', py: 2 }}>
                                   <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start' }}>
                                     <Avatar
                                       src={locked ? undefined : candidate.photoUrl || undefined}
                                       sx={{
-                                        width: 38,
-                                        height: 38,
-                                        fontWeight: 800,
+                                        width: 36,
+                                        height: 36,
+                                        fontWeight: 700,
+                                        fontSize: '0.85rem',
                                         bgcolor: locked ? 'grey.400' : 'primary.main',
                                       }}
                                     >
-                                      {locked ? <Lock sx={{ fontSize: 16 }} /> : candidate.firstName.charAt(0)}
+                                      {locked ? <Lock sx={{ fontSize: 15 }} /> : (candidate.firstName?.charAt(0) ?? '?')}
                                     </Avatar>
                                     <Box sx={{ minWidth: 0 }}>
                                       <Stack
@@ -744,7 +838,7 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                                         sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5 }}
                                       >
                                         {locked ? (
-                                          <Typography sx={{ fontWeight: 800, wordBreak: 'break-word' }}>
+                                          <Typography sx={{ fontWeight: 600, fontSize: '0.92rem', color: '#0f172a' }}>
                                             Locked candidate
                                           </Typography>
                                         ) : (
@@ -753,10 +847,12 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                                             to={`/employer/employees/${candidate._id}?application=${application._id}`}
                                             underline="none"
                                             sx={{
-                                              fontWeight: 800,
+                                              fontWeight: 600,
+                                              fontSize: '0.92rem',
                                               wordBreak: 'break-word',
-                                              color: 'text.primary',
-                                              '&:hover': { color: 'primary.main' },
+                                              color: '#0f172a',
+                                              transition: 'color 150ms ease',
+                                              '&:hover': { color: 'primary.main', textDecoration: 'underline' },
                                             }}
                                           >
                                             {candidateName}
@@ -769,7 +865,7 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                                           <SoftChip label="Verified" tone="green" />
                                         )}
                                       </Stack>
-                                      <Typography variant="body2" color="text.secondary">
+                                      <Typography variant="body2" sx={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 400, mt: 0.25 }}>
                                         {locked
                                           ? 'Unlock to see contact details'
                                           : [candidate.currentJobTitle, candidate.currentLocation]
@@ -779,13 +875,13 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                                       <Stack
                                         direction="row"
                                         spacing={0.75}
-                                        sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5, mt: 0.625 }}
+                                        sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5, mt: 0.5 }}
                                       >
                                         <StatusPill
                                           label={STATUS_LABEL[application.status]}
                                           color={statusColor}
                                         />
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                                        <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.74rem', color: '#94a3b8' }}>
                                           Applied {formatDate(application.createdAt)}
                                         </Typography>
                                       </Stack>
@@ -843,30 +939,85 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                                         takes that mark's colour.
                                       */}
                                       <ActionIcon
-                                        title="Select — shortlist this candidate"
-                                        tone={TONE.green}
+                                        title={
+                                          isHired
+                                            ? 'Candidate is Hired! 🎉'
+                                            : application.status === 'shortlisted'
+                                              ? 'Candidate is Shortlisted (Click to view or hire)'
+                                              : 'Select — shortlist this candidate'
+                                        }
+                                        tone={isHired ? '#10b981' : TONE.green}
                                         active={application.status === 'shortlisted' || isHired}
-                                        disabled={isRejected || isHired}
                                         onClick={() =>
                                           openDecision(application, 'accept', {
-                                            stage: 'shortlisted',
-                                            heading: 'Select this candidate',
+                                            stage: isHired ? 'hired' : 'shortlisted',
+                                            heading: isHired ? 'Candidate is Hired' : 'Select this candidate',
                                           })
                                         }
                                       >
-                                        <CheckCircleOutline fontSize="small" />
+                                        {isHired ? (
+                                          <CheckCircleRounded sx={{ fontSize: 20, color: '#10b981' }} />
+                                        ) : application.status === 'shortlisted' ? (
+                                          <CheckCircleRounded sx={{ fontSize: 20, color: '#0ab6a2' }} />
+                                        ) : (
+                                          <CheckCircleOutline fontSize="small" />
+                                        )}
                                       </ActionIcon>
-                                      <ActionIcon
-                                        title="More actions"
-                                        tone={TONE.amber}
-                                        active={menuApplication?._id === application._id}
-                                        onClick={(event) => {
-                                          setMenuAnchor(event.currentTarget);
-                                          setMenuApplication(application);
-                                        }}
-                                      >
-                                        <HelpOutlined fontSize="small" />
-                                      </ActionIcon>
+                                      {application.status === 'shortlisted' && (
+                                        <ActionIcon
+                                          title="Hire candidate — sends official offer & notification email"
+                                          tone="#10b981"
+                                          active={false}
+                                          onClick={() =>
+                                            openDecision(application, 'accept', {
+                                              stage: 'hired',
+                                              heading: 'Hire this candidate',
+                                            })
+                                          }
+                                        >
+                                          <EmojiEventsOutlined fontSize="small" sx={{ color: '#10b981' }} />
+                                        </ActionIcon>
+                                      )}
+                                      {/*
+                                         Candidate Rating / Private Interest (Interested / Undecided / Not Interested)
+                                       */}
+                                       <ActionIcon
+                                         title={
+                                           interestLabel
+                                             ? `Rating: ${interestLabel} (Click to change)`
+                                             : 'Rate candidate (Interested / Undecided / Not interested)'
+                                         }
+                                         tone={
+                                           application.employerInterest === 'interested'
+                                             ? '#10b981'
+                                             : application.employerInterest === 'not_interested'
+                                             ? '#ef4444'
+                                             : application.employerInterest === 'undecided'
+                                             ? '#f59e0b'
+                                             : TONE.amber
+                                         }
+                                         active={Boolean(application.employerInterest)}
+                                         onClick={(event) => {
+                                           setInterestAnchor(event.currentTarget);
+                                           setInterestApp(application);
+                                         }}
+                                       >
+                                         {application.employerInterest === 'interested' ? (
+                                           <ThumbUpAltOutlined fontSize="small" sx={{ color: '#10b981' }} />
+                                         ) : application.employerInterest === 'not_interested' ? (
+                                           <ThumbDownAltOutlined fontSize="small" sx={{ color: '#ef4444' }} />
+                                         ) : (
+                                           <HelpOutlined
+                                             fontSize="small"
+                                             sx={{
+                                               color:
+                                                 application.employerInterest === 'undecided'
+                                                   ? '#f59e0b'
+                                                   : undefined,
+                                             }}
+                                           />
+                                         )}
+                                       </ActionIcon>
                                       <ActionIcon
                                         title="Remove — reject this candidate"
                                         tone={TONE.red}
@@ -927,8 +1078,30 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
         onClose={closeMenu}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 224, mt: 0.5 } } }}
+        slotProps={{
+          paper: {
+            elevation: 8,
+            sx: {
+              borderRadius: '12px',
+              minWidth: 204,
+              mt: 0.5,
+              p: '5px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 10px 25px -4px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.04)',
+            },
+          },
+        }}
       >
+        {menuCandidateName && (
+          <Box sx={{ px: 1.5, py: 0.75, borderBottom: '1px solid #f1f5f9', mb: 0.5 }}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Candidate Actions
+            </Typography>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {menuCandidateName}
+            </Typography>
+          </Box>
+        )}
         <MenuItem
           disabled={!chatAllowed}
           onClick={() => {
@@ -942,25 +1115,49 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
             }
             closeMenu();
           }}
+          sx={{
+            py: 0.75,
+            px: 1.25,
+            borderRadius: '8px',
+            fontSize: '0.84rem',
+            color: '#334155',
+            '&:hover': { bgcolor: '#f8fafc', color: '#0f172a' },
+          }}
         >
-          <ListItemIcon><ChatBubbleOutline fontSize="small" /></ListItemIcon>
-          <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>Message</ListItemText>
+          <ListItemIcon sx={{ minWidth: '28px !important', color: '#64748b' }}>
+            <ChatBubbleOutline sx={{ fontSize: 17 }} />
+          </ListItemIcon>
+          <ListItemText slotProps={{ primary: { sx: { fontSize: '0.84rem', fontWeight: 500 } } }}>
+            Message
+          </ListItemText>
         </MenuItem>
+
         <MenuItem
           component="a"
           href={menuCandidate?.phone ? `tel:${menuCandidate.phone}` : undefined}
           disabled={!menuCandidate?.phone}
           onClick={closeMenu}
+          sx={{
+            py: 0.75,
+            px: 1.25,
+            borderRadius: '8px',
+            fontSize: '0.84rem',
+            color: '#334155',
+            '&:hover': { bgcolor: '#f8fafc', color: '#0f172a' },
+          }}
         >
-          <ListItemIcon><CallOutlined fontSize="small" /></ListItemIcon>
-          <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>Call</ListItemText>
+          <ListItemIcon sx={{ minWidth: '28px !important', color: '#64748b' }}>
+            <CallOutlined sx={{ fontSize: 17 }} />
+          </ListItemIcon>
+          <ListItemText slotProps={{ primary: { sx: { fontSize: '0.84rem', fontWeight: 500 } } }}>
+            Call
+          </ListItemText>
         </MenuItem>
+
         <MenuItem
-          disabled={menuApplication?.status === 'rejected'}
           onClick={() => {
             if (menuApplication) {
               openDecision(menuApplication, 'accept', {
-                // Booking a slot must not demote someone already hired.
                 stage: menuApplication.status === 'hired' ? 'hired' : 'shortlisted',
                 heading: menuApplication.interview?.scheduledAt
                   ? 'Reschedule the interview'
@@ -969,41 +1166,219 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
             }
             closeMenu();
           }}
+          sx={{
+            py: 0.75,
+            px: 1.25,
+            borderRadius: '8px',
+            fontSize: '0.84rem',
+            color: '#334155',
+            '&:hover': { bgcolor: '#f8fafc', color: '#0f172a' },
+          }}
         >
-          <ListItemIcon><EventAvailable fontSize="small" /></ListItemIcon>
-          <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>Set up interview</ListItemText>
+          <ListItemIcon sx={{ minWidth: '28px !important', color: '#64748b' }}>
+            <EventAvailable sx={{ fontSize: 17 }} />
+          </ListItemIcon>
+          <ListItemText slotProps={{ primary: { sx: { fontSize: '0.84rem', fontWeight: 500 } } }}>
+            Set up interview
+          </ListItemText>
         </MenuItem>
+
         <MenuItem
-          disabled={menuApplication?.status === 'rejected'}
           onClick={() => {
             if (menuApplication) {
               openDecision(menuApplication, 'reject', { heading: 'Delete this candidate' });
             }
             closeMenu();
           }}
+          sx={{
+            py: 0.75,
+            px: 1.25,
+            borderRadius: '8px',
+            fontSize: '0.84rem',
+            color: '#dc2626',
+            '&:hover': { bgcolor: alpha('#dc2626', 0.06), color: '#b91c1c' },
+          }}
         >
-          <ListItemIcon><DeleteOutlineOutlined fontSize="small" /></ListItemIcon>
-          <ListItemText slotProps={{ primary: { sx: { fontWeight: 600 } } }}>Delete candidate</ListItemText>
+          <ListItemIcon sx={{ minWidth: '28px !important', color: '#dc2626' }}>
+            <DeleteOutlineOutlined sx={{ fontSize: 17 }} />
+          </ListItemIcon>
+          <ListItemText slotProps={{ primary: { sx: { fontSize: '0.84rem', fontWeight: 500 } } }}>
+            Delete candidate
+          </ListItemText>
         </MenuItem>
+
         <MenuItem
-          disabled={menuApplication?.status === 'hired' || menuApplication?.status === 'rejected'}
           onClick={() => {
             if (menuApplication) {
               openDecision(menuApplication, 'accept', {
                 stage: 'hired',
-                heading: 'Hire this candidate',
+                heading: menuApplication.status === 'hired' ? 'Candidate is Hired' : 'Hire this candidate',
               });
             }
             closeMenu();
           }}
+          sx={{
+            py: 0.75,
+            px: 1.25,
+            borderRadius: '8px',
+            fontSize: '0.84rem',
+            color: '#059669',
+            bgcolor: alpha('#10b981', 0.08),
+            mt: 0.5,
+            '&:hover': { bgcolor: alpha('#10b981', 0.16), color: '#047857' },
+          }}
         >
-          <ListItemIcon sx={{ color: 'primary.main' }}><EmojiEventsOutlined fontSize="small" /></ListItemIcon>
+          <ListItemIcon sx={{ minWidth: '28px !important', color: '#059669' }}>
+            {menuApplication?.status === 'hired' ? (
+              <CheckCircleRounded sx={{ fontSize: 18, color: '#059669' }} />
+            ) : (
+              <EmojiEventsOutlined sx={{ fontSize: 18, color: '#059669' }} />
+            )}
+          </ListItemIcon>
           <ListItemText
-            slotProps={{ primary: { sx: { fontWeight: 700, color: 'primary.main' } } }}
+            slotProps={{ primary: { sx: { fontSize: '0.84rem', fontWeight: 600, color: 'inherit' } } }}
           >
-            Mark as hired
+            {menuApplication?.status === 'hired' ? 'Hired (Offer Details)' : 'Mark as hired'}
           </ListItemText>
         </MenuItem>
+      </Menu>
+
+      {/* Candidate Private Interest / Rating Menu */}
+      <Menu
+        anchorEl={interestAnchor}
+        open={Boolean(interestAnchor)}
+        onClose={closeInterestMenu}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{
+          paper: {
+            elevation: 8,
+            sx: {
+              borderRadius: '12px',
+              minWidth: 215,
+              mt: 0.5,
+              p: '5px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 10px 25px -4px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.04)',
+            },
+          },
+        }}
+      >
+        <Box sx={{ px: 1.5, py: 0.85, borderBottom: '1px solid #f1f5f9', mb: 0.5 }}>
+          <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Rate Candidate
+          </Typography>
+          <Typography sx={{ fontSize: '0.71rem', color: '#94a3b8', mt: 0.25 }}>
+            Private note for your hiring team
+          </Typography>
+        </Box>
+
+        <MenuItem
+          onClick={() => handleUpdateInterest('interested')}
+          selected={interestApp?.employerInterest === 'interested'}
+          sx={{
+            py: 0.75,
+            px: 1.25,
+            borderRadius: '8px',
+            color: '#059669',
+            '&:hover': { bgcolor: alpha('#10b981', 0.08) },
+            '&.Mui-selected': { bgcolor: alpha('#10b981', 0.12), fontWeight: 600 },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: '28px !important', color: '#10b981' }}>
+            <ThumbUpAltOutlined sx={{ fontSize: 17 }} />
+          </ListItemIcon>
+          <ListItemText
+            slotProps={{
+              primary: { sx: { fontSize: '0.84rem', fontWeight: 500, color: '#047857' } },
+            }}
+          >
+            Interested
+          </ListItemText>
+          {interestApp?.employerInterest === 'interested' && (
+            <CheckCircleRounded sx={{ fontSize: 16, color: '#10b981', ml: 1 }} />
+          )}
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => handleUpdateInterest('undecided')}
+          selected={interestApp?.employerInterest === 'undecided'}
+          sx={{
+            py: 0.75,
+            px: 1.25,
+            borderRadius: '8px',
+            color: '#d97706',
+            '&:hover': { bgcolor: alpha('#f59e0b', 0.08) },
+            '&.Mui-selected': { bgcolor: alpha('#f59e0b', 0.12), fontWeight: 600 },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: '28px !important', color: '#f59e0b' }}>
+            <HelpOutlined sx={{ fontSize: 17 }} />
+          </ListItemIcon>
+          <ListItemText
+            slotProps={{
+              primary: { sx: { fontSize: '0.84rem', fontWeight: 500, color: '#b45309' } },
+            }}
+          >
+            Undecided / Maybe
+          </ListItemText>
+          {interestApp?.employerInterest === 'undecided' && (
+            <CheckCircleRounded sx={{ fontSize: 16, color: '#f59e0b', ml: 1 }} />
+          )}
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => handleUpdateInterest('not_interested')}
+          selected={interestApp?.employerInterest === 'not_interested'}
+          sx={{
+            py: 0.75,
+            px: 1.25,
+            borderRadius: '8px',
+            color: '#dc2626',
+            '&:hover': { bgcolor: alpha('#ef4444', 0.08) },
+            '&.Mui-selected': { bgcolor: alpha('#ef4444', 0.12), fontWeight: 600 },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: '28px !important', color: '#ef4444' }}>
+            <ThumbDownAltOutlined sx={{ fontSize: 17 }} />
+          </ListItemIcon>
+          <ListItemText
+            slotProps={{
+              primary: { sx: { fontSize: '0.84rem', fontWeight: 500, color: '#b91c1c' } },
+            }}
+          >
+            Not Interested
+          </ListItemText>
+          {interestApp?.employerInterest === 'not_interested' && (
+            <CheckCircleRounded sx={{ fontSize: 16, color: '#ef4444', ml: 1 }} />
+          )}
+        </MenuItem>
+
+        {Boolean(interestApp?.employerInterest) && (
+          <MenuItem
+            onClick={() => handleUpdateInterest('')}
+            sx={{
+              py: 0.75,
+              px: 1.25,
+              mt: 0.5,
+              borderTop: '1px solid #f1f5f9',
+              borderRadius: '8px',
+              color: '#64748b',
+              '&:hover': { bgcolor: '#f8fafc', color: '#334155' },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: '28px !important', color: '#94a3b8' }}>
+              <ClearRounded sx={{ fontSize: 17 }} />
+            </ListItemIcon>
+            <ListItemText
+              slotProps={{
+                primary: { sx: { fontSize: '0.82rem', fontWeight: 500 } },
+              }}
+            >
+              Clear rating
+            </ListItemText>
+          </MenuItem>
+        )}
       </Menu>
 
       <ApplicationDecisionDialog

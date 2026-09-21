@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
 import { redis } from '../config/redis.js';
+import { CandidateProfile } from '../models/candidate-profile.model.js';
 import { EmployerProfile } from '../models/employer-profile.model.js';
 import { User } from '../models/user.model.js';
 import { AppError } from '../utils/app-error.js';
@@ -86,38 +87,55 @@ async function assertNotCoolingDown(kind, value) {
   }
 }
 
+const ROLES = ['candidate', 'employer'];
+
+/** Which side of the signup is asking. Defaults to the original caller. */
+function normalizeRole(input) {
+  const role = String(input ?? 'employer').trim().toLowerCase();
+
+  if (!ROLES.includes(role)) {
+    throw new AppError('Registration role must be candidate or employer', 400);
+  }
+
+  return role;
+}
+
 /**
- * Signing up with an address that already has an employer account is a dead end,
- * so say so at the OTP step instead of after the whole form is filled in.
+ * Only the SAME kind of profile blocks a signup. One email may hold a candidate
+ * profile and an employer profile at once — that is the dual-role account the
+ * login chooser exists for — so a candidate must not be turned away here just
+ * because the address already hires, or vice versa.
  */
-async function assertEmailFree(email) {
+async function assertEmailFree(email, role) {
   const [profile, user] = await Promise.all([
-    EmployerProfile.findOne({ email }).select('_id').lean(),
+    role === 'candidate'
+      ? CandidateProfile.findOne({ email }).select('_id').lean()
+      : EmployerProfile.findOne({ email }).select('_id').lean(),
     User.findOne({ email }).select('_id role').lean(),
   ]);
 
   if (profile) {
     throw new AppError(
-      'This email is already registered as an employer. Please login instead.',
+      `This email is already registered as a${role === 'candidate' ? ' candidate' : 'n employer'}. Please login instead.`,
       409,
     );
   }
 
   if (user?.role === 'admin') {
-    throw new AppError('This email cannot be used for employer registration.', 409);
+    throw new AppError(`This email cannot be used for ${role} registration.`, 409);
   }
 }
 
-async function assertPhoneFree(phone) {
-  const profile = await EmployerProfile.findOne({
-    phoneNumber: { $in: mobileLookupVariants(phone) },
-  })
-    .select('_id')
-    .lean();
+async function assertPhoneFree(phone, role) {
+  const variants = mobileLookupVariants(phone);
+  const profile =
+    role === 'candidate'
+      ? await CandidateProfile.findOne({ phone: { $in: variants } }).select('_id').lean()
+      : await EmployerProfile.findOne({ phoneNumber: { $in: variants } }).select('_id').lean();
 
   if (profile) {
     throw new AppError(
-      'This phone number is already registered as an employer. Please login instead.',
+      `This phone number is already registered as a${role === 'candidate' ? ' candidate' : 'n employer'}. Please login instead.`,
       409,
     );
   }
@@ -125,8 +143,9 @@ async function assertPhoneFree(phone) {
 
 export async function sendRegistrationEmailOtp(input) {
   const email = normalizeEmail(input?.email);
+  const role = normalizeRole(input?.role);
 
-  await assertEmailFree(email);
+  await assertEmailFree(email, role);
 
   if (await redisGet(verifiedKey('email', email))) {
     return { alreadyVerified: true, destination: email, message: 'Email is already verified' };
@@ -171,13 +190,14 @@ export async function sendRegistrationEmailOtp(input) {
 
 export async function sendRegistrationPhoneOtp(input) {
   const phone = normalizePhone(input?.phone);
+  const role = normalizeRole(input?.role);
   const channel = input?.channel ?? null;
 
   if (channel !== null && !PHONE_CHANNELS.includes(channel)) {
     throw new AppError('Choose where to receive the code: SMS or WhatsApp', 400);
   }
 
-  await assertPhoneFree(phone);
+  await assertPhoneFree(phone, role);
 
   if (await redisGet(verifiedKey('phone', phone))) {
     return {

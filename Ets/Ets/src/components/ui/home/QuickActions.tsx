@@ -1,97 +1,116 @@
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Container, Typography, Card, CardActionArea, Avatar } from '@mui/material';
-import { Search as SearchIcon, Work as WorkIcon, ArrowForward as ArrowIcon, TrendingUp, Verified } from '@mui/icons-material';
+import { Box, Container, Typography, Card, CardActionArea, Avatar, Chip } from '@mui/material';
+import {
+  Search as SearchIcon,
+  Work as WorkIcon,
+  ArrowForward as ArrowIcon,
+  CheckCircleRounded,
+  VerifiedUserOutlined,
+  BoltRounded,
+  StarsRounded,
+} from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import SectionHeader from './SectionHeader';
 
 const QuickActions: React.FC = () => {
   const { t } = useTranslation();
 
   const actions = [
     {
-      icon: <SearchIcon sx={{ fontSize: 52, color: '#0c5283' }} />,
+      badge: t('quick_candidate_badge', { defaultValue: 'FOR DOCTORS & SPECIALISTS' }),
+      icon: <SearchIcon sx={{ fontSize: 32, color: '#ffffff' }} />,
       title: t('i_am_candidate'),
       desc: t('quick_candidate_desc'),
       btn: t('find_jobs'),
-      bgColor: 'linear-gradient(135deg, rgba(12, 82, 131, 0.08) 0%, rgba(12, 82, 131, 0.02) 100%)',
-      borderColor: 'rgba(12, 82, 131, 0.2)',
-      hoverBorderColor: '#0c5283',
-      iconBg: 'rgba(12, 82, 131, 0.1)',
-      link: '/jobs'
+      features: [
+        t('qa_cand_f1', { defaultValue: '1-Click Direct Clinic Applications' }),
+        t('qa_cand_f2', { defaultValue: 'Verified Salaries & Work-Life Transparency' }),
+        t('qa_cand_f3', { defaultValue: 'Direct Chat with Clinic Directors' }),
+      ],
+      link: '/jobs',
+      themeColor: '#0c5283',
+      accentColor: '#38bdf8',
+      iconGradient: 'linear-gradient(135deg, #0c5283 0%, #0284c7 100%)',
+      cardGlow: 'rgba(12, 82, 131, 0.12)',
+      hoverBorder: 'rgba(12, 82, 131, 0.4)',
     },
     {
-      icon: <WorkIcon sx={{ fontSize: 52, color: '#0ab6a2' }} />,
+      badge: t('quick_employer_badge', { defaultValue: 'FOR CLINICS & HOSPITALS' }),
+      icon: <WorkIcon sx={{ fontSize: 32, color: '#ffffff' }} />,
       title: t('i_am_employer'),
       desc: t('quick_employer_desc'),
       btn: t('post_job'),
-      bgColor: 'linear-gradient(135deg, rgba(10, 182, 162, 0.08) 0%, rgba(10, 182, 162, 0.02) 100%)',
-      borderColor: 'rgba(10, 182, 162, 0.2)',
-      hoverBorderColor: '#0ab6a2',
-      iconBg: 'rgba(10, 182, 162, 0.1)',
-      link: '/employer/post-job'
-    }
+      features: [
+        t('qa_emp_f1', { defaultValue: 'Pre-screened Vets & Para-Vet Staff' }),
+        t('qa_emp_f2', { defaultValue: 'Direct WhatsApp & Phone Connect' }),
+        t('qa_emp_f3', { defaultValue: 'Fill Urgent Openings in Under 48 Hours' }),
+      ],
+      link: '/employer/post-job',
+      themeColor: '#0ab6a2',
+      accentColor: '#2dd4bf',
+      iconGradient: 'linear-gradient(135deg, #0ab6a2 0%, #0d9488 100%)',
+      cardGlow: 'rgba(10, 182, 162, 0.12)',
+      hoverBorder: 'rgba(10, 182, 162, 0.4)',
+    },
   ];
 
   return (
-    <Box sx={{ py: 8, bgcolor: 'background.default', position: 'relative', overflow: 'hidden' }}>
+    <Box
+      sx={{
+        py: { xs: 8, md: 12 },
+        bgcolor: '#f8fafc',
+        position: 'relative',
+        overflow: 'hidden',
+        borderTop: '1px solid',
+        borderBottom: '1px solid',
+        borderColor: '#e2e8f0',
+      }}
+    >
+      {/* Background ambient lighting */}
       <Box
         sx={{
           position: 'absolute',
-          top: -50,
-          right: -50,
-          width: 200,
-          height: 200,
+          top: -120,
+          left: '15%',
+          width: 480,
+          height: 480,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(12, 82, 131, 0.05) 0%, rgba(10, 182, 162, 0.05) 100%)',
+          background: 'radial-gradient(circle, rgba(12, 82, 131, 0.05) 0%, transparent 70%)',
+          pointerEvents: 'none',
         }}
       />
       <Box
         sx={{
           position: 'absolute',
-          bottom: -30,
-          left: -30,
-          width: 150,
-          height: 150,
+          bottom: -100,
+          right: '10%',
+          width: 500,
+          height: 500,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(10, 182, 162, 0.05) 0%, rgba(12, 82, 131, 0.05) 100%)',
+          background: 'radial-gradient(circle, rgba(10, 182, 162, 0.06) 0%, transparent 70%)',
+          pointerEvents: 'none',
         }}
       />
 
-      <Container maxWidth="lg">
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography
-            variant="overline"
-            sx={{
-              color: 'secondary.main',
-              fontWeight: 600,
-              letterSpacing: 2,
-              fontSize: '0.85rem'
-            }}
-          >
-            {t('home_get_started_overline')}
-          </Typography>
-          <Typography
-            variant="h3"
-            sx={{
-              fontWeight: 800,
-              mb: 2,
-              color: 'primary.main',
-              fontSize: { xs: '2rem', md: '2.5rem' }
-            }}
-          >
-            {t('home_quick_title')}
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 650, mx: 'auto', fontSize: '1.05rem', fontWeight: 500 }}>
-            {t('home_quick_subtitle')}
-          </Typography>
-        </Box>
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+        <SectionHeader
+          align="center"
+          eyebrowIcon={<StarsRounded />}
+          eyebrow={t('home_get_started_overline')}
+          title={t('home_quick_title')}
+          subtitle={t('home_quick_subtitle')}
+          sx={{ mx: 'auto' }}
+        />
 
+        {/* Dual Gateways Grid */}
         <Box
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-            gap: 4,
-            maxWidth: 900,
-            mx: 'auto'
+            gap: { xs: 3, md: 4 },
+            maxWidth: 1050,
+            mx: 'auto',
           }}
         >
           {actions.map((action, index) => (
@@ -99,13 +118,14 @@ const QuickActions: React.FC = () => {
               key={index}
               elevation={0}
               sx={{
-                bgcolor: action.bgColor,
-                borderRadius: 4,
-                border: '2px solid',
-                borderColor: action.borderColor,
-                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                overflow: 'hidden',
+                borderRadius: '20px',
+                border: '1px solid',
+                borderColor: 'rgba(226, 232, 240, 0.9)',
+                bgcolor: '#ffffff',
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                 position: 'relative',
+                overflow: 'hidden',
+                boxShadow: '0 2px 8px -2px rgba(15, 23, 42, 0.05), 0 12px 28px -12px rgba(12, 82, 131, 0.08)',
                 '&::before': {
                   content: '""',
                   position: 'absolute',
@@ -113,76 +133,210 @@ const QuickActions: React.FC = () => {
                   left: 0,
                   right: 0,
                   height: '4px',
-                  background: index === 0
-                    ? 'linear-gradient(90deg, #0c5283, #0ab6a2)'
-                    : 'linear-gradient(90deg, #0ab6a2, #0c5283)',
-                  transform: 'scaleX(0)',
-                  transformOrigin: 'left',
-                  transition: 'transform 0.4s ease'
+                  background: action.iconGradient,
+                  opacity: 0.95,
                 },
                 '&:hover': {
-                  transform: 'translateY(-8px)',
-                  borderColor: action.hoverBorderColor,
-                  boxShadow: `0 20px 40px ${index === 0 ? 'rgba(12, 82, 131, 0.15)' : 'rgba(10, 182, 162, 0.15)'}`,
-                  '&::before': {
-                    transform: 'scaleX(1)'
-                  }
-                }
+                  transform: 'translateY(-6px)',
+                  borderColor: action.hoverBorder,
+                  boxShadow: `0 24px 48px -12px ${action.cardGlow}`,
+                  '& .qa-arrow': {
+                    transform: 'translateX(4px)',
+                  },
+                  '& .qa-icon-wrap': {
+                    transform: 'scale(1.06)',
+                  },
+                  '& .qa-btn-pill': {
+                    bgcolor: action.themeColor,
+                    color: '#ffffff',
+                  },
+                },
               }}
             >
-              <CardActionArea component={Link} to={action.link} sx={{ p: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
-                  <Avatar
+              <CardActionArea
+                component={Link}
+                to={action.link}
+                sx={{
+                  p: { xs: 3.5, sm: 4.5 },
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'stretch',
+                  height: '100%',
+                  textAlign: 'left',
+                }}
+              >
+                {/* Top Badge & Icon */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    mb: 3,
+                  }}
+                >
+                  <Chip
+                    label={action.badge}
+                    size="small"
                     sx={{
-                      bgcolor: action.iconBg,
-                      width: 80,
-                      height: 80,
-                      transition: 'transform 0.3s ease',
-                      '&:hover': { transform: 'scale(1.1)' }
+                      fontWeight: 800,
+                      fontSize: '0.72rem',
+                      letterSpacing: '0.04em',
+                      bgcolor: `${action.themeColor}12`,
+                      color: action.themeColor,
+                      borderRadius: '8px',
+                      px: 0.5,
+                      height: 28,
+                      border: `1px solid ${action.themeColor}24`,
+                    }}
+                  />
+
+                  <Avatar
+                    className="qa-icon-wrap"
+                    sx={{
+                      background: action.iconGradient,
+                      width: 54,
+                      height: 54,
+                      borderRadius: '16px',
+                      boxShadow: `0 10px 20px -4px ${action.cardGlow}`,
+                      transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     }}
                   >
                     {action.icon}
                   </Avatar>
-
-                  <Box sx={{ flex: 1 }}>
-                    <Typography
-                      variant="h5"
-                      sx={{
-                        fontWeight: 700,
-                        mb: 1,
-                        color: index === 0 ? '#0c5283' : '#0ab6a2'
-                      }}
-                    >
-                      {action.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.6 }}>
-                      {action.desc}
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        color: index === 0 ? '#0c5283' : '#0ab6a2',
-                        fontWeight: 700,
-                        fontSize: '0.95rem',
-                        transition: 'gap 0.3s ease'
-                      }}
-                    >
-                      {action.btn}
-                      <ArrowIcon sx={{ fontSize: 20, transition: 'transform 0.3s ease' }} />
-                    </Box>
-                  </Box>
                 </Box>
 
-                <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid', borderColor: 'divider', display: 'flex', gap: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Verified sx={{ fontSize: 18, color: 'success.main' }} />
-                    <Typography variant="caption" color="text.secondary">{t('verified_listings')}</Typography>
+                {/* Title and Short Description */}
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: { xs: '1.35rem', md: '1.6rem' },
+                    color: '#0f172a',
+                    mb: 1.2,
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  {action.title}
+                </Typography>
+
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: '#64748b',
+                    fontSize: '0.94rem',
+                    lineHeight: 1.6,
+                    mb: 3,
+                  }}
+                >
+                  {action.desc}
+                </Typography>
+
+                {/* Feature Checklist */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1.4,
+                    mb: 4,
+                    pt: 2.5,
+                    borderTop: '1px dashed #e2e8f0',
+                  }}
+                >
+                  {action.features.map((feat, fIdx) => (
+                    <Box
+                      key={fIdx}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.25,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: '50%',
+                          bgcolor: `${action.themeColor}14`,
+                          color: action.themeColor,
+                          display: 'grid',
+                          placeItems: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <CheckCircleRounded sx={{ fontSize: 15 }} />
+                      </Box>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: '0.88rem',
+                          color: '#334155',
+                        }}
+                      >
+                        {feat}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* Bottom Action Strip */}
+                <Box
+                  sx={{
+                    mt: 'auto',
+                    pt: 2.5,
+                    borderTop: '1px solid #f1f5f9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Box
+                    className="qa-btn-pill"
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.8,
+                      px: 2,
+                      py: 0.8,
+                      borderRadius: '10px',
+                      bgcolor: `${action.themeColor}12`,
+                      color: action.themeColor,
+                      fontWeight: 800,
+                      fontSize: '0.9rem',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <span>{action.btn}</span>
+                    <ArrowIcon
+                      className="qa-arrow"
+                      sx={{
+                        fontSize: 18,
+                        transition: 'transform 0.2s ease',
+                      }}
+                    />
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <TrendingUp sx={{ fontSize: 18, color: 'primary.main' }} />
-                    <Typography variant="caption" color="text.secondary">{t('daily_updates')}</Typography>
+
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.6,
+                      color: '#94a3b8',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {index === 0 ? (
+                      <>
+                        <VerifiedUserOutlined sx={{ fontSize: 16, color: '#0c5283' }} />
+                        <span>{t('verified_listings')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <BoltRounded sx={{ fontSize: 17, color: '#0ab6a2' }} />
+                        <span>{t('daily_updates')}</span>
+                      </>
+                    )}
                   </Box>
                 </Box>
               </CardActionArea>

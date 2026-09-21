@@ -3,9 +3,12 @@ import { z } from 'zod';
 const emailField = z.string().trim().toLowerCase().email('Valid email is required');
 const phoneField = z.string().trim().min(1, 'Phone number is required');
 const otpField = z.string().trim().regex(/^\d{4,8}$/, 'Enter the code you received');
+// Which signup form is asking. Omitted means employer, the original caller.
+const roleField = z.enum(['candidate', 'employer']).nullish();
 
 export const sendEmailOtpSchema = z.object({
   email: emailField,
+  role: roleField,
 });
 
 export const confirmEmailOtpSchema = z.object({
@@ -15,6 +18,7 @@ export const confirmEmailOtpSchema = z.object({
 
 export const sendPhoneOtpSchema = z.object({
   phone: phoneField,
+  role: roleField,
   // Omitted means "let the server pick" — SMS when it is on, WhatsApp otherwise.
   channel: z.enum(['sms', 'whatsapp']).nullish(),
 });

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Alert,
   Avatar,
@@ -8,70 +8,97 @@ import {
   CardContent,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogContent,
-  DialogTitle,
+  Collapse,
   Divider,
   Grid,
   IconButton,
+  InputAdornment,
   Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
 import {
-  CheckCircle,
-  Close,
-  EmojiEvents,
-  EventAvailable,
-  HourglassEmpty,
-  LocationOn,
-  Message,
-  Visibility,
-  VisibilityOff,
-  Work,
+  CheckCircleRounded,
+  EmojiEventsRounded,
+  EventAvailableRounded,
+  HourglassEmptyRounded,
+  LocationOnOutlined,
+  MessageRounded,
+  VisibilityRounded,
+  VisibilityOffRounded,
+  WorkOutlineRounded,
+  SearchRounded,
+  ClearRounded,
+  OpenInNewRounded,
+  ExpandMoreRounded,
+  PaymentsOutlined,
+  AccessTimeRounded,
+  ArrowForwardRounded,
+  StarsRounded,
+  BusinessRounded,
+  TrendingUpRounded,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
-import { PageHeader } from '../../components/common/PageHeader';
 import MyResumeCard from '../../components/common/MyResumeCard';
 import { useGetMyCandidateProfileQuery } from '../../store/api/candidateProfileApi';
 import {
   useGetMyApplicationsQuery,
   type ApplicationStatus,
-  type MyApplicationSummary,
 } from '../../store/api/applicationApi';
+import { useGetJobsQuery } from '../../store/api/jobApi';
+import { translateJobType } from '../../i18n';
 
-type StatusFilter = 'all' | 'under_review' | 'shortlisted' | 'hired';
+type StatusFilter = 'all' | 'under_review' | 'shortlisted' | 'hired' | 'rejected';
 
-// The candidate never sees the employer's internal "new" vs "reviewing" split —
-// both mean "no decision yet".
-const STATUS_LABEL: Record<ApplicationStatus, string> = {
-  new: 'Under Review',
-  reviewing: 'Under Review',
-  shortlisted: 'Shortlisted',
-  rejected: 'Rejected',
-  hired: 'Hired',
-};
-
-const STATUS_COLOR: Record<ApplicationStatus, string> = {
-  new: '#d97706',
-  reviewing: '#d97706',
-  shortlisted: '#0ab6a2',
-  rejected: '#dc2626',
-  hired: '#10b981',
+// The candidate never sees internal 'new' vs 'reviewing' split — both mean Under Review
+const STATUS_CONFIG: Record<
+  ApplicationStatus,
+  { label: string; bg: string; text: string; border: string; dot: string }
+> = {
+  new: {
+    label: 'Under Review',
+    bg: '#fffbeb',
+    text: '#b45309',
+    border: '#fde68a',
+    dot: '#f59e0b',
+  },
+  reviewing: {
+    label: 'Under Review',
+    bg: '#fffbeb',
+    text: '#b45309',
+    border: '#fde68a',
+    dot: '#f59e0b',
+  },
+  shortlisted: {
+    label: 'Shortlisted',
+    bg: '#ecfdf5',
+    text: '#047857',
+    border: '#a7f3d0',
+    dot: '#10b981',
+  },
+  rejected: {
+    label: 'Not Selected',
+    bg: '#fef2f2',
+    text: '#b91c1c',
+    border: '#fecaca',
+    dot: '#ef4444',
+  },
+  hired: {
+    label: 'Offer Hired',
+    bg: '#f5f3ff',
+    text: '#6d28d9',
+    border: '#ddd6fe',
+    dot: '#8b5cf6',
+  },
 };
 
 const INTERVIEW_MODE_LABEL: Record<string, string> = {
-  in_person: 'In person',
-  video: 'Video call',
-  phone: 'Phone call',
+  in_person: 'In-person Interview',
+  video: 'Video Conference',
+  phone: 'Phone Call',
 };
 
 const UNDER_REVIEW: ApplicationStatus[] = ['new', 'reviewing'];
@@ -96,27 +123,6 @@ const formatDateTime = (value?: string | null) => {
   });
 };
 
-const sectionCardSx = {
-  borderRadius: 4,
-  border: '1px solid',
-  borderColor: 'rgba(12,82,131,0.10)',
-  boxShadow: '0 8px 30px -18px rgba(12,82,131,0.35)',
-};
-
-const StatusChip: React.FC<{ status: ApplicationStatus }> = ({ status }) => (
-  <Chip
-    label={STATUS_LABEL[status]}
-    size="small"
-    sx={{
-      fontWeight: 700,
-      color: STATUS_COLOR[status],
-      bgcolor: `${STATUS_COLOR[status]}1f`,
-      border: '1px solid',
-      borderColor: `${STATUS_COLOR[status]}55`,
-    }}
-  />
-);
-
 const CandidateDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { data: profileData } = useGetMyCandidateProfileQuery();
@@ -125,15 +131,18 @@ const CandidateDashboard: React.FC = () => {
     isLoading: isLoadingApplications,
     isError: isApplicationsError,
   } = useGetMyApplicationsQuery();
+  const { data: recommendedJobsData } = useGetJobsQuery({ limit: 4 });
 
   const [filter, setFilter] = useState<StatusFilter>('all');
-  const [selected, setSelected] = useState<MyApplicationSummary | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedTimelineId, setExpandedTimelineId] = useState<string | null>(null);
 
   const profile = profileData?.data;
-  const candidateName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Candidate';
-  const candidateRole = profile?.currentJobTitle || 'Candidate';
+  const candidateName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Doctor';
+  const candidateRole = profile?.currentJobTitle || profile?.degree || 'Veterinary Candidate';
 
   const applications = useMemo(() => applicationsData?.data.items ?? [], [applicationsData]);
+  const recommendedJobs = useMemo(() => recommendedJobsData?.data?.items ?? [], [recommendedJobsData]);
 
   const counts = useMemo(
     () => ({
@@ -141,464 +150,1044 @@ const CandidateDashboard: React.FC = () => {
       under_review: applications.filter((item) => UNDER_REVIEW.includes(item.status)).length,
       shortlisted: applications.filter((item) => item.status === 'shortlisted').length,
       hired: applications.filter((item) => item.status === 'hired').length,
+      rejected: applications.filter((item) => item.status === 'rejected').length,
     }),
     [applications],
   );
 
-  const stats: Array<{ key: StatusFilter; label: string; icon: React.ReactNode; color: string }> = [
-    { key: 'all', label: 'Applied Jobs', icon: <Work />, color: '#0c5283' },
-    { key: 'under_review', label: 'Under Review', icon: <HourglassEmpty />, color: '#d97706' },
-    { key: 'shortlisted', label: 'Shortlisted', icon: <CheckCircle />, color: '#0ab6a2' },
-    { key: 'hired', label: 'Hired', icon: <EmojiEvents />, color: '#10b981' },
+  const stats: Array<{ key: StatusFilter; label: string; sub: string; icon: React.ReactNode; color: string }> = [
+    { key: 'all', label: 'All Applications', sub: 'Total submissions', icon: <WorkOutlineRounded />, color: '#0c5283' },
+    { key: 'under_review', label: 'Under Review', sub: 'Pending response', icon: <HourglassEmptyRounded />, color: '#f59e0b' },
+    { key: 'shortlisted', label: 'Shortlisted', sub: 'Interview ready', icon: <CheckCircleRounded />, color: '#0ab6a2' },
+    { key: 'hired', label: 'Hired & Offers', sub: 'Accepted roles', icon: <EmojiEventsRounded />, color: '#10b981' },
   ];
 
   const visibleApplications = useMemo(() => {
-    if (filter === 'all') return applications;
-    if (filter === 'under_review') return applications.filter((item) => UNDER_REVIEW.includes(item.status));
-    return applications.filter((item) => item.status === filter);
-  }, [applications, filter]);
+    return applications.filter((app) => {
+      let matchesStatus = true;
+      if (filter === 'under_review') matchesStatus = UNDER_REVIEW.includes(app.status);
+      else if (filter !== 'all') matchesStatus = app.status === filter;
 
-  const activeStat = stats.find((stat) => stat.key === filter);
+      let matchesSearch = true;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        matchesSearch =
+          app.job.title.toLowerCase().includes(q) ||
+          app.job.companyName.toLowerCase().includes(q) ||
+          app.job.location.toLowerCase().includes(q);
+      }
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [applications, filter, searchQuery]);
+
+  const toggleTimeline = (id: string) => {
+    setExpandedTimelineId((prev) => (prev === id ? null : id));
+  };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh', bgcolor: '#f8fafc' }}>
       <Sidebar type="candidate" userName={candidateName} userRole={candidateRole} />
 
-      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: '#f4f8fc' }}>
-        <PageHeader
-          title="Dashboard"
-          subtitle={`Welcome back, ${candidateName}. Track every job you applied to.`}
-        />
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 2, sm: 3, md: 4.5 } }}>
+        {/* Top Candidate Executive Banner */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 3, sm: 3.5, md: 4 },
+            mb: 3.5,
+            borderRadius: '16px',
+            color: '#ffffff',
+            background: 'linear-gradient(125deg, #0c5283 0%, #0a4570 50%, #0ab6a2 135%)',
+            boxShadow: '0 12px 32px -8px rgba(12, 82, 131, 0.35)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -80,
+              right: -60,
+              width: 300,
+              height: 300,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 70%)',
+              pointerEvents: 'none',
+            }}
+          />
 
-        {/* Stat cards — each one also filters the table below. */}
-        <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: 4 }}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={3}
+            sx={{ justifyContent: 'space-between', alignItems: { md: 'center' } }}
+          >
+            <Box>
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 1.8,
+                  py: 0.5,
+                  borderRadius: 10,
+                  bgcolor: 'rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(8px)',
+                  color: '#ffffff',
+                  mb: 1.5,
+                }}
+              >
+                <StarsRounded sx={{ fontSize: 16, color: '#fef08a' }} />
+                <Typography variant="overline" sx={{ fontWeight: 800, letterSpacing: 1.2, fontSize: '0.72rem' }}>
+                  CANDIDATE CAREER PORTAL
+                </Typography>
+              </Box>
+
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 900,
+                  letterSpacing: '-0.025em',
+                  fontSize: { xs: '1.85rem', sm: '2.4rem' },
+                  lineHeight: 1.15,
+                  mb: 1,
+                }}
+              >
+                Welcome back, {candidateName}
+              </Typography>
+
+              <Typography
+                variant="body1"
+                sx={{
+                  color: 'rgba(255, 255, 255, 0.88)',
+                  maxWidth: 600,
+                  fontSize: { xs: '0.92rem', md: '1.02rem' },
+                  lineHeight: 1.5,
+                }}
+              >
+                Track your submitted applications, upcoming interview schedules, and discover verified veterinary vacancies.
+              </Typography>
+            </Box>
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ flexShrink: 0 }}>
+              <Button
+                component={Link}
+                to="/find-job"
+                variant="contained"
+                endIcon={<ArrowForwardRounded />}
+                sx={{
+                  bgcolor: '#ffffff',
+                  color: '#0c5283',
+                  fontWeight: 800,
+                  textTransform: 'none',
+                  borderRadius: '12px',
+                  px: 3,
+                  py: 1.2,
+                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
+                  '&:hover': { bgcolor: '#f8fafc' },
+                }}
+              >
+                Explore Open Jobs
+              </Button>
+            </Stack>
+          </Stack>
+        </Paper>
+
+        {/* 4 Quick Filter Metric Tiles */}
+        <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
           {stats.map((stat) => {
             const isActive = filter === stat.key;
 
             return (
               <Grid size={{ xs: 6, md: 3 }} key={stat.key}>
-                <Card
+                <Paper
                   elevation={0}
                   onClick={() => setFilter(stat.key)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
                       setFilter(stat.key);
                     }
                   }}
                   sx={{
-                    height: '100%',
+                    p: 2.5,
+                    borderRadius: '14px',
+                    bgcolor: '#ffffff',
+                    border: '1.5px solid',
+                    borderColor: isActive ? stat.color : '#e2e8f0',
+                    boxShadow: isActive ? `0 8px 24px -6px ${stat.color}35` : '0 2px 8px -2px rgba(15, 23, 42, 0.04)',
                     cursor: 'pointer',
-                    borderRadius: 4,
-                    border: '1px solid',
-                    borderColor: isActive ? stat.color : 'rgba(12,82,131,0.10)',
-                    boxShadow: isActive ? `0 14px 30px -18px ${stat.color}` : 'none',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s ease',
-                    '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 18px 36px -18px rgba(12,82,131,0.45)' },
+                    transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '100%',
+                    '&:hover': {
+                      transform: 'translateY(-3px)',
+                      borderColor: stat.color,
+                      boxShadow: `0 12px 28px -6px ${stat.color}25`,
+                    },
                   }}
                 >
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: -24,
-                      right: -24,
-                      width: 90,
-                      height: 90,
-                      borderRadius: '50%',
-                      bgcolor: `${stat.color}12`,
-                    }}
-                  />
-                  <CardContent
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: { xs: 1.5, md: 2.5 },
-                      position: 'relative',
-                    }}
-                  >
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                     <Box
                       sx={{
-                        width: { xs: 44, md: 56 },
-                        height: { xs: 44, md: 56 },
-                        flexShrink: 0,
-                        borderRadius: 3,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#fff',
-                        background: `linear-gradient(135deg, ${stat.color} 0%, ${stat.color}b3 100%)`,
-                        boxShadow: `0 8px 20px -8px ${stat.color}`,
-                        '& svg': { fontSize: { xs: 22, md: 28 } },
+                        width: 44,
+                        height: 44,
+                        borderRadius: '10px',
+                        display: 'grid',
+                        placeItems: 'center',
+                        color: stat.color,
+                        bgcolor: `${stat.color}15`,
+                        '& svg': { fontSize: 22 },
                       }}
                     >
                       {stat.icon}
                     </Box>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.1, fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
-                        {isLoadingApplications ? '—' : counts[stat.key]}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                        {stat.label}
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 700,
+                        color: '#64748b',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {stat.label}
+                    </Typography>
+                  </Box>
+
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 900,
+                      color: '#0f172a',
+                      lineHeight: 1.1,
+                      mb: 0.5,
+                    }}
+                  >
+                    {isLoadingApplications ? '—' : counts[stat.key]}
+                  </Typography>
+
+                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
+                    {stat.sub}
+                  </Typography>
+                </Paper>
               </Grid>
             );
           })}
         </Grid>
 
-        {/* Resume — AI-built or self-uploaded */}
-        <Box sx={{ mb: 3 }}>
+        {/* AI Resume & File Upload Card */}
+        <Box sx={{ mb: 3.5 }}>
           <MyResumeCard candidateName={candidateName} />
         </Box>
 
-        {/* Applied jobs */}
-        <Card elevation={0} sx={sectionCardSx}>
-          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+        {/* My Applications Section Header & Filter Toolbar */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2, sm: 2.5 },
+            mb: 2.5,
+            borderRadius: '16px',
+            bgcolor: '#ffffff',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 2px 10px -2px rgba(15, 23, 42, 0.04)',
+          }}
+        >
+          <Stack spacing={2}>
+            {/* Toolbar Row 1: Heading & Actions */}
             <Box
               sx={{
                 display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
                 justifyContent: 'space-between',
-                alignItems: 'center',
+                alignItems: { xs: 'flex-start', sm: 'center' },
                 gap: 2,
-                mb: 2.5,
-                flexWrap: 'wrap',
               }}
             >
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                <Typography variant="h5" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.01em' }}>
                   My Applications
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {filter === 'all'
-                    ? 'Every job you applied to, with the employer’s response.'
-                    : `Showing ${activeStat?.label.toLowerCase()} applications.`}
+                    ? 'Track all your submitted applications in one clean list.'
+                    : `Filtered by "${filter.replace('_', ' ')}".`}
                 </Typography>
               </Box>
-              <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-                {filter !== 'all' && (
-                  <Button
-                    size="small"
-                    onClick={() => setFilter('all')}
-                    sx={{ fontWeight: 700, textTransform: 'none' }}
-                  >
-                    Clear filter
-                  </Button>
-                )}
-                <Button
-                  size="small"
-                  startIcon={<Work />}
-                  onClick={() => navigate('/find-job')}
-                  sx={{ fontWeight: 700, textTransform: 'none', color: '#0ab6a2' }}
-                >
-                  Find Jobs
-                </Button>
-              </Stack>
+
+              <Button
+                component={Link}
+                to="/find-job"
+                variant="outlined"
+                size="small"
+                startIcon={<WorkOutlineRounded />}
+                sx={{
+                  borderRadius: '10px',
+                  borderColor: '#0ab6a2',
+                  color: '#0ab6a2',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  height: 38,
+                  '&:hover': { borderColor: '#0891b2', bgcolor: 'rgba(10, 182, 162, 0.05)' },
+                }}
+              >
+                Find More Jobs
+              </Button>
             </Box>
 
-            {isLoadingApplications && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-                <CircularProgress />
-              </Box>
-            )}
+            {/* Toolbar Row 2: Search Input & Quick Filter Chips */}
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', md: 'row' },
+                gap: 2,
+                alignItems: { xs: 'stretch', md: 'center' },
+                pt: 1.5,
+                borderTop: '1px dashed #e2e8f0',
+              }}
+            >
+              <TextField
+                placeholder="Search by job title, clinic name, or location..."
+                size="small"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchRounded sx={{ color: '#64748b', fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery ? (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSearchQuery('')}>
+                        <ClearRounded sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+                sx={{
+                  flex: 1,
+                  maxWidth: { xs: '100%', md: 440 },
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '10px',
+                    bgcolor: '#f8fafc',
+                  },
+                }}
+              />
 
-            {isApplicationsError && !isLoadingApplications && (
-              <Alert severity="error" sx={{ borderRadius: 3 }}>
-                Unable to load your applications.
-              </Alert>
-            )}
-
-            {!isLoadingApplications && !isApplicationsError && applications.length === 0 && (
-              <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
-                <Work sx={{ fontSize: 40, opacity: 0.4, mb: 1 }} />
-                <Typography sx={{ fontWeight: 700 }}>No applications yet</Typography>
-                <Typography variant="body2" sx={{ mb: 2 }}>
-                  Apply to jobs and track their status here.
-                </Typography>
-                <Button
-                  variant="contained"
-                  onClick={() => navigate('/find-job')}
-                  sx={{
-                    borderRadius: 2.5,
-                    textTransform: 'none',
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
-                  }}
-                >
-                  Browse Jobs
-                </Button>
-              </Box>
-            )}
-
-            {!isLoadingApplications && !isApplicationsError && applications.length > 0 && (
-              <TableContainer
-                component={Paper}
-                variant="outlined"
-                sx={{ borderRadius: 3, borderColor: 'rgba(12,82,131,0.12)' }}
+              {/* Status Filter Chips */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 1,
+                  overflowX: 'auto',
+                  py: 0.5,
+                  '&::-webkit-scrollbar': { height: 4 },
+                  '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e1', borderRadius: 4 },
+                }}
               >
-                <Table sx={{ minWidth: 900 }} size="small">
-                  <TableHead>
-                    <TableRow sx={{ bgcolor: 'rgba(12,82,131,0.04)' }}>
-                      <TableCell sx={{ fontWeight: 800 }}>Job</TableCell>
-                      <TableCell sx={{ fontWeight: 800 }}>Company</TableCell>
-                      <TableCell sx={{ fontWeight: 800 }}>Applied On</TableCell>
-                      <TableCell sx={{ fontWeight: 800 }}>Employer Viewed</TableCell>
-                      <TableCell sx={{ fontWeight: 800 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 800 }}>Interview</TableCell>
-                      <TableCell sx={{ fontWeight: 800 }}>Employer Message</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 800 }}>Details</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {visibleApplications.map((application) => {
-                      const interviewAt = application.interview?.scheduledAt ?? null;
-                      const employerMessage = application.employerMessage ?? '';
-
-                      return (
-                        <TableRow key={application._id} hover sx={{ '&:last-child td': { border: 0 } }}>
-                          <TableCell>
-                            <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>
-                              {application.job.title}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {application.job.location}
-                            </Typography>
-                          </TableCell>
-                          <TableCell sx={{ fontSize: '0.875rem' }}>{application.job.companyName}</TableCell>
-                          <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.875rem' }}>
-                            {formatDate(application.createdAt)}
-                          </TableCell>
-                          <TableCell>
-                            {application.viewedByEmployer ? (
-                              <Tooltip title={`Viewed on ${formatDateTime(application.viewedAt)}`}>
-                                <Chip
-                                  icon={<Visibility sx={{ fontSize: 16 }} />}
-                                  label="Viewed"
-                                  size="small"
-                                  sx={{ fontWeight: 700, color: '#0c5283', bgcolor: 'rgba(12,82,131,0.10)' }}
-                                />
-                              </Tooltip>
-                            ) : (
-                              <Chip
-                                icon={<VisibilityOff sx={{ fontSize: 16 }} />}
-                                label="Not viewed"
-                                size="small"
-                                variant="outlined"
-                                sx={{ fontWeight: 600, color: 'text.secondary' }}
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <StatusChip status={application.status} />
-                          </TableCell>
-                          <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.875rem' }}>
-                            {interviewAt ? (
-                              <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
-                                <EventAvailable sx={{ fontSize: 16, color: '#7c3aed' }} />
-                                <span>{formatDateTime(interviewAt)}</span>
-                              </Stack>
-                            ) : (
-                              <Typography variant="body2" color="text.disabled">—</Typography>
-                            )}
-                          </TableCell>
-                          <TableCell sx={{ maxWidth: 260 }}>
-                            {employerMessage ? (
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                }}
-                              >
-                                {employerMessage}
-                              </Typography>
-                            ) : (
-                              <Typography variant="body2" color="text.disabled">—</Typography>
-                            )}
-                          </TableCell>
-                          <TableCell align="right">
-                            <Button
-                              size="small"
-                              onClick={() => setSelected(application)}
-                              sx={{ fontWeight: 700, textTransform: 'none', whiteSpace: 'nowrap' }}
-                            >
-                              View
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {visibleApplications.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                          No {activeStat?.label.toLowerCase()} applications.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </CardContent>
-        </Card>
-      </Box>
-
-      {/* Application detail — full employer response and stage history. */}
-      <Dialog
-        open={Boolean(selected)}
-        onClose={() => setSelected(null)}
-        fullWidth
-        maxWidth="sm"
-        slotProps={{ paper: { sx: { borderRadius: 4 } } }}
-      >
-        {selected && (
-          <>
-            <DialogTitle sx={{ pr: 6, fontWeight: 800 }}>
-              {selected.job.title}
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                {selected.job.companyName}
-              </Typography>
-              <IconButton
-                onClick={() => setSelected(null)}
-                aria-label="Close"
-                sx={{ position: 'absolute', right: 12, top: 12 }}
-              >
-                <Close />
-              </IconButton>
-            </DialogTitle>
-            <DialogContent dividers>
-              <Stack direction="row" spacing={2} sx={{ mb: 2.5, alignItems: 'center', flexWrap: 'wrap', rowGap: 1 }}>
-                <Avatar
-                  sx={{
-                    fontWeight: 800,
-                    background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
-                  }}
-                >
-                  {selected.job.companyName.charAt(0)}
-                </Avatar>
-                <Box sx={{ minWidth: 0 }}>
-                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5 }}>
-                    <StatusChip status={selected.status} />
+                {[
+                  { key: 'all', label: `All (${counts.all})` },
+                  { key: 'under_review', label: `Under Review (${counts.under_review})` },
+                  { key: 'shortlisted', label: `Shortlisted (${counts.shortlisted})` },
+                  { key: 'hired', label: `Hired (${counts.hired})` },
+                  { key: 'rejected', label: `Not Selected (${counts.rejected})` },
+                ].map((tab) => {
+                  const isActive = filter === tab.key;
+                  return (
                     <Chip
-                      size="small"
-                      variant="outlined"
-                      icon={selected.viewedByEmployer ? <Visibility sx={{ fontSize: 15 }} /> : <VisibilityOff sx={{ fontSize: 15 }} />}
-                      label={
-                        selected.viewedByEmployer
-                          ? `Viewed ${formatDate(selected.viewedAt)}`
-                          : 'Not viewed yet'
-                      }
-                      sx={{ fontWeight: 600 }}
-                    />
-                  </Stack>
-                  <Typography variant="caption" color="text.secondary">
-                    <LocationOn sx={{ fontSize: 13, verticalAlign: -2 }} /> {selected.job.location} · Applied{' '}
-                    {formatDate(selected.createdAt)}
-                  </Typography>
-                </Box>
-              </Stack>
-
-              {selected.interview?.scheduledAt && (
-                <Alert
-                  icon={<EventAvailable />}
-                  severity="info"
-                  sx={{ borderRadius: 3, mb: 2.5 }}
-                >
-                  <Typography sx={{ fontWeight: 800 }}>
-                    Interview on {formatDateTime(selected.interview.scheduledAt)}
-                  </Typography>
-                  {selected.interview.mode && (
-                    <Typography variant="body2">
-                      Mode: {INTERVIEW_MODE_LABEL[selected.interview.mode] ?? selected.interview.mode}
-                    </Typography>
-                  )}
-                  {selected.interview.location && (
-                    <Typography variant="body2">Where: {selected.interview.location}</Typography>
-                  )}
-                </Alert>
-              )}
-
-              {selected.employerMessage && (
-                <Paper
-                  variant="outlined"
-                  sx={{ p: 2, borderRadius: 3, mb: 2.5, bgcolor: 'rgba(12,82,131,0.03)' }}
-                >
-                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 0.5 }}>
-                    <Message sx={{ fontSize: 18, color: '#0c5283' }} />
-                    <Typography sx={{ fontWeight: 800, fontSize: '0.9rem' }}>
-                      Message from {selected.job.companyName}
-                    </Typography>
-                  </Stack>
-                  <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-                    {selected.employerMessage}
-                  </Typography>
-                </Paper>
-              )}
-
-              <Typography sx={{ fontWeight: 800, mb: 1.5 }}>Application Timeline</Typography>
-              <Stack spacing={1.5}>
-                {(selected.statusHistory ?? []).length === 0 && (
-                  <Typography variant="body2" color="text.secondary">
-                    Applied on {formatDate(selected.createdAt)}. No updates from the employer yet.
-                  </Typography>
-                )}
-                {(selected.statusHistory ?? []).map((event, index) => (
-                  <Box key={`${event.status}-${event.changedAt}-${index}`} sx={{ display: 'flex', gap: 1.5 }}>
-                    <Box
+                      key={tab.key}
+                      label={tab.label}
+                      onClick={() => setFilter(tab.key as StatusFilter)}
+                      clickable
                       sx={{
-                        mt: 0.75,
-                        width: 10,
-                        height: 10,
-                        flexShrink: 0,
-                        borderRadius: '50%',
-                        bgcolor: STATUS_COLOR[event.status],
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        height: 32,
+                        borderRadius: '8px',
+                        bgcolor: isActive ? '#0c5283' : '#f1f5f9',
+                        color: isActive ? '#ffffff' : '#475569',
+                        border: '1px solid',
+                        borderColor: isActive ? '#0c5283' : '#e2e8f0',
+                        '&:hover': {
+                          bgcolor: isActive ? '#0a4570' : '#e2e8f0',
+                        },
                       }}
                     />
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontWeight: 700, fontSize: '0.875rem' }}>
-                        {index === 0 && event.status === 'new' ? 'Application submitted' : STATUS_LABEL[event.status]}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {formatDateTime(event.changedAt)}
-                      </Typography>
-                      {event.interviewAt && (
-                        <Typography variant="body2" sx={{ color: '#7c3aed', fontWeight: 600 }}>
-                          Interview: {formatDateTime(event.interviewAt)}
+                  );
+                })}
+              </Box>
+            </Box>
+          </Stack>
+        </Paper>
+
+        {/* Loading Spinner */}
+        {isLoadingApplications && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* Error Alert */}
+        {isApplicationsError && !isLoadingApplications && (
+          <Alert severity="error" sx={{ mb: 3, borderRadius: '12px' }}>
+            Unable to load your applications. Please check your connection and refresh.
+          </Alert>
+        )}
+
+        {/* Empty State */}
+        {!isLoadingApplications && !isApplicationsError && visibleApplications.length === 0 && (
+          <Paper
+            elevation={0}
+            sx={{
+              py: 8,
+              px: 3,
+              textAlign: 'center',
+              borderRadius: '16px',
+              border: '2px dashed #cbd5e1',
+              bgcolor: '#ffffff',
+              mb: 4,
+            }}
+          >
+            <Box
+              sx={{
+                width: 68,
+                height: 68,
+                borderRadius: '50%',
+                bgcolor: 'rgba(12, 82, 131, 0.08)',
+                color: '#0c5283',
+                display: 'grid',
+                placeItems: 'center',
+                mx: 'auto',
+                mb: 2,
+              }}
+            >
+              <WorkOutlineRounded sx={{ fontSize: 36 }} />
+            </Box>
+
+            <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a', mb: 1 }}>
+              {searchQuery || filter !== 'all' ? 'No matching applications' : 'No applications submitted yet'}
+            </Typography>
+
+            <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 440, mx: 'auto', mb: 3, lineHeight: 1.6 }}>
+              {searchQuery || filter !== 'all'
+                ? 'Try adjusting your search query or switching to another status filter.'
+                : 'Browse verified veterinary openings across top clinics and hospitals to start applying today.'}
+            </Typography>
+
+            {searchQuery || filter !== 'all' ? (
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setFilter('all');
+                  setSearchQuery('');
+                }}
+                sx={{
+                  borderRadius: '10px',
+                  borderColor: '#0c5283',
+                  color: '#0c5283',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                }}
+              >
+                Clear Filters
+              </Button>
+            ) : (
+              <Button
+                component={Link}
+                to="/find-job"
+                variant="contained"
+                sx={{
+                  borderRadius: '10px',
+                  bgcolor: '#0c5283',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  px: 3.5,
+                  py: 1.2,
+                  '&:hover': { bgcolor: '#08385a' },
+                }}
+              >
+                Browse Open Jobs
+              </Button>
+            )}
+          </Paper>
+        )}
+
+        {/* ONE-LINE COMPACT MODERN ROWS (MATCHING USER REFERENCE SCREENSHOT) */}
+        {!isLoadingApplications && !isApplicationsError && visibleApplications.length > 0 && (
+          <Stack spacing={1.5} sx={{ mb: 4 }}>
+            {visibleApplications.map((application) => {
+              const statusCfg = STATUS_CONFIG[application.status] || STATUS_CONFIG.new;
+              const interview = application.interview;
+              const isTimelineOpen = expandedTimelineId === application._id;
+
+              return (
+                <Paper
+                  key={application._id}
+                  elevation={0}
+                  sx={{
+                    borderRadius: '14px',
+                    border: '1px solid #e2e8f0',
+                    borderLeft: `4px solid ${statusCfg.dot}`,
+                    bgcolor: '#ffffff',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    overflow: 'hidden',
+                    boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+                    '&:hover': {
+                      borderColor: '#0c5283',
+                      boxShadow: '0 8px 24px -4px rgba(12, 82, 131, 0.12)',
+                      transform: 'translateY(-1.5px)',
+                    },
+                  }}
+                >
+                  {/* Single Line Clean Row with Generous Height & Alignment */}
+                  <Box
+                    sx={{
+                      minHeight: { xs: 'auto', md: 86 },
+                      py: { xs: 2, md: 2.25 },
+                      px: { xs: 2.5, md: 3 },
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 2.5,
+                      flexWrap: { xs: 'wrap', md: 'nowrap' },
+                    }}
+                  >
+                    {/* Left: Icon Plate & Job Identity */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, flex: { xs: '1 1 100%', md: '0 1 380px' } }}>
+                      <Avatar
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '12px',
+                          bgcolor: 'rgba(10, 182, 162, 0.12)',
+                          color: '#0ab6a2',
+                          fontWeight: 800,
+                          fontSize: '1.25rem',
+                          flexShrink: 0,
+                          border: '1px solid rgba(10, 182, 162, 0.2)',
+                        }}
+                      >
+                        {application.job.companyName?.charAt(0).toUpperCase() || <WorkOutlineRounded sx={{ fontSize: 22 }} />}
+                      </Avatar>
+
+                      <Box sx={{ minWidth: 0 }}>
+                        {/* Title with link that opens directly in a new tab/page (NO MODAL) */}
+                        <Typography
+                          variant="subtitle1"
+                          component={Link}
+                          to={`/jobs/${application.job._id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{
+                            fontWeight: 800,
+                            fontSize: '1.05rem',
+                            color: '#0f172a',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 0.6,
+                            lineHeight: 1.3,
+                            mb: 0.4,
+                            '&:hover': { color: '#0c5283', textDecoration: 'underline' },
+                          }}
+                          noWrap
+                        >
+                          <span>{application.job.title}</span>
+                          <OpenInNewRounded sx={{ fontSize: 14, color: '#64748b' }} />
                         </Typography>
+
+                        {/* Subtitle: Company, Location, Type, Salary */}
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: '#64748b',
+                            fontSize: '0.84rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.8,
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          <Box component="span" sx={{ fontWeight: 700, color: '#334155' }}>
+                            {application.job.companyName}
+                          </Box>
+                          <span>•</span>
+                          <LocationOnOutlined sx={{ fontSize: 14, color: '#94a3b8' }} />
+                          <span>{application.job.location}</span>
+                          {application.job.type && (
+                            <>
+                              <span>•</span>
+                              <span>{translateJobType(application.job.type)}</span>
+                            </>
+                          )}
+                          {application.job.salary && (
+                            <>
+                              <span>•</span>
+                              <Box
+                                component="span"
+                                sx={{
+                                  color: '#047857',
+                                  fontWeight: 700,
+                                  bgcolor: '#ecfdf5',
+                                  px: 0.9,
+                                  py: 0.2,
+                                  borderRadius: '5px',
+                                  border: '1px solid #a7f3d0',
+                                }}
+                              >
+                                {application.job.salary}
+                              </Box>
+                            </>
+                          )}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Middle: Premium Capsule Status Widget (Matching Reference Screenshot!) */}
+                    <Box
+                      sx={{
+                        display: { xs: 'none', md: 'flex' },
+                        alignItems: 'center',
+                        gap: 1.75,
+                        height: 52,
+                        px: 2.2,
+                        borderRadius: '12px',
+                        bgcolor: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {/* Status Chip (Ensured whiteSpace: nowrap) */}
+                      <Box
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.8,
+                          px: 1.4,
+                          py: 0.55,
+                          borderRadius: '8px',
+                          bgcolor: statusCfg.bg,
+                          color: statusCfg.text,
+                          border: `1px solid ${statusCfg.border}`,
+                          fontWeight: 800,
+                          fontSize: '0.8rem',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1,
+                        }}
+                      >
+                        <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: statusCfg.dot, flexShrink: 0 }} />
+                        <span>{statusCfg.label}</span>
+                      </Box>
+
+                      {/* Clean 1px Vertical Divider */}
+                      <Box sx={{ width: '1px', height: '24px', bgcolor: '#e2e8f0', flexShrink: 0 }} />
+
+                      {/* Viewed Status */}
+                      {application.viewedByEmployer ? (
+                        <Tooltip title={`Employer viewed this application on ${formatDateTime(application.viewedAt)}`}>
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, color: '#0c5283', fontSize: '0.8rem', fontWeight: 700, cursor: 'help', whiteSpace: 'nowrap' }}>
+                            <VisibilityRounded sx={{ fontSize: 16, color: '#0c5283' }} />
+                            <span>Viewed</span>
+                          </Box>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip title="Employer has not opened this application yet">
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600, cursor: 'help', whiteSpace: 'nowrap' }}>
+                            <VisibilityOffRounded sx={{ fontSize: 16 }} />
+                            <span>Pending</span>
+                          </Box>
+                        </Tooltip>
                       )}
-                      {event.message && (
-                        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-line' }}>
-                          {event.message}
+
+                      {/* Interview Pill if scheduled */}
+                      {interview?.scheduledAt && (
+                        <>
+                          <Box sx={{ width: '1px', height: '24px', bgcolor: '#e2e8f0', flexShrink: 0 }} />
+                          <Tooltip title={`Interview: ${formatDateTime(interview.scheduledAt)} (${INTERVIEW_MODE_LABEL[interview.mode] || interview.mode})`}>
+                            <Box
+                              sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 0.6,
+                                px: 1.3,
+                                py: 0.5,
+                                borderRadius: '8px',
+                                bgcolor: '#ccfbf1',
+                                color: '#0f766e',
+                                border: '1px solid #99f6e4',
+                                fontSize: '0.78rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}
+                              onClick={() => toggleTimeline(application._id)}
+                            >
+                              <EventAvailableRounded sx={{ fontSize: 15 }} />
+                              <span>Interview</span>
+                            </Box>
+                          </Tooltip>
+                        </>
+                      )}
+
+                      {/* Message Tag if note exists */}
+                      {application.employerMessage && (
+                        <>
+                          <Box sx={{ width: '1px', height: '24px', bgcolor: '#e2e8f0', flexShrink: 0 }} />
+                          <Tooltip title={`Note from clinic: "${application.employerMessage}"`}>
+                            <Box
+                              sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 0.6,
+                                px: 1.3,
+                                py: 0.5,
+                                borderRadius: '8px',
+                                bgcolor: '#eff6ff',
+                                color: '#0c5283',
+                                border: '1px solid #bfdbfe',
+                                fontSize: '0.78rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}
+                              onClick={() => toggleTimeline(application._id)}
+                            >
+                              <MessageRounded sx={{ fontSize: 15 }} />
+                              <span>Note</span>
+                            </Box>
+                          </Tooltip>
+                        </>
+                      )}
+                    </Box>
+
+                    {/* Right: Date & Open Job Button & Expand Chevron */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.25, flexShrink: 0, ml: { xs: 0, md: 'auto' } }}>
+                      {/* Date */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, color: '#64748b' }}>
+                        <AccessTimeRounded sx={{ fontSize: 16, color: '#94a3b8' }} />
+                        <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.84rem', whiteSpace: 'nowrap' }}>
+                          {formatDate(application.createdAt)}
                         </Typography>
+                      </Box>
+
+                      {/* Open Job Button (Opens directly in new tab/page, NO MODAL!) */}
+                      <Button
+                        component={Link}
+                        to={`/jobs/${application.job._id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        variant="outlined"
+                        size="small"
+                        endIcon={<OpenInNewRounded sx={{ fontSize: 14 }} />}
+                        sx={{
+                          height: 40,
+                          borderRadius: '10px',
+                          fontWeight: 700,
+                          textTransform: 'none',
+                          fontSize: '0.86rem',
+                          px: 2.5,
+                          borderColor: '#cbd5e1',
+                          color: '#0c5283',
+                          bgcolor: '#ffffff',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                          '&:hover': {
+                            borderColor: '#0c5283',
+                            bgcolor: 'rgba(12, 82, 131, 0.04)',
+                          },
+                        }}
+                      >
+                        Open Job
+                      </Button>
+
+                      {/* Expand Chevron to drop down interview details / message / timeline */}
+                      {(interview?.scheduledAt || application.employerMessage || (application.statusHistory && application.statusHistory.length > 0)) && (
+                        <IconButton
+                          size="small"
+                          onClick={() => toggleTimeline(application._id)}
+                          sx={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: '10px',
+                            border: '1px solid #e2e8f0',
+                            color: isTimelineOpen ? '#0c5283' : '#64748b',
+                            bgcolor: isTimelineOpen ? 'rgba(12, 82, 131, 0.06)' : '#ffffff',
+                            transform: isTimelineOpen ? 'rotate(180deg)' : 'none',
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                              borderColor: '#cbd5e1',
+                              bgcolor: '#f8fafc',
+                            },
+                          }}
+                          title={isTimelineOpen ? 'Hide Details' : 'Show Interview & Note Details'}
+                        >
+                          <ExpandMoreRounded fontSize="small" />
+                        </IconButton>
                       )}
                     </Box>
                   </Box>
-                ))}
-              </Stack>
 
-              <Divider sx={{ my: 2.5 }} />
-              <Button
-                fullWidth
-                variant="outlined"
-                onClick={() => {
-                  setSelected(null);
-                  navigate(`/jobs/${selected.job._id}`);
-                }}
-                sx={{ borderRadius: 2.5, fontWeight: 700, textTransform: 'none' }}
-              >
-                View Job Posting
-              </Button>
-            </DialogContent>
-          </>
+                  {/* Smooth In-Place Details Dropdown (Only visible when expanded, takes NO height by default!) */}
+                  <Collapse in={isTimelineOpen}>
+                    <Box sx={{ p: 2.5, bgcolor: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
+                      {/* Interview details */}
+                      {interview?.scheduledAt && (
+                        <Box
+                          sx={{
+                            mb: 2,
+                            p: 1.75,
+                            borderRadius: '10px',
+                            bgcolor: '#f0fdfa',
+                            border: '1px solid #99f6e4',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                          }}
+                        >
+                          <EventAvailableRounded sx={{ fontSize: 20, color: '#0f766e' }} />
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 800, color: '#0f766e' }}>
+                              Interview Scheduled for {formatDateTime(interview.scheduledAt)}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#115e59', fontWeight: 600 }}>
+                              Format: {INTERVIEW_MODE_LABEL[interview.mode] || interview.mode || 'Direct Connect'}
+                              {interview.location && ` • Location/Link: ${interview.location}`}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Employer note */}
+                      {application.employerMessage && (
+                        <Box
+                          sx={{
+                            mb: 2,
+                            p: 1.5,
+                            borderRadius: '8px',
+                            bgcolor: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderLeft: '4px solid #0c5283',
+                          }}
+                        >
+                          <Typography variant="caption" sx={{ fontWeight: 800, color: '#0c5283', textTransform: 'uppercase' }}>
+                            Message from Clinic:
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#334155', fontStyle: 'italic', mt: 0.3 }}>
+                            &ldquo;{application.employerMessage}&rdquo;
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Timeline history */}
+                      <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', textTransform: 'uppercase', mb: 1.5, display: 'block' }}>
+                        Application Timeline Updates
+                      </Typography>
+                      <Stack spacing={1.25}>
+                        {(application.statusHistory ?? []).length === 0 ? (
+                          <Typography variant="caption" color="text.secondary">
+                            Application submitted on {formatDate(application.createdAt)}. Awaiting clinic review.
+                          </Typography>
+                        ) : (
+                          (application.statusHistory ?? []).map((event, idx) => (
+                            <Box key={idx} sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                              <Box
+                                sx={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: '50%',
+                                  bgcolor: STATUS_CONFIG[event.status]?.dot || '#0c5283',
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                                {STATUS_CONFIG[event.status]?.label || event.status}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                • {formatDateTime(event.changedAt)}
+                              </Typography>
+                              {event.message && (
+                                <Typography variant="caption" sx={{ color: '#475569', fontStyle: 'italic' }}>
+                                  — {event.message}
+                                </Typography>
+                              )}
+                            </Box>
+                          ))
+                        )}
+                      </Stack>
+                    </Box>
+                  </Collapse>
+                </Paper>
+              );
+            })}
+          </Stack>
         )}
-      </Dialog>
+
+        {/* EXPLORE RECOMMENDED JOBS SECTION */}
+        {recommendedJobs.length > 0 && (
+          <Box sx={{ mt: 5 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                mb: 2.5,
+              }}
+            >
+              <Box>
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.8,
+                    px: 1.6,
+                    py: 0.4,
+                    borderRadius: 8,
+                    bgcolor: 'rgba(10, 182, 162, 0.1)',
+                    color: '#0ab6a2',
+                    mb: 0.8,
+                  }}
+                >
+                  <TrendingUpRounded sx={{ fontSize: 16 }} />
+                  <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase' }}>
+                    Recommended For You
+                  </Typography>
+                </Box>
+                <Typography variant="h5" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.01em' }}>
+                  Explore Active Veterinary Openings
+                </Typography>
+              </Box>
+
+              <Button
+                component={Link}
+                to="/find-job"
+                endIcon={<ArrowForwardRounded />}
+                sx={{
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  color: '#0c5283',
+                }}
+              >
+                View All Jobs
+              </Button>
+            </Box>
+
+            <Grid container spacing={2.5}>
+              {recommendedJobs.map((job) => (
+                <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={job._id}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2.5,
+                      borderRadius: '14px',
+                      border: '1px solid #e2e8f0',
+                      bgcolor: '#ffffff',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        borderColor: '#0c5283',
+                        boxShadow: '0 12px 24px -6px rgba(12, 82, 131, 0.12)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                      <Avatar
+                        sx={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: '10px',
+                          bgcolor: 'rgba(12, 82, 131, 0.08)',
+                          color: '#0c5283',
+                          fontWeight: 800,
+                          fontSize: '1rem',
+                        }}
+                      >
+                        {job.companyName?.charAt(0).toUpperCase() || 'V'}
+                      </Avatar>
+                      <Chip
+                        label={translateJobType(job.type)}
+                        size="small"
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: '0.68rem',
+                          height: 22,
+                          bgcolor: '#f1f5f9',
+                          color: '#475569',
+                        }}
+                      />
+                    </Box>
+
+                    <Typography
+                      variant="h6"
+                      component={Link}
+                      to={`/jobs/${job._id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: '1rem',
+                        color: '#0f172a',
+                        textDecoration: 'none',
+                        lineHeight: 1.3,
+                        mb: 0.5,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        '&:hover': { color: '#0c5283' },
+                      }}
+                    >
+                      {job.title}
+                    </Typography>
+
+                    <Typography variant="body2" sx={{ color: '#64748b', fontSize: '0.84rem', mb: 1.5 }}>
+                      {job.companyName}
+                    </Typography>
+
+                    <Box sx={{ mt: 'auto', pt: 1.5, borderTop: '1px solid #f1f5f9' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#64748b', fontSize: '0.8rem', mb: 1 }}>
+                        <LocationOnOutlined sx={{ fontSize: 16 }} />
+                        <span>{job.location}</span>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: '#047857' }}>
+                          {job.salary || 'Negotiable'}
+                        </Typography>
+                        <Button
+                          component={Link}
+                          to={`/jobs/${job._id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          size="small"
+                          endIcon={<OpenInNewRounded sx={{ fontSize: 14 }} />}
+                          sx={{
+                            fontWeight: 700,
+                            textTransform: 'none',
+                            fontSize: '0.78rem',
+                            color: '#0c5283',
+                          }}
+                        >
+                          View Job
+                        </Button>
+                      </Box>
+                    </Box>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 };

@@ -17,6 +17,7 @@ import {
   useSendEmailOtpMutation,
   useSendPhoneOtpMutation,
   type OtpPhoneChannel,
+  type RegistrationRole,
 } from '../../store/api/verificationApi';
 
 const getApiErrorMessage = (error: unknown, fallback: string) => {
@@ -35,6 +36,8 @@ const CHANNELS: Array<{ value: OtpPhoneChannel; label: string }> = [
 
 type Props = {
   kind: 'email' | 'phone';
+  /** Which signup form this sits in — decides the server's duplicate check. */
+  role: RegistrationRole;
   /** The email address, or the bare 10-digit mobile number. */
   value: string;
   verified: boolean;
@@ -51,6 +54,7 @@ type Props = {
  */
 const OtpVerifyControl: React.FC<Props> = ({
   kind,
+  role,
   value,
   verified,
   onVerified,
@@ -86,8 +90,8 @@ const OtpVerifyControl: React.FC<Props> = ({
 
     try {
       const result = isEmail
-        ? await sendEmailOtp({ email: value }).unwrap()
-        : await sendPhoneOtp({ phone: value, channel }).unwrap();
+        ? await sendEmailOtp({ email: value, role }).unwrap()
+        : await sendPhoneOtp({ phone: value, channel, role }).unwrap();
 
       if (result.data.alreadyVerified) {
         onVerified();

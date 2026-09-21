@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Autocomplete,
@@ -15,6 +15,7 @@ import {
   FormControlLabel,
   Grid,
   IconButton,
+  InputAdornment,
   InputLabel,
   LinearProgress,
   MenuItem,
@@ -23,22 +24,27 @@ import {
   Stack,
   Switch,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import {
   Add,
   ArrowBack,
   Bolt,
+  Business,
+  CheckCircle,
   Delete,
   Description,
   LocationOn,
-  Lock,
   Payments,
-  Save,
+  Psychology,
+  RocketLaunchOutlined,
   School,
-  Star,
+  Stars,
   Tune,
   Visibility,
+  Work,
   WorkOutlined,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -93,25 +99,8 @@ const getStoredUser = (): StoredUser | null => {
   }
 };
 
-const BRAND_GRADIENT = 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)';
-
-// One sx applied to the form wrapper — themes every field inside without touching each one.
-const modernFieldSx = {
-  '& .MuiOutlinedInput-root': {
-    borderRadius: 2.5,
-    bgcolor: '#fff',
-    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-    '& fieldset': { borderColor: 'rgba(12,82,131,0.18)' },
-    '&:hover fieldset': { borderColor: 'rgba(10,182,162,0.55)' },
-    '&.Mui-focused fieldset': { borderColor: '#0ab6a2', borderWidth: 2 },
-  },
-  '& .MuiInputLabel-root.Mui-focused': { color: '#0ab6a2' },
-} as const;
-
-// Alerts that carry action buttons: below sm the buttons drop to their own full-width row
-// instead of crushing the message text.
 const actionAlertSx = {
-  mb: 3,
+  mb: 2.5,
   borderRadius: 3,
   flexWrap: 'wrap',
   '& .MuiAlert-action': {
@@ -119,6 +108,21 @@ const actionAlertSx = {
     ml: { xs: 0, sm: 'auto' },
     pl: { xs: 0, sm: 2 },
     pt: { xs: 1, sm: 0.5 },
+  },
+} as const;
+
+const modernFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    borderRadius: 2.75,
+    bgcolor: '#ffffff',
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+    '& fieldset': { borderColor: 'rgba(226, 232, 240, 0.9)' },
+    '&:hover fieldset': { borderColor: 'rgba(10, 182, 162, 0.55)' },
+    '&.Mui-focused fieldset': { borderColor: '#0ab6a2', borderWidth: 2 },
+  },
+  '& .MuiInputLabel-root': {
+    color: '#64748b',
+    '&.Mui-focused': { color: '#0c5283', fontWeight: 700 },
   },
 } as const;
 
@@ -133,6 +137,7 @@ const defaultJobForm: JobPayload = {
   education: '',
   benefits: '',
   status: 'active',
+  screeningQuestions: [],
 };
 
 const parseSalary = (label?: string) => {
@@ -168,50 +173,37 @@ const getApiErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-const FormSection: React.FC<{
+const SectionHeader: React.FC<{
   icon: React.ReactNode;
   title: string;
-  caption: string;
-  color: string;
-  children: React.ReactNode;
-}> = ({ icon, title, caption, color, children }) => (
-  <Box>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
-      <Box
-        sx={{
-          width: 44,
-          height: 44,
-          borderRadius: 2,
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#fff',
-          background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
-          boxShadow: `0 8px 16px -6px ${color}66`,
-        }}
-      >
-        {icon}
-      </Box>
-      <Box>
-        <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-          {title}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {caption}
-        </Typography>
-      </Box>
+  subtitle: string;
+  color?: string;
+}> = ({ icon, title, subtitle, color = '#0c5283' }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75, mb: 2.5 }}>
+    <Box
+      sx={{
+        width: 44,
+        height: 44,
+        borderRadius: 2.5,
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fff',
+        background: `linear-gradient(135deg, ${color} 0%, ${alpha(color, 0.8)} 100%)`,
+        boxShadow: `0 8px 18px -6px ${alpha(color, 0.5)}`,
+      }}
+    >
+      {icon}
     </Box>
-    {children}
-  </Box>
-);
-
-const PreviewRow: React.FC<{ icon: React.ReactNode; text: string; filled: boolean }> = ({ icon, text, filled }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-    <Box sx={{ color: filled ? 'primary.main' : 'text.disabled', display: 'flex' }}>{icon}</Box>
-    <Typography variant="body2" color={filled ? 'text.primary' : 'text.secondary'} noWrap sx={{ flex: 1 }}>
-      {text}
-    </Typography>
+    <Box>
+      <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '1.2rem', color: '#0f172a', lineHeight: 1.25 }}>
+        {title}
+      </Typography>
+      <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+        {subtitle}
+      </Typography>
+    </Box>
   </Box>
 );
 
@@ -230,6 +222,7 @@ const PostJob: React.FC = () => {
   const [salaryErrors, setSalaryErrors] = useState<SalaryRangeErrors>({});
   const [successMessage, setSuccessMessage] = useState('');
   const [submitError, setSubmitError] = useState('');
+
   const [createJob, { isLoading: isCreating }] = useCreateJobMutation();
   const [updateJob, { isLoading: isUpdating }] = useUpdateJobMutation();
   const [purchaseCheckout, { isLoading: isBuyingCredit }] = usePurchaseCheckoutMutation();
@@ -245,7 +238,6 @@ const PostJob: React.FC = () => {
 
   const effectiveFeatures = usageData?.data.effectiveFeatures;
   const activeJobsMeter = usageData?.data.usage.activeJobs;
-  const featuredMeter = usageData?.data.usage.featuredJobs;
   const jobCreditsAvailable = usageData?.data.usage.jobCredits?.available ?? 0;
   const useJobCredit = Boolean(formData.useJobCredit);
   const quotaExhausted =
@@ -254,7 +246,6 @@ const PostJob: React.FC = () => {
     Boolean(activeJobsMeter && activeJobsMeter.limit !== null && activeJobsMeter.used >= activeJobsMeter.limit);
   const canFeature = (effectiveFeatures?.featuredJobs ?? 0) > 0;
   const canScreen = Boolean(effectiveFeatures?.screeningQuestionsEnabled) || useJobCredit;
-  const validityDays = useJobCredit ? 14 : effectiveFeatures?.jobValidityDays ?? null;
 
   useEffect(() => {
     if (!isEdit || prefilled || !jobData?.data) {
@@ -343,27 +334,32 @@ const PostJob: React.FC = () => {
 
   const validateForm = () => {
     const nextErrors: JobFormErrors = {};
-    const requiredFields: Array<keyof JobPayload> = ['title', 'type', 'location', 'description', 'experience', 'education'];
+    const nextSalaryErrors: SalaryRangeErrors = {};
 
-    requiredFields.forEach((field) => {
-      const value = formData[field];
-      if (typeof value === 'string' && !value.trim()) {
-        nextErrors[field] = 'This field is required';
-      }
-    });
+    if (!formData.title.trim()) nextErrors.title = 'Job title is required';
+    if (!formData.type.trim()) nextErrors.type = 'Job type is required';
+    if (!formData.location.trim()) nextErrors.location = 'Job location is required';
+    if (!formData.experience.trim()) nextErrors.experience = 'Experience level is required';
+    if (!formData.description.trim()) nextErrors.description = 'Job description is required';
+    if (!formData.education.trim()) nextErrors.education = 'Minimum education is required';
 
     if (formData.skills.length === 0) {
-      nextErrors.skills = 'Select at least one skill';
+      nextErrors.skills = 'Select at least one skill or specialization';
     }
 
-    const nextSalaryErrors: SalaryRangeErrors = {};
     if (salaryRange.min && salaryRange.max && Number(salaryRange.max) < Number(salaryRange.min)) {
-      nextSalaryErrors.salaryMax = 'Max salary must be greater than min salary';
+      nextSalaryErrors.salaryMax = 'Maximum salary must be greater than minimum salary';
     }
 
     setFormErrors(nextErrors);
     setSalaryErrors(nextSalaryErrors);
-    return Object.keys(nextErrors).length === 0 && Object.keys(nextSalaryErrors).length === 0;
+
+    if (Object.keys(nextErrors).length > 0 || Object.keys(nextSalaryErrors).length > 0) {
+      notify.warning('Please complete all required fields highlighted in red.');
+      return false;
+    }
+
+    return true;
   };
 
   const currentUser = getStoredUser();
@@ -380,8 +376,7 @@ const PostJob: React.FC = () => {
     }
 
     if (!validateForm()) {
-      setSubmitError(`Please fix the highlighted fields before ${isEdit ? 'updating' : 'posting'}.`);
-      notify.warning(`Please fix the highlighted fields before ${isEdit ? 'updating' : 'posting'}.`);
+      setSubmitError(`Please fix the highlighted fields before ${isEdit ? 'updating' : 'publishing'}.`);
       return;
     }
 
@@ -404,16 +399,9 @@ const PostJob: React.FC = () => {
       }
 
       const response = await createJob(payload).unwrap();
-      setFormData({
-        ...defaultJobForm,
-        type: jobTypeOptions[0]?.value ?? '',
-        education: educationOptions[0]?.value ?? '',
-      });
-      setSalaryRange({ min: '', max: '', unit: salaryUnitOptions[0]?.value ?? '' });
-      setFormErrors({});
-      setSalaryErrors({});
       setSuccessMessage(response.message);
       notify.success(response.message || 'Job posted successfully.');
+      setTimeout(() => navigate('/employer/dashboard'), 900);
     } catch (error) {
       const message = getApiErrorMessage(error, isEdit ? 'Unable to update job.' : 'Unable to post job.');
       setSubmitError(message);
@@ -421,7 +409,7 @@ const PostJob: React.FC = () => {
     }
   };
 
-  // Derived values for the live preview and completion meter.
+  // Completion calculation
   const requiredChecks = [
     formData.title.trim(),
     formData.type.trim(),
@@ -435,247 +423,156 @@ const PostJob: React.FC = () => {
   const completionPct = Math.round((completedCount / requiredChecks.length) * 100);
 
   const jobTypeName = jobTypeOptions.find((option) => option.value === formData.type)?.name || formData.type;
-  const educationName = educationOptions.find((option) => option.value === formData.education)?.name || formData.education;
-  const skillNames = formData.skills;
-  const benefitNames = (formData.benefits || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
+  const benefitNames = useMemo(() => {
+    return (formData.benefits || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }, [formData.benefits]);
   const salaryLabel = getSalaryLabel();
-  // Shared with the job list and job detail header, so a status added in one
-  // place can never leave another with an undefined label.
-  const statusMeta = JOB_STATUS_META[formData.status] ?? JOB_STATUS_META.draft;
+  const isSubmitBlocked = isLoading || isProfileApprovalLoading || isApprovalPending;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh', bgcolor: '#f8fafc' }}>
       <Sidebar type="employer" userName={companyName} />
 
-      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: 'background.default' }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 2, sm: 3, md: 4.5 }, maxWidth: 1400, mx: 'auto', width: '100%' }}>
+        {/* Navigation / Header */}
+        <Box sx={{ mb: 3 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between' }}>
+            <Button
+              startIcon={<ArrowBack />}
+              onClick={() => navigate('/employer/dashboard')}
+              sx={{
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                color: '#0c5283',
+                bgcolor: '#ffffff',
+                px: 2.2,
+                py: 1,
+                borderRadius: 2.5,
+                border: '1px solid',
+                borderColor: 'rgba(12, 82, 131, 0.15)',
+                boxShadow: '0 2px 8px rgba(12, 82, 131, 0.04)',
+                '&:hover': {
+                  bgcolor: 'rgba(12, 82, 131, 0.05)',
+                  transform: 'translateX(-3px)',
+                },
+              }}
+            >
+              Back to Dashboard
+            </Button>
+
+            <Chip
+              icon={<Work sx={{ fontSize: '1.05rem !important' }} />}
+              label={isEdit ? 'Editing Existing Job' : 'All-in-One Job Creator'}
+              variant="outlined"
+              sx={{
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                borderColor: 'rgba(12, 82, 131, 0.3)',
+                bgcolor: '#ffffff',
+                color: '#0c5283',
+              }}
+            />
+          </Stack>
+        </Box>
+
         <PageHeader
-          title={isEdit ? 'Edit Job' : 'Post a New Job'}
-          subtitle={isEdit ? 'Update the details of your job opening' : 'Fill in the details to post a new job opening'}
+          title={isEdit ? 'Edit Job Opening' : 'Post a New Job'}
+          subtitle={
+            isEdit
+              ? 'Update all specifications for this veterinary role in one place.'
+              : 'Complete all job details on this single page and publish immediately to attract qualified veterinary talent.'
+          }
           breadcrumbs={[
-            { label: 'Employer', path: '/employer/dashboard' },
+            { label: 'Employer Dashboard', path: '/employer/dashboard' },
             { label: isEdit ? 'Edit Job' : 'Post Job' },
           ]}
         />
 
+        {/* Global Notifications & Quota Banners */}
         {isGuest && (
-          <Alert
-            severity="warning"
-            sx={actionAlertSx}
-            action={
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                <Button color="inherit" size="small" onClick={() => navigate('/login')}>
-                  Login as Employer
-                </Button>
-                <Button color="inherit" size="small" onClick={() => navigate('/signup/employer')}>
-                  Sign Up as Employer
-                </Button>
-              </Stack>
-            }
-          >
-            You are not logged in. Please sign in or register as an Employer to post a job and receive applications.
+          <Alert severity="warning" sx={actionAlertSx} action={<Button color="inherit" size="small" onClick={() => navigate('/login')}>Login</Button>}>
+            Please sign in as an employer to post jobs and receive applications.
           </Alert>
         )}
 
         {isCandidate && (
-          <Alert
-            severity="warning"
-            sx={actionAlertSx}
-            action={
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                <Button color="inherit" size="small" onClick={() => navigate('/signup/employer')}>
-                  Create Employer Profile
-                </Button>
-              </Stack>
-            }
-          >
-            You are currently signed in with a Candidate account. Job posting requires an Employer profile.
+          <Alert severity="warning" sx={actionAlertSx} action={<Button color="inherit" size="small" onClick={() => navigate('/signup/employer')}>Create Employer Profile</Button>}>
+            You are currently signed in with a candidate account. An employer profile is required to post jobs.
           </Alert>
         )}
 
         {hasNoEmployerProfile && (
-          <Alert
-            severity="warning"
-            sx={actionAlertSx}
-            action={
-              <Button color="inherit" size="small" onClick={() => navigate('/signup/employer')}>
-                Set Up Profile
-              </Button>
-            }
-          >
-            Please complete your Company Profile before posting your first job opening.
+          <Alert severity="warning" sx={actionAlertSx} action={<Button color="inherit" size="small" onClick={() => navigate('/employer/profile')}>Set Up Company Profile</Button>}>
+            Please complete your company profile before posting a job.
           </Alert>
         )}
 
         {isEdit && isJobLoading && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-            <CircularProgress size={18} />
-            <Typography variant="body2" color="text.secondary">Loading job details...</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+            <CircularProgress size={20} />
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>Loading existing job details…</Typography>
           </Box>
         )}
 
         {!isEdit && activeJobsMeter && activeJobsMeter.limit !== null && (
-          <Alert
-            severity={quotaExhausted ? 'warning' : 'info'}
-            sx={actionAlertSx}
-            action={
-              quotaExhausted && jobCreditsAvailable === 0 ? (
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                  <Button
-                    color="inherit"
-                    size="small"
-                    disabled={isBuyingCredit}
-                    onClick={async () => {
-                      try {
-                        const res = await purchaseCheckout({ type: 'pay_per_job' }).unwrap();
-                        window.location.href = res.data.url;
-                      } catch {
-                        /* interceptor surfaces the error */
-                      }
-                    }}
-                  >
-                    Buy job credit
-                  </Button>
-                  <Button color="inherit" size="small" onClick={() => navigate('/pricing')}>
-                    Upgrade
-                  </Button>
-                </Stack>
-              ) : undefined
-            }
-          >
+          <Alert severity={quotaExhausted ? 'warning' : 'info'} sx={actionAlertSx}>
             {quotaExhausted
-              ? jobCreditsAvailable > 0
-                ? `All ${activeJobsMeter.limit} active job slots are in use — tick "Use a Pay Per Job credit" below to post this job anyway.`
-                : `All ${activeJobsMeter.limit} active job slots on your plan are in use. Close a job, buy a Pay Per Job credit (₹499) or upgrade.`
-              : `${activeJobsMeter.used} of ${activeJobsMeter.limit} active job slots in use on your plan.`}
+              ? `All ${activeJobsMeter.limit} active job slots on your plan are in use.`
+              : `${activeJobsMeter.used} of ${activeJobsMeter.limit} active job slots currently in use.`}
           </Alert>
         )}
 
         {!isEdit && (jobCreditsAvailable > 0 || useJobCredit) && (
           <Alert severity="info" icon={<Bolt fontSize="inherit" />} sx={{ mb: 3, borderRadius: 3 }}>
             <FormControlLabel
-              control={
-                <Checkbox
-                  checked={useJobCredit}
-                  onChange={(event) => updateField('useJobCredit', event.target.checked)}
-                />
-              }
+              control={<Checkbox checked={useJobCredit} onChange={(e) => updateField('useJobCredit', e.target.checked)} />}
               label={`Use a Pay Per Job credit (${jobCreditsAvailable} available) — 14-day listing with 15 profile unlocks`}
             />
           </Alert>
         )}
 
         {successMessage && (
-          <Alert severity="success" variant="filled" sx={{ mb: 3, borderRadius: 3 }}>
+          <Alert severity="success" sx={{ mb: 3, borderRadius: 3, fontWeight: 600 }}>
             {successMessage}
           </Alert>
         )}
+
         {submitError && (
-          <Alert severity="error" sx={{ mb: 3, borderRadius: 3 }}>
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 3, fontWeight: 600 }} onClose={() => setSubmitError('')}>
             {submitError}
           </Alert>
         )}
-        {isApprovalPending && (
-          <Alert severity="warning" sx={{ mb: 3, borderRadius: 3 }}>
-            You can prepare job details, but posting and saving jobs will be enabled only after your profile is approved.
-          </Alert>
-        )}
 
-        <Grid container spacing={3}>
-          {/* Form */}
+        {/* ALL IN ONE FORM GRID */}
+        <Grid container spacing={3.5}>
+          {/* MAIN FORM COLUMN (Left 8 Cols) - All fields visible together! */}
           <Grid size={{ xs: 12, lg: 8 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                border: '1px solid rgba(12,82,131,0.1)',
-                borderRadius: 4,
-                overflow: 'hidden',
-                boxShadow: '0 24px 60px -34px rgba(12,82,131,0.4)',
-              }}
-            >
-              {/* Gradient header */}
-              <Box
+            <Stack spacing={3.5}>
+              {/* SECTION 1: ROLE BASICS */}
+              <Card
+                elevation={0}
                 sx={{
-                  position: 'relative',
-                  px: { xs: 2.5, md: 4 },
-                  py: { xs: 3, md: 3.5 },
-                  color: '#fff',
-                  background: BRAND_GRADIENT,
-                  overflow: 'hidden',
+                  borderRadius: 4,
+                  border: '1px solid',
+                  borderColor: 'rgba(226, 232, 240, 0.9)',
+                  background: '#ffffff',
+                  boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)',
+                  ...modernFieldSx,
                 }}
               >
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    right: -70,
-                    top: -70,
-                    width: 220,
-                    height: 220,
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%)',
-                    pointerEvents: 'none',
-                  }}
-                />
-                <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box
-                    sx={{
-                      width: 54,
-                      height: 54,
-                      borderRadius: 2.5,
-                      bgcolor: 'rgba(255,255,255,0.18)',
-                      backdropFilter: 'blur(10px)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      '& svg': { fontSize: 28 },
-                    }}
-                  >
-                    <WorkOutlined />
-                  </Box>
-                  <Box>
-                    <Typography variant="h5" sx={{ fontWeight: 800, lineHeight: 1.15 }}>
-                      {isEdit ? 'Edit Job Opening' : 'Create a Job Opening'}
-                    </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.92, mt: 0.5 }}>
-                      Share the role details — candidates see this instantly once published.
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box sx={{ position: 'relative', mt: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 600, opacity: 0.9 }}>
-                      Required fields completed
-                    </Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 800 }}>
-                      {completedCount}/{requiredChecks.length}
-                    </Typography>
-                  </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={completionPct}
-                    sx={{
-                      height: 8,
-                      borderRadius: 5,
-                      bgcolor: 'rgba(255,255,255,0.25)',
-                      '& .MuiLinearProgress-bar': { bgcolor: '#fff', borderRadius: 5 },
-                    }}
+                <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+                  <SectionHeader
+                    icon={<WorkOutlined />}
+                    title="1. Role Basics & Headline"
+                    subtitle="Key details veterinary professionals scan first."
+                    color="#0c5283"
                   />
-                </Box>
-              </Box>
 
-              {/* Form body */}
-              <Box sx={{ p: { xs: 2.5, md: 4 }, ...modernFieldSx }}>
-                <FormSection
-                  icon={<WorkOutlined />}
-                  color="#0c5283"
-                  title="Job Overview"
-                  caption="The headline details candidates scan first."
-                >
                   <Grid container spacing={2.5}>
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid size={{ xs: 12 }}>
                       <LookupSelect
                         category="job_title"
                         label="Job Title"
@@ -686,31 +583,46 @@ const PostJob: React.FC = () => {
                         error={Boolean(formErrors.title)}
                         helperText={
                           formErrors.title ||
-                          'Pick from the list, or use Add new… for admin approval'
+                          'Choose standard veterinary job title or type a new one'
                         }
                       />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
+
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <LookupSelect
                         category="job_type"
                         label="Job Type"
                         value={formData.type}
                         onChange={(v) => updateField('type', v)}
                         required
+                        error={Boolean(formErrors.type)}
                         helperText={formErrors.type}
                       />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
+
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <LookupSelect
+                        category="experience_band"
+                        label="Experience Level Required"
+                        value={formData.experience}
+                        onChange={(v) => updateField('experience', v)}
+                        required
+                        error={Boolean(formErrors.experience)}
+                        helperText={formErrors.experience || 'Select required experience (e.g. 0-2, 2-5 years)'}
+                      />
+                    </Grid>
+
+                    <Grid size={{ xs: 12 }}>
                       <Autocomplete
                         options={indiaCityOptions}
                         filterOptions={filterCityOptions}
                         value={formData.location || null}
-                        onChange={(_event, value) => updateField('location', value ?? '')}
+                        onChange={(_, newValue) => updateField('location', newValue || '')}
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            fullWidth
-                            label="Location"
+                            label="Job Location (City)"
+                            required
                             placeholder="Search Indian cities"
                             error={Boolean(formErrors.location)}
                             helperText={
@@ -720,470 +632,614 @@ const PostJob: React.FC = () => {
                         )}
                       />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <LookupSelect
-                        category="experience_band"
-                        label="Experience Required"
-                        value={formData.experience}
-                        onChange={(v) => updateField('experience', v)}
-                        required
-                        helperText={formErrors.experience}
-                      />
-                    </Grid>
                   </Grid>
-                </FormSection>
+                </CardContent>
+              </Card>
 
-                <Divider sx={{ my: 4 }} />
+              {/* SECTION 2: COMPENSATION & ROLE DESCRIPTION */}
+              <Card
+                elevation={0}
+                sx={{
+                  borderRadius: 4,
+                  border: '1px solid',
+                  borderColor: 'rgba(226, 232, 240, 0.9)',
+                  background: '#ffffff',
+                  boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)',
+                  ...modernFieldSx,
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+                  <SectionHeader
+                    icon={<Payments />}
+                    title="2. Compensation & Role Description"
+                    subtitle="Remuneration package and comprehensive role expectations."
+                    color="#0ab6a2"
+                  />
 
-                <FormSection
-                  icon={<Payments />}
-                  color="#0ab6a2"
-                  title="Compensation"
-                  caption="Transparent pay attracts stronger applicants."
-                >
-                  <Grid container spacing={2}>
+                  <Grid container spacing={2.5}>
+                    {/* Salary Range */}
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <TextField
                         fullWidth
-                        label="Min Salary"
-                        inputMode="numeric"
+                        label="Minimum Pay (₹)"
+                        placeholder="e.g. 500000"
                         value={salaryRange.min}
                         error={Boolean(salaryErrors.salaryMin)}
-                        helperText={salaryErrors.salaryMin}
-                        onChange={(event) => updateSalaryRange('min', event.target.value)}
+                        helperText={salaryErrors.salaryMin || 'Optional minimum'}
+                        onChange={(e) => updateSalaryRange('min', e.target.value)}
+                        slotProps={{
+                          input: {
+                            startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                          },
+                        }}
                       />
                     </Grid>
+
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <TextField
                         fullWidth
-                        label="Max Salary"
-                        inputMode="numeric"
+                        label="Maximum Pay (₹)"
+                        placeholder="e.g. 900000"
                         value={salaryRange.max}
                         error={Boolean(salaryErrors.salaryMax)}
-                        helperText={salaryErrors.salaryMax}
-                        onChange={(event) => updateSalaryRange('max', event.target.value)}
+                        helperText={salaryErrors.salaryMax || 'Optional maximum'}
+                        onChange={(e) => updateSalaryRange('max', e.target.value)}
+                        slotProps={{
+                          input: {
+                            startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                          },
+                        }}
                       />
                     </Grid>
+
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <LookupSelect
                         category="salary_unit"
-                        label="Salary Unit"
+                        label="Pay Frequency"
                         value={salaryRange.unit}
                         onChange={(v) => updateSalaryRange('unit', v)}
                       />
                     </Grid>
+
+                    {salaryLabel && (
+                      <Grid size={{ xs: 12 }}>
+                        <Box
+                          sx={{
+                            p: 1.5,
+                            borderRadius: 2.5,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.25,
+                            bgcolor: 'rgba(10, 182, 162, 0.08)',
+                            border: '1px solid rgba(10, 182, 162, 0.25)',
+                          }}
+                        >
+                          <Payments sx={{ fontSize: 20, color: '#0ab6a2' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#0c5283' }}>
+                            Candidates will see: {salaryLabel}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    )}
+
+                    {/* Detailed Job Description */}
+                    <Grid size={{ xs: 12 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0f172a' }}>
+                          Detailed Job Description *
+                        </Typography>
+                        <Button
+                          size="small"
+                          startIcon={<Bolt />}
+                          variant="outlined"
+                          onClick={() => {
+                            const title = formData.title || 'Veterinary Professional';
+                            const generated = `Key Responsibilities:\n• Deliver high quality clinical care and patient management for ${title} role.\n• Perform routine health examinations, diagnostic procedures, and client communication.\n• Maintain accurate medical records, hygiene standards, and team collaboration.\n• Ensure patient safety, comfort, and follow animal welfare protocols.\n\nQualifications & Requirements:\n• Professional degree or certification relevant to ${title}.\n• Strong clinical skills, empathy, and effective communication.\n• Dedicated team player with problem solving mindset.`;
+                            updateField('description', generated);
+                          }}
+                          sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
+                        >
+                          Role Description AI
+                        </Button>
+                      </Box>
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={6}
+                        placeholder="Provide details about daily clinical responsibilities, surgical procedures, patient caseload, working shifts, and clinic equipment."
+                        value={formData.description}
+                        error={Boolean(formErrors.description)}
+                        helperText={formErrors.description || `${formData.description.length}/5000 characters`}
+                        onChange={(e) => updateField('description', e.target.value)}
+                        slotProps={{
+                          input: {
+                            sx: { fontSize: '1rem', lineHeight: 1.7 },
+                          },
+                        }}
+                      />
+                    </Grid>
+
+                    {/* Required Skills Picker */}
+                    <Grid size={{ xs: 12 }}>
+                      <Box sx={{ mb: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0f172a' }}>
+                          Clinical & Professional Skills Required *
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
+                          Select or type key skills (e.g., Small Animal Surgery, Ultrasonography, Critical Care, Dermatology).
+                        </Typography>
+                      </Box>
+
+                      <LookupChipPicker
+                        category="skill"
+                        label="Required Skills"
+                        hideHeader={true}
+                        placeholder="Search skills or type custom skill..."
+                        values={formData.skills || []}
+                        value={formData.skills || []}
+                        valueMode="name"
+                        required
+                        onChange={(skills) => updateField('skills', skills)}
+                        helperText={formErrors.skills || 'Select one or more skills. Use Add new to propose custom skills.'}
+                        error={Boolean(formErrors.skills)}
+                      />
+                    </Grid>
                   </Grid>
-                  <Box
-                    sx={{
-                      mt: 2,
-                      p: 1.5,
-                      borderRadius: 2.5,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      bgcolor: salaryLabel ? 'rgba(10,182,162,0.08)' : 'action.hover',
-                      border: '1px solid',
-                      borderColor: salaryLabel ? 'rgba(10,182,162,0.25)' : 'divider',
-                    }}
-                  >
-                    <Payments sx={{ fontSize: 18, color: salaryLabel ? '#0ab6a2' : 'text.disabled' }} />
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: salaryLabel ? '#0c5283' : 'text.secondary' }}>
-                      {salaryLabel ? `Candidates will see: ${salaryLabel}` : 'Add a range to display salary (optional).'}
-                    </Typography>
-                  </Box>
-                </FormSection>
+                </CardContent>
+              </Card>
 
-                <Divider sx={{ my: 4 }} />
-
-                <FormSection
-                  icon={<Description />}
-                  color="#7c3aed"
-                  title="Role Description"
-                  caption="Describe the responsibilities and the skills you need."
-                >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: 1,
-                      mb: 1.5,
-                    }}
-                  >
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      Role Description & Responsibilities
-                    </Typography>
-                    <Button
-                      size="small"
-                      startIcon={<Bolt />}
-                      variant="outlined"
-                      onClick={() => {
-                        const title = formData.title || 'Veterinary Professional';
-                        const generated = `Key Responsibilities:\n• Deliver high quality clinical care and patient management for ${title} role.\n• Perform routine health examinations, diagnostic procedures, and client communication.\n• Maintain accurate medical records, hygiene standards, and team collaboration.\n• Ensure patient safety, comfort, and follow animal welfare protocols.\n\nQualifications & Requirements:\n• Professional degree or certification relevant to ${title}.\n• Strong clinical skills, empathy, and effective communication.\n• Dedicated team player with problem solving mindset.`;
-                        updateField('description', generated);
-                      }}
-                      sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
-                    >
-                      Role Description AI
-                    </Button>
-                  </Box>
-                  <TextField
-                    fullWidth
-                    label="Job Description"
-                    multiline
-                    minRows={6}
-                    placeholder="Describe the role, responsibilities, and requirements..."
-                    value={formData.description}
-                    error={Boolean(formErrors.description)}
-                    helperText={formErrors.description || `${formData.description.length}/5000 characters`}
-                    onChange={(event) => updateField('description', event.target.value)}
+              {/* SECTION 3: EDUCATION, BENEFITS & SCREENING */}
+              <Card
+                elevation={0}
+                sx={{
+                  borderRadius: 4,
+                  border: '1px solid',
+                  borderColor: 'rgba(226, 232, 240, 0.9)',
+                  background: '#ffffff',
+                  boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)',
+                  ...modernFieldSx,
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+                  <SectionHeader
+                    icon={<School />}
+                    title="3. Qualifications, Perks & Screening"
+                    subtitle="Educational baseline, employee benefits, and applicant questions."
+                    color="#f59e0b"
                   />
 
-                  <Box sx={{ mt: 3 }}>
-                    <LookupChipPicker
-                      category="skill"
-                      label="Required Skills"
-                      values={formData.skills}
-                      valueMode="name"
-                      required
-                      error={Boolean(formErrors.skills)}
-                      helperText={formErrors.skills || 'Select one or more skills. Use Add new for admin approval.'}
-                      onChange={(next) => updateField('skills', next)}
-                    />
-                  </Box>
-                </FormSection>
-
-                <Divider sx={{ my: 4 }} />
-
-                <FormSection
-                  icon={<Tune />}
-                  color="#f59e0b"
-                  title="Requirements & Visibility"
-                  caption="Set the education bar, perks and who can see this job."
-                >
                   <Grid container spacing={2.5}>
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <LookupSelect
                         category="education"
-                        label="Education"
+                        label="Minimum Education Qualification"
                         value={formData.education}
                         onChange={(v) => updateField('education', v)}
                         required
+                        error={Boolean(formErrors.education)}
                         helperText={formErrors.education}
                       />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <FormControl fullWidth>
-                        <InputLabel>Job Status</InputLabel>
-                        <Select
-                          label="Job Status"
-                          value={formData.status}
-                          onChange={(event) => updateField('status', event.target.value as JobPayload['status'])}
-                        >
-                          <MenuItem value="active">Active — visible to candidates</MenuItem>
-                          <MenuItem value="paused">Paused — hidden, applicants kept</MenuItem>
-                          <MenuItem value="draft">Draft — hidden from candidates</MenuItem>
-                          <MenuItem value="closed">Closed — not accepting applications</MenuItem>
-                          {formData.status === 'expired' && (
-                            <MenuItem value="expired">Expired — choose Active to republish</MenuItem>
-                          )}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
+
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <LookupChipPicker
                         category="benefit"
                         label="Benefits & Perks"
+                        hideHeader={true}
+                        placeholder="Search or add perks..."
                         values={benefitNames}
                         valueMode="name"
-                        helperText="Select multiple benefits. Use Add new to propose a perk for admin approval."
+                        helperText="Select multiple benefits. Use Add new to propose a perk."
                         onChange={(next) => updateField('benefits', next.join(', '))}
                       />
                     </Grid>
-                  </Grid>
-                </FormSection>
 
-                <Divider />
+                    {/* Screening Questions (if enabled) */}
+                    {canScreen && (
+                      <Grid size={{ xs: 12 }}>
+                        <Box
+                          sx={{
+                            p: 2.5,
+                            borderRadius: 3,
+                            bgcolor: 'rgba(248, 250, 252, 0.85)',
+                            border: '1px dashed rgba(12, 82, 131, 0.25)',
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Box>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0f172a' }}>
+                                Applicant Screening Questions
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                Candidates will be asked to answer these questions when submitting their application.
+                              </Typography>
+                            </Box>
 
-                <FormSection
-                  icon={<Star />}
-                  color="#8b5cf6"
-                  title="Boost & Screening"
-                  caption="Plan features: featured placement, screening questions and listing validity."
-                >
-                  <Stack spacing={2.5}>
-                    {validityDays !== null && (
-                      <Alert severity="info" variant="outlined" sx={{ borderRadius: 2.5 }}>
-                        This job will stay live for {validityDays} days after posting
-                        {useJobCredit ? ' (Pay Per Job credit)' : ' on your current plan'}.
-                      </Alert>
-                    )}
-
-                    <Box>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={Boolean(formData.isFeatured)}
-                            disabled={!canFeature}
-                            onChange={(event) => updateField('isFeatured', event.target.checked)}
-                          />
-                        }
-                        label={
-                          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5 }}>
-                            <Typography sx={{ fontWeight: 600 }}>Feature this job</Typography>
-                            {!canFeature && <Lock fontSize="small" color="disabled" />}
-                            {canFeature && featuredMeter && (
-                              <Chip
-                                size="small"
-                                variant="outlined"
-                                label={`${featuredMeter.used} of ${featuredMeter.limit} featured slots used`}
-                              />
-                            )}
-                          </Stack>
-                        }
-                      />
-                      {!canFeature && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 6 }}>
-                          Featured jobs are pinned to the top of listings — included with the Premium
-                          plan.{' '}
-                          <Button size="small" onClick={() => navigate('/pricing')} sx={{ textTransform: 'none', p: 0, minWidth: 0 }}>
-                            Upgrade
-                          </Button>
-                        </Typography>
-                      )}
-                    </Box>
-
-                    <Box>
-                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.5, mb: 1 }}>
-                        <Typography sx={{ fontWeight: 600 }}>Screening questions</Typography>
-                        {!canScreen && <Lock fontSize="small" color="disabled" />}
-                        <Typography variant="caption" color="text.secondary">
-                          (up to 5 — candidates must answer while applying)
-                        </Typography>
-                      </Stack>
-
-                      {!canScreen ? (
-                        <Typography variant="caption" color="text.secondary">
-                          Screening questions are available on Pay Per Job and Premium plans.{' '}
-                          <Button size="small" onClick={() => navigate('/pricing')} sx={{ textTransform: 'none', p: 0, minWidth: 0 }}>
-                            View plans
-                          </Button>
-                        </Typography>
-                      ) : (
-                        <Stack spacing={1.5}>
-                          {(formData.screeningQuestions ?? []).map((entry, index) => (
-                            <Stack key={index} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                              <TextField
-                                fullWidth
-                                size="small"
-                                label={`Question ${index + 1}`}
-                                value={entry.question}
-                                slotProps={{ htmlInput: { maxLength: 300 } }}
-                                onChange={(event) => {
-                                  const next = [...(formData.screeningQuestions ?? [])];
-                                  next[index] = { question: event.target.value };
-                                  updateField('screeningQuestions', next);
-                                }}
-                              />
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() =>
-                                  updateField(
-                                    'screeningQuestions',
-                                    (formData.screeningQuestions ?? []).filter((_q, i) => i !== index),
-                                  )
-                                }
-                              >
-                                <Delete fontSize="small" />
-                              </IconButton>
-                            </Stack>
-                          ))}
-                          {(formData.screeningQuestions ?? []).length < 5 && (
                             <Button
                               size="small"
+                              variant="outlined"
                               startIcon={<Add />}
-                              onClick={() =>
-                                updateField('screeningQuestions', [
-                                  ...(formData.screeningQuestions ?? []),
-                                  { question: '' },
-                                ])
-                              }
-                              sx={{ alignSelf: 'flex-start', textTransform: 'none', fontWeight: 700 }}
+                              onClick={() => {
+                                const list = formData.screeningQuestions ?? [];
+                                updateField('screeningQuestions', [...list, { question: '', required: false }]);
+                              }}
+                              sx={{ fontWeight: 700, borderRadius: 2 }}
                             >
-                              Add question
+                              Add Question
                             </Button>
-                          )}
-                        </Stack>
-                      )}
-                    </Box>
-                  </Stack>
-                </FormSection>
-              </Box>
+                          </Box>
 
-              {/* Action bar */}
-              <Box
+                          {(formData.screeningQuestions ?? []).length === 0 ? (
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', py: 1 }}>
+                              No screening questions added. Click "Add Question" to set custom filters.
+                            </Typography>
+                          ) : (
+                            <Stack spacing={2}>
+                              {(formData.screeningQuestions ?? []).map((entry, qIndex) => (
+                                <Box
+                                  key={qIndex}
+                                  sx={{
+                                    display: 'flex',
+                                    gap: 1.5,
+                                    alignItems: 'center',
+                                    p: 1.5,
+                                    borderRadius: 2,
+                                    bgcolor: '#ffffff',
+                                    border: '1px solid rgba(226, 232, 240, 0.8)',
+                                  }}
+                                >
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    placeholder={`Question ${qIndex + 1}: e.g. Do you have veterinary surgery experience?`}
+                                    value={entry.question}
+                                    onChange={(e) => {
+                                      const updated = [...(formData.screeningQuestions ?? [])];
+                                      updated[qIndex] = { ...updated[qIndex], question: e.target.value };
+                                      updateField('screeningQuestions', updated);
+                                    }}
+                                  />
+                                  <FormControlLabel
+                                    control={
+                                      <Checkbox
+                                        size="small"
+                                        checked={entry.required}
+                                        onChange={(e) => {
+                                          const updated = [...(formData.screeningQuestions ?? [])];
+                                          updated[qIndex] = { ...updated[qIndex], required: e.target.checked };
+                                          updateField('screeningQuestions', updated);
+                                        }}
+                                      />
+                                    }
+                                    label={<Typography variant="caption" sx={{ fontWeight: 600 }}>Mandatory</Typography>}
+                                  />
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => {
+                                      const updated = (formData.screeningQuestions ?? []).filter((_, idx) => idx !== qIndex);
+                                      updateField('screeningQuestions', updated);
+                                    }}
+                                  >
+                                    <Delete fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              ))}
+                            </Stack>
+                          )}
+                        </Box>
+                      </Grid>
+                    )}
+                  </Grid>
+                </CardContent>
+              </Card>
+
+              {/* SECTION 4: VISIBILITY, BOOSTING & PUBLICATION STATUS */}
+              <Card
+                elevation={0}
                 sx={{
-                  px: { xs: 2.5, md: 4 },
-                  py: 2.5,
-                  borderTop: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'rgba(12,82,131,0.02)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 2,
-                  flexWrap: 'wrap',
+                  borderRadius: 4,
+                  border: '1px solid',
+                  borderColor: 'rgba(226, 232, 240, 0.9)',
+                  background: '#ffffff',
+                  boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)',
+                  ...modernFieldSx,
                 }}
               >
-                <Button
-                  variant="text"
-                  startIcon={<ArrowBack />}
-                  onClick={() => navigate('/employer/dashboard')}
-                  sx={{ fontWeight: 700, color: 'text.secondary', order: { xs: 2, sm: 0 }, width: { xs: '100%', sm: 'auto' } }}
-                >
-                  Cancel
-                </Button>
+                <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+                  <SectionHeader
+                    icon={<RocketLaunchOutlined />}
+                    title="4. Visibility, Boost & Status"
+                    subtitle="Feature placement and publication options."
+                    color="#7c3aed"
+                  />
+
+                  <Grid container spacing={2.5}>
+                    {canFeature && (
+                      <Grid size={{ xs: 12 }}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            p: 2.5,
+                            borderRadius: 3,
+                            bgcolor: formData.isFeatured ? 'rgba(124, 58, 237, 0.08)' : 'rgba(241, 245, 249, 0.65)',
+                            border: '1px solid',
+                            borderColor: formData.isFeatured ? '#7c3aed' : 'rgba(226, 232, 240, 0.9)',
+                          }}
+                        >
+                          <Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Stars sx={{ color: '#7c3aed' }} />
+                              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0f172a' }}>
+                                Featured Job Badge
+                              </Typography>
+                            </Box>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                              Pin this role at the top of candidate search results with prominent badge highlight.
+                            </Typography>
+                          </Box>
+
+                          <Switch
+                            checked={Boolean(formData.isFeatured)}
+                            onChange={(e) => updateField('isFeatured', e.target.checked)}
+                            color="secondary"
+                          />
+                        </Box>
+                      </Grid>
+                    )}
+
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <FormControl fullWidth>
+                        <InputLabel id="job-status-label">Publication Status</InputLabel>
+                        <Select
+                          labelId="job-status-label"
+                          label="Publication Status"
+                          value={formData.status}
+                          onChange={(e) => updateField('status', e.target.value as JobPayload['status'])}
+                        >
+                          <MenuItem value="active">Active (Visible to Candidates)</MenuItem>
+                          <MenuItem value="draft">Draft (Private, not published yet)</MenuItem>
+                          {isEdit && <MenuItem value="closed">Closed (Applications paused)</MenuItem>}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+
+              {/* SECTION 5: BOTTOM ACTION & PUBLISH BAR */}
+              <Card
+                elevation={0}
+                sx={{
+                  borderRadius: 4,
+                  border: '1px solid',
+                  borderColor: submitError || Object.keys(formErrors).length > 0 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(226, 232, 240, 0.9)',
+                  background: submitError || Object.keys(formErrors).length > 0 ? 'rgba(254, 242, 242, 0.65)' : '#ffffff',
+                  p: { xs: 2.5, sm: 3.5 },
+                  boxShadow: '0 8px 30px rgba(15, 23, 42, 0.06)',
+                }}
+              >
+                {submitError && (
+                  <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2.5 }}>
+                    {submitError}
+                  </Alert>
+                )}
+
+                {successMessage && (
+                  <Alert severity="success" sx={{ mb: 2.5, borderRadius: 2.5 }}>
+                    {successMessage}
+                  </Alert>
+                )}
+
+                {isApprovalPending && (
+                  <Alert severity="warning" sx={{ mb: 2.5, borderRadius: 2.5 }}>
+                    Your employer profile approval is pending. Job postings will go live after admin approval.
+                  </Alert>
+                )}
+
                 <Box
                   sx={{
                     display: 'flex',
-                    gap: 1.5,
-                    flexWrap: 'wrap',
-                    width: { xs: '100%', sm: 'auto' },
-                    '& > *': { flex: { xs: '1 1 140px', sm: '0 0 auto' } },
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'stretch', sm: 'center' },
+                    justifyContent: 'space-between',
+                    gap: 2,
                   }}
                 >
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    disabled={isLoading || isProfileApprovalLoading || isApprovalPending}
-                    onClick={() => handleSubmit('draft')}
-                    sx={{ borderRadius: 2.5, fontWeight: 700 }}
-                  >
-                    Save Draft
-                  </Button>
-                  <Button
-                    size="large"
-                    startIcon={isLoading ? <CircularProgress color="inherit" size={18} /> : <Save />}
-                    disabled={isLoading || isProfileApprovalLoading || quotaExhausted || isApprovalPending}
-                    onClick={() => handleSubmit('active')}
-                    sx={{
-                      px: { xs: 2, sm: 4 },
-                      py: 1.1,
-                      fontWeight: 800,
-                      borderRadius: 2.5,
-                      textTransform: 'none',
-                      color: '#fff',
-                      background: BRAND_GRADIENT,
-                      boxShadow: '0 12px 24px -10px rgba(12,82,131,0.6)',
-                      '&:hover': {
-                        background: BRAND_GRADIENT,
-                        transform: 'translateY(-1px)',
-                        boxShadow: '0 16px 30px -10px rgba(12,82,131,0.7)',
-                      },
-                      '&.Mui-disabled': { background: 'rgba(12,82,131,0.4)', color: '#fff', opacity: 0.85 },
-                    }}
-                  >
-                    {isLoading
-                      ? isEdit
-                        ? 'Updating Job…'
-                        : 'Posting Job…'
-                      : isEdit
-                        ? 'Update Job'
-                        : 'Post a Job'}
-                  </Button>
-                </Box>
-              </Box>
-            </Paper>
-          </Grid>
-
-          {/* Live preview */}
-          <Grid size={{ xs: 12, lg: 4 }}>
-            <Card
-              elevation={0}
-              sx={{
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 4,
-                overflow: 'hidden',
-                position: { lg: 'sticky' },
-                top: 24,
-              }}
-            >
-              <Box sx={{ px: 2.5, py: 2, background: BRAND_GRADIENT, color: '#fff' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Visibility sx={{ fontSize: 18 }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: 0.6 }}>
-                    LIVE PREVIEW
-                  </Typography>
-                </Box>
-                <Typography variant="caption" sx={{ opacity: 0.85 }}>
-                  How candidates will see this job
-                </Typography>
-              </Box>
-              <CardContent sx={{ p: 2.5 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                  <Avatar
-                    src={companyLogo || undefined}
-                    sx={{ width: 50, height: 50, borderRadius: 2, bgcolor: 'primary.main', fontWeight: 800 }}
-                  >
-                    {companyName.charAt(0)}
-                  </Avatar>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 800 }} noWrap color={formData.title ? 'text.primary' : 'text.secondary'}>
-                      {formData.title || 'Job title preview'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" noWrap>
-                      {companyName}
+                  <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CheckCircle sx={{ color: completionPct === 100 ? '#10b981' : '#0c5283', fontSize: 22 }} />
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a', fontSize: '1.1rem' }}>
+                        Ready to {isEdit ? 'Update' : 'Post'} Job?
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                      Form is {completionPct}% complete. {completionPct < 100 ? 'Ensure all required fields marked with * are filled.' : 'All mandatory fields are satisfied.'}
                     </Typography>
                   </Box>
+
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: 'center' }}>
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      disabled={isSubmitBlocked}
+                      onClick={() => handleSubmit('draft')}
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: '0.95rem',
+                        px: 3.5,
+                        py: 1.25,
+                        borderRadius: 3,
+                        textTransform: 'none',
+                        whiteSpace: 'nowrap',
+                        borderColor: 'rgba(12, 82, 131, 0.3)',
+                        color: '#0c5283',
+                        '&:hover': {
+                          borderColor: '#0c5283',
+                          bgcolor: 'rgba(12, 82, 131, 0.05)',
+                        },
+                      }}
+                    >
+                      Save as Draft
+                    </Button>
+
+                    <Button
+                      variant="contained"
+                      size="large"
+                      disabled={isSubmitBlocked}
+                      onClick={() => handleSubmit('active')}
+                      startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <RocketLaunchOutlined />}
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: '1.05rem',
+                        px: 4,
+                        py: 1.25,
+                        borderRadius: 3,
+                        textTransform: 'none',
+                        whiteSpace: 'nowrap',
+                        background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
+                        boxShadow: '0 8px 24px -6px rgba(12, 82, 131, 0.5)',
+                        '&:hover': {
+                          transform: 'translateY(-1px)',
+                          boxShadow: '0 12px 28px -6px rgba(12, 82, 131, 0.65)',
+                        },
+                      }}
+                    >
+                      {isLoading
+                        ? (isEdit ? 'Updating Job…' : 'Posting Job…')
+                        : (isEdit ? 'Update Job' : 'Post Job')}
+                    </Button>
+                  </Stack>
                 </Box>
+              </Card>
+            </Stack>
+          </Grid>
 
-                <Box sx={{ display: 'grid', gap: 1.25, mb: 2 }}>
-                  <PreviewRow icon={<LocationOn fontSize="small" />} text={formData.location || 'Location'} filled={Boolean(formData.location)} />
-                  <PreviewRow icon={<WorkOutlined fontSize="small" />} text={jobTypeName || 'Job type'} filled={Boolean(jobTypeName)} />
-                  <PreviewRow
-                    icon={<Bolt fontSize="small" />}
-                    text={formData.experience ? `${formData.experience} years experience` : 'Experience level'}
-                    filled={Boolean(formData.experience)}
-                  />
-                  <PreviewRow
-                    icon={<Payments fontSize="small" />}
-                    text={salaryLabel || 'Salary not disclosed'}
-                    filled={Boolean(salaryLabel)}
-                  />
-                  <PreviewRow icon={<School fontSize="small" />} text={educationName || 'Education'} filled={Boolean(educationName)} />
-                </Box>
-
-                <Divider sx={{ my: 1.5 }} />
-
-                <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.5 }}>
-                  SKILLS
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: 1, mb: 2 }}>
-                  {skillNames.length > 0 ? (
-                    skillNames.map((skill) => (
-                      <Chip key={skill} label={skill} size="small" variant="outlined" color="primary" />
-                    ))
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      No skills selected yet
-                    </Typography>
-                  )}
-                </Box>
-
-                <Chip
-                  size="small"
-                  label={`${statusMeta.label} listing`}
+          {/* STICKY LIVE PREVIEW & ACTION PANEL (Right 4 Cols) */}
+          <Grid size={{ xs: 12, lg: 4 }}>
+            <Box sx={{ position: { lg: 'sticky' }, top: 24 }}>
+              <Stack spacing={3}>
+                {/* 1. REAL-TIME JOB CARD PREVIEW */}
+                <Card
+                  elevation={0}
                   sx={{
-                    fontWeight: 700,
-                    bgcolor: `${statusMeta.color}1f`,
-                    color: statusMeta.color,
+                    borderRadius: 4,
+                    border: '1px solid',
+                    borderColor: 'rgba(226, 232, 240, 0.9)',
+                    background: '#ffffff',
+                    boxShadow: '0 8px 24px rgba(12, 82, 131, 0.08)',
+                    overflow: 'hidden',
                   }}
-                />
-              </CardContent>
-            </Card>
+                >
+                  <Box
+                    sx={{
+                      p: 2,
+                      bgcolor: 'rgba(12, 82, 131, 0.05)',
+                      borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: '#0c5283', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                      Live Candidate Preview
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={formData.status === 'active' ? 'Live' : 'Draft'}
+                      color={formData.status === 'active' ? 'success' : 'default'}
+                      sx={{ fontWeight: 800, fontSize: '0.75rem' }}
+                    />
+                  </Box>
+
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 2 }}>
+                      <Avatar
+                        src={companyLogo || undefined}
+                        sx={{ width: 52, height: 52, bgcolor: '#0c5283', borderRadius: 2.5, fontWeight: 800 }}
+                      >
+                        {companyName.charAt(0)}
+                      </Avatar>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '1.15rem', color: '#0f172a', lineHeight: 1.3 }}>
+                          {formData.title || 'Role Title Preview'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                          {companyName}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Stack spacing={1.2} sx={{ mb: 2.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <LocationOn sx={{ fontSize: 18, color: '#0c5283' }} />
+                        <Typography variant="body2" sx={{ color: '#334155', fontWeight: 500 }}>
+                          {formData.location || 'Location not selected'}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Work sx={{ fontSize: 18, color: '#0ab6a2' }} />
+                        <Typography variant="body2" sx={{ color: '#334155', fontWeight: 500 }}>
+                          {jobTypeName || 'Employment type'} • {formData.experience || 'Experience unspecified'}
+                        </Typography>
+                      </Box>
+
+                      {salaryLabel && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Payments sx={{ fontSize: 18, color: '#10b981' }} />
+                          <Typography variant="body2" sx={{ color: '#10b981', fontWeight: 700 }}>
+                            {salaryLabel}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Stack>
+
+                    {formData.skills.length > 0 && (
+                      <Box sx={{ pt: 1.5, borderTop: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1 }}>
+                          Required Skills ({formData.skills.length})
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                          {formData.skills.slice(0, 4).map((s) => (
+                            <Chip key={s} label={s} size="small" sx={{ fontSize: '0.75rem', fontWeight: 600 }} />
+                          ))}
+                          {formData.skills.length > 4 && (
+                            <Chip label={`+${formData.skills.length - 4} more`} size="small" variant="outlined" sx={{ fontSize: '0.75rem' }} />
+                          )}
+                        </Box>
+                      </Box>
+                    )}
+                    {/* Form Readiness Indicator inside Preview Card */}
+                    <Box sx={{ pt: 2, mt: 2, borderTop: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+                          Job Post Readiness
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: '#0c5283' }}>
+                          {completionPct}%
+                        </Typography>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={completionPct}
+                        sx={{
+                          height: 6,
+                          borderRadius: 3,
+                          bgcolor: 'rgba(12, 82, 131, 0.08)',
+                          '& .MuiLinearProgress-bar': {
+                            borderRadius: 3,
+                            background: 'linear-gradient(90deg, #0c5283 0%, #0ab6a2 100%)',
+                          },
+                        }}
+                      />
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Stack>
+            </Box>
           </Grid>
         </Grid>
       </Box>

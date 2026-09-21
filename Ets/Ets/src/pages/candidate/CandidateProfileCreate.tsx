@@ -26,6 +26,8 @@ import {
 } from '@mui/material';
 import {
   Add,
+  ArrowBack,
+  ArrowForward,
   AutoAwesome,
   AutoFixHigh,
   Badge as BadgeIcon,
@@ -55,9 +57,16 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
+import OtpVerifyControl from '../../components/common/OtpVerifyControl';
 import { phoneHtmlInputProps, sanitizePhone, validatePhone } from '../../utils/phone';
 import notify from '../../utils/toast';
 import { PageHeader } from '../../components/common/PageHeader';
+import {
+  modernFormSx,
+  wizardActionBarSx,
+  wizardPrimaryButtonSx,
+  wizardSecondaryButtonSx,
+} from '../profileWizardStyles';
 import {
   candidateLocationSuggestions,
   candidateSkillSuggestions,
@@ -86,12 +95,23 @@ type PersonalErrors = Partial<Record<'firstName' | 'lastName' | 'email' | 'phone
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+const UNVERIFIED_EMAIL_MESSAGE = 'Verify your email address to continue';
+const UNVERIFIED_PHONE_MESSAGE = 'Verify your mobile number to continue';
+
 /**
  * Validates the personal step. The server enforces exactly these rules, so
  * catching them here is what stops someone filling three more steps only to be
  * told at submit that their email was never valid.
+ *
+ * `verification` is passed only by the public signup flow, where the email and
+ * mobile must additionally be proven with an OTP before the profile is created.
+ * The dashboard editor leaves it undefined: those details are already verified
+ * and the email field is read-only there.
  */
-function validatePersonalStep(form: { firstName: string; lastName: string; email: string; phone: string }): PersonalErrors {
+function validatePersonalStep(
+  form: { firstName: string; lastName: string; email: string; phone: string },
+  verification?: { emailVerified: boolean; phoneVerified: boolean },
+): PersonalErrors {
   const errors: PersonalErrors = {};
 
   if (!form.firstName.trim()) errors.firstName = 'First name is required';
@@ -103,6 +123,16 @@ function validatePersonalStep(form: { firstName: string; lastName: string; email
 
   const phoneError = validatePhone(form.phone, { required: true });
   if (phoneError) errors.phone = phoneError;
+
+  if (verification) {
+    if (!errors.email && !verification.emailVerified) {
+      errors.email = UNVERIFIED_EMAIL_MESSAGE;
+    }
+
+    if (!errors.phone && !verification.phoneVerified) {
+      errors.phone = UNVERIFIED_PHONE_MESSAGE;
+    }
+  }
 
   return errors;
 }
@@ -133,27 +163,6 @@ const stepMeta: Array<{ label: string; icon: React.ReactNode; description: strin
     color: '#f59e0b',
   },
 ];
-
-// Single sx applied to the form Paper — themes every TextField/Select inside the form
-// without having to touch each component individually.
-const modernFormSx = {
-  '& .MuiOutlinedInput-root': {
-    borderRadius: 2.5,
-    transition: 'all 0.2s ease',
-    bgcolor: '#fff',
-    '& fieldset': { borderColor: 'rgba(12,82,131,0.18)' },
-    '&:hover fieldset': { borderColor: 'rgba(10,182,162,0.6)' },
-    '&.Mui-focused fieldset': { borderColor: '#0ab6a2', borderWidth: 2 },
-  },
-  '& .MuiInputLabel-root': {
-    fontWeight: 500,
-    '&.Mui-focused': { color: '#0ab6a2' },
-  },
-  '& .MuiInputAdornment-root .MuiSvgIcon-root': {
-    color: '#0c5283',
-    fontSize: 20,
-  },
-} as const;
 
 const adornment = (icon: React.ReactNode) => ({
   input: {
@@ -262,6 +271,10 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
   // Only populated once the visitor tries to leave the step, so the form does
   // not scold them about fields they have not reached yet.
   const [personalErrors, setPersonalErrors] = useState<PersonalErrors>({});
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  /** Undefined in the dashboard editor, where the details are already verified. */
+  const verificationGate = showSidebar ? undefined : { emailVerified, phoneVerified };
   const [resumeOpen, setResumeOpen] = useState(false);
   const [preferredLocationInput, setPreferredLocationInput] = useState('');
   const [skillInput, setSkillInput] = useState('');
@@ -442,10 +455,18 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
   }, [formData]);
 
   const updateField = <K extends keyof CandidateProfileForm>(field: K, value: CandidateProfileForm[K]) => {
-    setFormData((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+    // An OTP proves one specific address. Typing a different email or mobile
+    // must therefore drop the badge, or an unverified address could ride in on
+    // a code that was sent somewhere else. Compared here rather than inside the
+    // updater, which React may run more than once.
+    if (field === 'email' && value !== formData.email) {
+      setEmailVerified(false);
+    }
+    if (field === 'phone' && value !== formData.phone) {
+      setPhoneVerified(false);
+    }
+
+    setFormData((previous) => ({ ...previous, [field]: value }));
     setSaveState('idle');
     setSubmitError('');
   };
@@ -563,12 +584,16 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
    */
   const goToStep = (nextStep: number) => {
     if (nextStep > 0) {
-      const errors = validatePersonalStep(formData);
+      const errors = validatePersonalStep(formData, verificationGate);
 
       if (Object.keys(errors).length > 0) {
         setPersonalErrors(errors);
         setActiveStep(0);
-        notify.error('Please complete your name, email and mobile number first.');
+        notify.error(
+          errors.email === UNVERIFIED_EMAIL_MESSAGE || errors.phone === UNVERIFIED_PHONE_MESSAGE
+            ? 'Verify your email address and mobile number before continuing.'
+            : 'Please complete your name, email and mobile number first.',
+        );
         return false;
       }
     }
@@ -583,7 +608,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
 
     // The same rules the API applies — checked here so the failure lands on the
     // field that caused it instead of arriving as a server message at step 4.
-    const errors = validatePersonalStep(formData);
+    const errors = validatePersonalStep(formData, verificationGate);
     if (Object.keys(errors).length > 0) {
       setPersonalErrors(errors);
       setActiveStep(0);
@@ -956,6 +981,18 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
 
             {activeStep === 0 && (
               <Grid container spacing={3}>
+                {!showSidebar && (
+                  <Grid size={{ xs: 12 }}>
+                    <Alert
+                      severity={emailVerified && phoneVerified ? 'success' : 'info'}
+                      sx={{ borderRadius: 2.5, fontWeight: 600 }}
+                    >
+                      {emailVerified && phoneVerified
+                        ? 'Email address and mobile number verified. You can continue with your registration.'
+                        : 'Before registering, verify your email address and mobile number with the OTP buttons below.'}
+                    </Alert>
+                  </Grid>
+                )}
                 <Grid size={{ xs: 12, md: 8 }}>
                   <Grid container spacing={2.5}>
                     <Grid size={{ xs: 12, md: 6 }}>
@@ -1001,6 +1038,20 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                         }
                         slotProps={adornment(<Email />)}
                       />
+                      {!showSidebar && (
+                        <OtpVerifyControl
+                          kind="email"
+                          role="candidate"
+                          value={formData.email.trim()}
+                          verified={emailVerified}
+                          onVerified={() => {
+                            setEmailVerified(true);
+                            setPersonalErrors((previous) => ({ ...previous, email: undefined }));
+                          }}
+                          canSend={EMAIL_PATTERN.test(formData.email.trim())}
+                          disabledReason="Enter a valid email address first."
+                        />
+                      )}
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
@@ -1029,6 +1080,20 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                           htmlInput: phoneHtmlInputProps,
                         }}
                       />
+                      {!showSidebar && (
+                        <OtpVerifyControl
+                          kind="phone"
+                          role="candidate"
+                          value={formData.phone}
+                          verified={phoneVerified}
+                          onVerified={() => {
+                            setPhoneVerified(true);
+                            setPersonalErrors((previous) => ({ ...previous, phone: undefined }));
+                          }}
+                          canSend={!validatePhone(formData.phone, { required: true })}
+                          disabledReason="Enter a valid 10-digit mobile number first."
+                        />
+                      )}
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                       <Autocomplete
@@ -1825,12 +1890,17 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
               </Grid>
             )}
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mt: 4, flexWrap: 'wrap' }}>
+            <Box sx={wizardActionBarSx}>
               <Button
                 variant="outlined"
                 disabled={activeStep === 0}
                 onClick={() => setActiveStep((step) => Math.max(step - 1, 0))}
-                sx={{ order: { xs: 2, sm: 0 }, width: { xs: '100%', sm: 'auto' } }}
+                startIcon={<ArrowBack />}
+                sx={{
+                  ...wizardSecondaryButtonSx,
+                  order: { xs: 2, sm: 0 },
+                  width: { xs: '100%', sm: 'auto' },
+                }}
               >
                 Previous
               </Button>
@@ -1840,31 +1910,39 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
                   gap: 1.5,
                   flexWrap: 'wrap',
                   width: { xs: '100%', sm: 'auto' },
-                  '& > *': { flex: { xs: '1 1 130px', sm: '0 0 auto' } },
+                  '& > *': { flex: { xs: '1 1 140px', sm: '0 0 auto' } },
                 }}
               >
-                <Button variant="outlined" onClick={saveProfile}>
+                <Button variant="outlined" onClick={saveProfile} sx={wizardSecondaryButtonSx}>
                   Save Draft
                 </Button>
                 {activeStep < steps.length - 1 ? (
-                  <Button variant="contained" onClick={() => goToStep(activeStep + 1)}>
+                  <Button
+                    variant="contained"
+                    onClick={() => goToStep(activeStep + 1)}
+                    endIcon={<ArrowForward />}
+                    sx={wizardPrimaryButtonSx}
+                  >
                     Continue
                   </Button>
                 ) : (
-                  <>
-                    <Button variant="contained" onClick={submitProfile} disabled={isSubmitting}>
-                      {isSubmitting ? (
-                        <>
-                          <CircularProgress color="inherit" size={18} sx={{ mr: 1 }} />
-                          {hasExistingProfile ? 'Saving' : 'Submitting'}
-                        </>
-                      ) : hasExistingProfile ? (
-                        'Save Changes'
-                      ) : (
-                        'Submit Profile'
-                      )}
-                    </Button>
-                  </>
+                  <Button
+                    variant="contained"
+                    onClick={submitProfile}
+                    disabled={isSubmitting}
+                    sx={wizardPrimaryButtonSx}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <CircularProgress color="inherit" size={18} sx={{ mr: 1 }} />
+                        {hasExistingProfile ? 'Saving' : 'Submitting'}
+                      </>
+                    ) : hasExistingProfile ? (
+                      'Save Changes'
+                    ) : (
+                      'Submit Profile'
+                    )}
+                  </Button>
                 )}
               </Box>
             </Box>

@@ -73,11 +73,18 @@ function buildPublicJobFilters(query = {}) {
   }
 
   if (query.type) {
-    filters.type = String(query.type).trim();
+    filters.type = new RegExp('^' + escapeRegex(String(query.type).trim()) + '$', 'i');
   }
 
   if (query.experience) {
-    filters.experience = String(query.experience).trim();
+    const rawExp = String(query.experience).trim();
+    const cleanExp = rawExp.replace(/\s*years?/i, '').trim();
+    filters.$and.push({
+      $or: [
+        { experience: new RegExp(escapeRegex(rawExp), 'i') },
+        { experience: new RegExp(escapeRegex(cleanExp), 'i') },
+      ],
+    });
   }
 
   if (query.skill) {

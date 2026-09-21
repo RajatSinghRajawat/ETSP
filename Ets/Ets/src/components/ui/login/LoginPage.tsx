@@ -38,6 +38,8 @@ import {
 } from '@mui/icons-material';
 import { Toast } from '../../common';
 import LoginAnimation from './LoginAnimation';
+import ProfileChooserDialog from '../../common/ProfileChooserDialog';
+import type { RoleChoice } from '../../common/RoleChoiceCard';
 import { axiosInstance } from '../../../store/api/axiosInstance';
 import { API_ENDPOINTS } from '../../../store/api/endpoints';
 import { isValidPhone, phoneHtmlInputProps, sanitizePhone } from '../../../utils/phone';
@@ -231,6 +233,66 @@ const LoginPage: React.FC = () => {
     }
   };
 
+  /**
+   * Set only when the verified account owns both a candidate and an employer
+   * profile. Until it is cleared the login page holds the visitor on the
+   * chooser instead of guessing a dashboard for them.
+   */
+  const [profileChoice, setProfileChoice] = useState<{
+    accountLabel?: string;
+    currentRole: RoleChoice;
+  } | null>(null);
+  const [switchingRole, setSwitchingRole] = useState<RoleChoice | null>(null);
+  const [switchError, setSwitchError] = useState('');
+
+  const goToDashboard = (role: string) => {
+    if (role === 'candidate') {
+      navigate('/candidate/dashboard');
+    } else if (role === 'employer') {
+      navigate('/employer/dashboard');
+    } else {
+      navigate('/');
+    }
+  };
+
+  /**
+   * One click on a card is the whole interaction: the role the visitor already
+   * holds a token for goes straight through, the other one is exchanged for a
+   * fresh token first.
+   */
+  const handleChooseProfile = async (role: RoleChoice) => {
+    if (!profileChoice || switchingRole) {
+      return;
+    }
+
+    if (role === profileChoice.currentRole) {
+      setProfileChoice(null);
+      if (redirectTo) {
+        navigate(redirectTo, { replace: true });
+      } else {
+        goToDashboard(role);
+      }
+      return;
+    }
+
+    setSwitchError('');
+    setSwitchingRole(role);
+
+    try {
+      const response = await axiosInstance.post(API_ENDPOINTS.auth.switchProfile, { role });
+      const { accessToken, user } = response.data;
+      setAuthSession(accessToken, user);
+      setProfileChoice(null);
+      goToDashboard(role);
+    } catch (error) {
+      setSwitchError(
+        getApiErrorMessage(error, `Could not open your ${role} profile. Please try again.`),
+      );
+    } finally {
+      setSwitchingRole(null);
+    }
+  };
+
   const handleVerifyOtp = async () => {
     setAuthError('');
 
@@ -245,20 +307,33 @@ const LoginPage: React.FC = () => {
         ...identifier,
         otp,
       });
-      const { accessToken, user } = response.data;
+      const { accessToken, user, availableRoles } = response.data;
       setAuthSession(accessToken, user);
+
+      const roles: string[] = Array.isArray(availableRoles) ? availableRoles : [user.role];
+      const isDualProfile =
+        roles.includes('candidate') && roles.includes('employer') && user.role !== 'admin';
+
+      if (isDualProfile) {
+        // Both dashboards are valid destinations, so the account picks — see
+        // ProfileChooserDialog. Navigation waits for that choice.
+        showToast('Login successful — choose the profile you want to open', 'success');
+        setSwitchError('');
+        setProfileChoice({
+          accountLabel: user.email,
+          currentRole: user.role === 'employer' ? 'employer' : 'candidate',
+        });
+        return;
+      }
+
       const roleLabel =
         user.role === 'employer' ? 'Employer' : user.role === 'admin' ? 'Admin' : 'Candidate';
       showToast(`Login successful — signed in as ${roleLabel}`, 'success');
 
       if (redirectTo) {
         navigate(redirectTo, { replace: true });
-      } else if (user.role === 'candidate') {
-        navigate('/candidate/dashboard');
-      } else if (user.role === 'employer') {
-        navigate('/employer/dashboard');
       } else {
-        navigate('/');
+        goToDashboard(user.role);
       }
     } catch (error) {
       const errorMsg = getApiErrorMessage(error, 'Invalid OTP');
@@ -840,6 +915,15 @@ const LoginPage: React.FC = () => {
           </Grid>
         </Grid>
       </Container>
+
+      <ProfileChooserDialog
+        open={profileChoice !== null}
+        accountLabel={profileChoice?.accountLabel}
+        currentRole={profileChoice?.currentRole ?? null}
+        busyRole={switchingRole}
+        error={switchError}
+        onChoose={handleChooseProfile}
+      />
 
       <Toast
         open={toast.open}

@@ -8,6 +8,7 @@ import {
   maskCandidate,
 } from './candidate-masking.service.js';
 import { getEmployerContext, getEntitlements } from './entitlement.service.js';
+import { consumeRegistrationVerification } from './registration-verification.service.js';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -119,7 +120,9 @@ export async function createCandidateProfile(input) {
     throw new AppError('Valid email is required', 400);
   }
 
-  const payload = { ...input, email };
+  // `emailVerified` / `phoneVerified` are decided here, never taken from the
+  // request — a client could otherwise just post them as true.
+  const payload = { ...input, email, emailVerified: false, phoneVerified: false };
 
   const [profileForEmail, existingUser] = await Promise.all([
     CandidateProfile.findOne({ email }).select('_id email').lean(),
@@ -150,6 +153,16 @@ export async function createCandidateProfile(input) {
       throw new AppError('This phone number is already linked to another candidate profile', 409);
     }
   }
+
+  // Both addresses must carry a live OTP confirmation from the signup form.
+  // This also clears them, so one verification cannot seed a second signup.
+  const verification = await consumeRegistrationVerification({
+    email,
+    phone: payload.phone,
+  });
+
+  payload.emailVerified = verification.emailVerified;
+  payload.phoneVerified = verification.phoneVerified;
 
   try {
     await User.updateOne(

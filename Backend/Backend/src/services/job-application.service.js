@@ -7,6 +7,8 @@ import { sendEmployerApplicationAck } from './auto-reply.service.js';
 import { maskApplicationsForEmployer } from './candidate-masking.service.js';
 import { assertCanApply, getEmployerContext } from './entitlement.service.js';
 import { notify } from './notification.service.js';
+import { emailService } from './email.service.js';
+import { logger } from '../utils/logger.js';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -595,6 +597,24 @@ export async function updateEmployerApplicationStatus(user, id, input = {}) {
       employerMessage: message,
     },
   });
+
+  const recipientEmail = application.candidateEmail || application.candidateProfile?.email;
+  const candidateName =
+    [application.candidateProfile?.firstName, application.candidateProfile?.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim() || 'there';
+
+  if (status === 'hired' && recipientEmail) {
+    emailService.sendHiredEmail(recipientEmail, {
+      candidateName,
+      jobTitle: application.job?.title ?? 'the position',
+      companyName,
+      employerMessage: message,
+    }).catch((err) => {
+      logger.error('Failed to send hired notification email to candidate', err);
+    });
+  }
 
   const { effectiveFeatures } = await getEmployerContext(user);
   const [masked] = await maskApplicationsForEmployer({

@@ -130,9 +130,11 @@ const ApplicationDecisionDialog: React.FC<Props> = ({
       onDone?.(
         decision === 'reject'
           ? 'Application rejected. The candidate has been notified with your message.'
-          : isoInterview
-            ? 'Candidate accepted and the interview invite has been sent.'
-            : 'Candidate accepted. They have been notified.',
+          : acceptStage === 'hired'
+            ? 'Candidate marked as Hired! A congratulations email notification has been sent to them.'
+            : isoInterview
+              ? 'Candidate accepted and the interview invite has been sent.'
+              : 'Candidate accepted. They have been notified.',
       );
       onClose();
     } catch (submitError) {
@@ -174,11 +176,17 @@ const ApplicationDecisionDialog: React.FC<Props> = ({
               </Select>
             </FormControl>
 
+            {acceptStage === 'hired' && (
+              <Alert severity="success" sx={{ borderRadius: 2.5, fontWeight: 600 }}>
+                🎉 An official congratulations email notification will automatically be sent to the candidate informing them they have been hired!
+              </Alert>
+            )}
+
             <TextField
               fullWidth
               type="datetime-local"
               label="Interview date & time"
-              helperText="Optional — leave empty to accept without booking a slot."
+              helperText={acceptStage === 'hired' ? 'Optional for onboarding/welcome meeting.' : 'Optional — leave empty to accept without booking a slot.'}
               value={interviewAt}
               onChange={(event) => setInterviewAt(event.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}

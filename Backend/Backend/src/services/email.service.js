@@ -147,6 +147,49 @@ class EmailService {
     return this.sendEmail({ to: email, subject, html, text });
   }
 
+  async sendHiredEmail(email, { candidateName = 'there', jobTitle = 'the role', companyName = 'the employer', employerMessage = '' } = {}) {
+    const subject = `Congratulations! You have been hired for ${jobTitle}${companyName ? ` at ${companyName}` : ''} 🎉`;
+    const messageBlock = employerMessage
+      ? `
+        <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px; padding: 16px; margin: 20px 0;">
+          <strong style="color: #065f46; display: block; margin-bottom: 6px; font-size: 14px;">Message from ${companyName || 'Employer'}:</strong>
+          <p style="margin: 0; color: #166534; font-size: 15px; font-style: italic; white-space: pre-wrap;">"${employerMessage}"</p>
+        </div>
+      `
+      : '';
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
+        <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); padding: 36px 24px; text-align: center; color: #ffffff;">
+          <div style="width: 58px; height: 58px; background: rgba(255,255,255,0.22); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px; font-size: 28px;">
+            🎉
+          </div>
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em;">Congratulations, You're Hired!</h1>
+          <p style="margin: 8px 0 0; font-size: 15px; opacity: 0.95; color: #ffffff;">Great news regarding your job application</p>
+        </div>
+        <div style="padding: 28px; color: #334155; font-size: 15px; line-height: 1.65;">
+          <p style="font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0;">Hi ${candidateName},</p>
+          <p style="margin-bottom: 18px;">
+            We are thrilled to share that <strong>${companyName || 'The employer'}</strong> has reviewed your application and officially marked you as <strong>Hired</strong> for the role of <strong>${jobTitle}</strong>!
+          </p>
+          ${messageBlock}
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin: 24px 0;">
+            <p style="margin: 0 0 6px; font-weight: 700; color: #0f172a; font-size: 14px;">What happens next?</p>
+            <p style="margin: 0; color: #64748b; font-size: 13.5px; line-height: 1.5;">
+              The employer will reach out with the offer letter, contract details, and next onboarding steps. You can also log into your VetJobs candidate portal to view your application status.
+            </p>
+          </div>
+          <p style="margin-bottom: 6px; color: #475569;">Best of luck with your new role!</p>
+          <p style="margin: 0; font-weight: 700; color: #0f172a;">The VetJobs Team</p>
+        </div>
+      </div>
+    `;
+
+    const text = `Hi ${candidateName},\n\nCongratulations! You have been hired for ${jobTitle}${companyName ? ` at ${companyName}` : ''}.\n\n${employerMessage ? `Message from employer: "${employerMessage}"\n\n` : ''}Log in to your VetJobs candidate portal to review your status.\n\nBest regards,\nThe VetJobs Team`;
+
+    return this.sendEmail({ to: email, subject, html, text });
+  }
+
   /** Shared chrome for the support-ticket emails below. */
   #ticketLayout({ heading, bodyHtml }) {
     return `

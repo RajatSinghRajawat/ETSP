@@ -1,7 +1,46 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppBar, Toolbar, Box, Button, Tooltip, IconButton, Menu, MenuItem, Container, useMediaQuery, useTheme, Drawer, List, ListItem, ListItemText, ListItemButton, Avatar, Snackbar, Alert, CircularProgress } from '@mui/material';
-import { Language as LanguageIcon, Menu as MenuIcon, Close, Work, Business, Info, Phone, Home, AccountCircle, Dashboard, Logout, SwapHoriz, People, KeyboardArrowDown, PrivacyTip } from '@mui/icons-material';
+import {
+  AppBar,
+  Toolbar,
+  Box,
+  Button,
+  Tooltip,
+  IconButton,
+  Menu,
+  MenuItem,
+  Container,
+  useMediaQuery,
+  useTheme,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemButton,
+  Avatar,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  Typography,
+  Divider,
+} from '@mui/material';
+import {
+  Language as LanguageIcon,
+  Menu as MenuIcon,
+  Close,
+  Work,
+  Business,
+  Info,
+  Phone,
+  Home,
+  AccountCircle,
+  Dashboard,
+  Logout,
+  SwapHoriz,
+  People,
+  KeyboardArrowDown,
+  PrivacyTip,
+} from '@mui/icons-material';
 import HeaderChatButton from './common/HeaderChatButton';
 import NotificationBell from './common/NotificationBell';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -127,8 +166,7 @@ const Navbar: React.FC = () => {
 
   const isEmployer = role === 'employer';
 
-  // Only these three sit in the header bar; the rest live behind "More" so the
-  // bar stays uncluttered.
+  // Desktop mid navigation items
   const mainNavItems = [
     { label: t('home'), path: '/', icon: <Home /> },
     ...(isEmployer
@@ -148,7 +186,7 @@ const Navbar: React.FC = () => {
     { label: t('privacy_policy'), path: '/privacy-policy', icon: <PrivacyTip /> },
   ];
 
-  // The drawer has room for everything, so mobile keeps a flat list.
+  // Mobile flat nav items
   const navItems = [...mainNavItems, ...moreNavItems];
 
   const isActive = (path: string) => location.pathname === path;
@@ -157,38 +195,86 @@ const Navbar: React.FC = () => {
 
   const drawer = (
     <Box sx={{ width: '100%', height: '100%', bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-      <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ p: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box component="img" src="/Logo.png" alt="Logo" sx={{ height: 36, width: 'auto' }} />
         </Box>
-        <IconButton onClick={() => setMobileOpen(false)}><Close /></IconButton>
+        <IconButton onClick={() => setMobileOpen(false)} sx={{ color: 'text.secondary', '&:hover': { bgcolor: 'action.hover' } }}>
+          <Close />
+        </IconButton>
       </Box>
-      <List sx={{ pt: 2 }}>
-        {navItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
-            <ListItemButton
-              component={Link}
-              to={item.path}
-              onClick={() => setMobileOpen(false)}
-              sx={{
-                py: 1.5,
-                px: 3,
-                bgcolor: isActive(item.path) ? 'primary.main' : 'transparent',
-                color: isActive(item.path) ? 'white' : 'text.primary',
-                '&:hover': { bgcolor: isActive(item.path) ? 'primary.dark' : 'action.hover' }
-              }}
-            >
-              <Box sx={{ mr: 2, display: 'flex' }}>{item.icon}</Box>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+
+      {/* User summary card in drawer if logged in */}
+      {isLoggedIn && (
+        <Box sx={{ p: 2, mx: 2, mt: 2, borderRadius: 2.5, bgcolor: 'rgba(12, 82, 131, 0.04)', border: '1px solid rgba(12, 82, 131, 0.1)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main', fontWeight: 700, fontSize: 16 }}>
+              {userInitial || <AccountCircle />}
+            </Avatar>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.92rem', color: 'text.primary', noWrap: true }}>
+                {userDisplayName}
+              </Typography>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'secondary.main', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {role ? (role === 'employer' ? t('role_employer') : t('role_candidate')) : 'User'}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      )}
+
+      <List sx={{ px: 1.5, py: 2 }}>
+        {navItems.map((item) => {
+          const active = isActive(item.path);
+          return (
+            <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                component={Link}
+                to={item.path}
+                onClick={() => setMobileOpen(false)}
+                sx={{
+                  py: 1.2,
+                  px: 2,
+                  borderRadius: 2,
+                  bgcolor: active ? 'rgba(12, 82, 131, 0.08)' : 'transparent',
+                  color: active ? 'primary.main' : 'text.primary',
+                  fontWeight: active ? 700 : 500,
+                  borderLeft: active ? '4px solid' : '4px solid transparent',
+                  borderColor: 'primary.main',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: active ? 'rgba(12, 82, 131, 0.12)' : 'action.hover',
+                  },
+                }}
+              >
+                <Box sx={{ mr: 2, display: 'flex', color: active ? 'primary.main' : 'text.secondary' }}>
+                  {item.icon}
+                </Box>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontWeight: active ? 700 : 500,
+                    fontSize: '0.95rem',
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
+
       <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider', mt: 'auto' }}>
         {isLoggedIn ? (
           <Box sx={{ display: 'grid', gap: 1, mb: 2 }}>
-            <Button onClick={handleOpenProfile} variant="outlined" fullWidth size="small" startIcon={<AccountCircle />}>
-              {userDisplayName}
+            <Button
+              onClick={handleOpenProfile}
+              variant="outlined"
+              fullWidth
+              size="small"
+              startIcon={<Dashboard />}
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, py: 1 }}
+            >
+              {t('dashboard')}
             </Button>
             {role !== 'admin' && (
               <Button
@@ -198,23 +284,63 @@ const Navbar: React.FC = () => {
                 size="small"
                 startIcon={switchingRole ? <CircularProgress size={16} /> : <SwapHoriz />}
                 disabled={Boolean(switchingRole)}
+                sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, py: 1 }}
               >
                 {switchingRole ? t('switching') : switchTargetLabel}
               </Button>
             )}
-            <Button onClick={handleLogout} variant="text" color="error" fullWidth size="small" startIcon={<Logout />}>
+            <Button
+              onClick={handleLogout}
+              variant="text"
+              color="error"
+              fullWidth
+              size="small"
+              startIcon={<Logout />}
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+            >
               {t('logout')}
             </Button>
           </Box>
         ) : (
           <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-            <Button component={Link} to="/login" variant="outlined" fullWidth size="small">{t('login')}</Button>
-            <Button component={Link} to="/signup" variant="contained" fullWidth size="small">{t('signup')}</Button>
+            <Button
+              component={Link}
+              to="/login"
+              variant="outlined"
+              fullWidth
+              size="small"
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+            >
+              {t('login')}
+            </Button>
+            <Button
+              component={Link}
+              to="/signup"
+              variant="contained"
+              fullWidth
+              size="small"
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
+              }}
+            >
+              {t('signup')}
+            </Button>
           </Box>
         )}
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
           <Tooltip title={t('language')}>
-            <IconButton onClick={handleLanguageMenuOpen} size="small"><LanguageIcon /></IconButton>
+            <Button
+              onClick={handleLanguageMenuOpen}
+              size="small"
+              startIcon={<LanguageIcon />}
+              sx={{ textTransform: 'none', color: 'text.secondary', fontWeight: 600 }}
+            >
+              {currentLang === 'hi' ? 'हिन्दी (Hindi)' : 'English'}
+            </Button>
           </Tooltip>
         </Box>
       </Box>
@@ -228,17 +354,29 @@ const Navbar: React.FC = () => {
         color="default"
         elevation={0}
         sx={{
-          bgcolor: 'background.paper',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 1px 5px rgba(0,0,0,0.05)',
-          transition: 'all 0.4s ease',
+          bgcolor: 'rgba(255, 255, 255, 0.94)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: '0 2px 14px -2px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.02)',
+          transition: 'all 0.3s ease',
           borderBottom: '1px solid',
-          borderColor: 'divider',
+          borderColor: 'rgba(226, 232, 240, 0.85)',
           zIndex: (muiTheme) => muiTheme.zIndex.drawer + 1,
         }}
       >
-        <Container maxWidth="lg" sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
-          <Toolbar disableGutters sx={{ minHeight: { xs: 56, sm: 64, md: 72 }, gap: 1 }}>
+        <Container maxWidth={false} sx={{ px: { xs: 2, sm: 2.5, md: 3, lg: 3.5 } }}>
+          <Toolbar
+            disableGutters
+            sx={{
+              minHeight: { xs: 56, sm: 64, md: 72 },
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1.5,
+              width: '100%',
+            }}
+          >
+            {/* ZONE 1: LEFT - BRAND LOGO */}
             <Box
               component={Link}
               to="/"
@@ -247,94 +385,129 @@ const Navbar: React.FC = () => {
                 alignItems: 'center',
                 textDecoration: 'none',
                 flexShrink: 0,
-                mr: { xs: 0, md: 4 },
-                ml: { xs: 0, md: -2 },
+                transition: 'transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.2s ease',
+                '&:hover': {
+                  transform: 'scale(1.03)',
+                  opacity: 0.92,
+                },
               }}
             >
-              <Box component="img" src="/Logo.png" alt="Logo" sx={{ height: { xs: 32, sm: 40, md: 48 }, width: 'auto', display: 'block' }} />
+              <Box
+                component="img"
+                src="/Logo.png"
+                alt="Vets Linked"
+                sx={{
+                  height: { xs: 34, sm: 40, md: 46 },
+                  width: 'auto',
+                  display: 'block',
+                }}
+              />
             </Box>
 
+            {/* ZONE 2: MID - CENTERED PAGE NAVIGATION */}
             {!isMobile && (
-              <Box sx={{ display: 'flex', gap: 0.5, flex: 1 }}>
-                {mainNavItems.map((item) => (
-                  <Button
-                    key={item.path}
-                    component={Link}
-                    to={item.path}
-                    sx={{
-                      color: 'text.primary',
-                      fontWeight: isActive(item.path) ? 700 : 600,
-                      fontSize: '1rem',
-                      px: 2.2,
-                      py: 1,
-                      borderRadius: 2,
-                      position: 'relative',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        bgcolor: 'rgba(0,0,0,0.05)'
-                      },
-                      '&:after': isActive(item.path) ? {
-                        content: '""',
-                        position: 'absolute',
-                        bottom: 0,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: 20,
-                        height: 3,
-                        bgcolor: 'primary.main',
-                        borderRadius: 2
-                      } : {}
-                    }}
-                  >
-                    {item.label}
-                  </Button>
-                ))}
-
-                <Button
-                  onClick={handleMoreMenuOpen}
-                  endIcon={
-                    <KeyboardArrowDown
-                      sx={{
-                        transition: 'transform 0.2s ease',
-                        transform: moreAnchorEl ? 'rotate(180deg)' : 'none',
-                      }}
-                    />
-                  }
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flex: 1,
+                  mx: { md: 1, lg: 3 },
+                }}
+              >
+                <Box
                   sx={{
-                    color: 'text.primary',
-                    fontWeight: moreNavItems.some((item) => isActive(item.path)) ? 700 : 600,
-                    fontSize: '1rem',
-                    px: 2.2,
-                    py: 1,
-                    borderRadius: 2,
-                    position: 'relative',
-                    transition: 'all 0.3s ease',
-                    '&:hover': { bgcolor: 'rgba(0,0,0,0.05)' },
-                    '&:after': moreNavItems.some((item) => isActive(item.path))
-                      ? {
-                          content: '""',
-                          position: 'absolute',
-                          bottom: 0,
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          width: 20,
-                          height: 3,
-                          bgcolor: 'primary.main',
-                          borderRadius: 2,
-                        }
-                      : {},
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    p: '5px',
+                    borderRadius: '30px',
+                    bgcolor: 'rgba(241, 245, 249, 0.75)',
+                    border: '1px solid rgba(226, 232, 240, 0.85)',
+                    boxShadow: 'inset 0 1px 2px rgba(15, 23, 42, 0.03)',
                   }}
                 >
-                  {t('more')}
-                </Button>
+                  {mainNavItems.map((item) => {
+                    const active = isActive(item.path);
+                    return (
+                      <Button
+                        key={item.path}
+                        component={Link}
+                        to={item.path}
+                        sx={{
+                          color: active ? 'primary.main' : 'text.primary',
+                          fontWeight: active ? 750 : 600,
+                          fontSize: '0.92rem',
+                          px: 2.2,
+                          py: 0.7,
+                          borderRadius: '24px',
+                          textTransform: 'none',
+                          letterSpacing: '-0.01em',
+                          bgcolor: active ? 'white' : 'transparent',
+                          boxShadow: active ? '0 2px 8px rgba(15, 23, 42, 0.08)' : 'none',
+                          transition: 'all 0.2s cubic-bezier(0.22, 0.61, 0.36, 1)',
+                          '&:hover': {
+                            bgcolor: active ? 'white' : 'rgba(255, 255, 255, 0.7)',
+                            color: 'primary.main',
+                          },
+                        }}
+                      >
+                        {item.label}
+                      </Button>
+                    );
+                  })}
+
+                  <Button
+                    onClick={handleMoreMenuOpen}
+                    endIcon={
+                      <KeyboardArrowDown
+                        sx={{
+                          fontSize: '18px !important',
+                          transition: 'transform 0.25s ease',
+                          transform: moreAnchorEl ? 'rotate(180deg)' : 'none',
+                        }}
+                      />
+                    }
+                    sx={{
+                      color: moreNavItems.some((item) => isActive(item.path)) ? 'primary.main' : 'text.primary',
+                      fontWeight: moreNavItems.some((item) => isActive(item.path)) ? 750 : 600,
+                      fontSize: '0.92rem',
+                      px: 2,
+                      py: 0.7,
+                      borderRadius: '24px',
+                      textTransform: 'none',
+                      letterSpacing: '-0.01em',
+                      bgcolor: moreNavItems.some((item) => isActive(item.path)) ? 'white' : 'transparent',
+                      boxShadow: moreNavItems.some((item) => isActive(item.path)) ? '0 2px 8px rgba(15, 23, 42, 0.08)' : 'none',
+                      transition: 'all 0.2s cubic-bezier(0.22, 0.61, 0.36, 1)',
+                      '&:hover': {
+                        bgcolor: moreNavItems.some((item) => isActive(item.path)) ? 'white' : 'rgba(255, 255, 255, 0.7)',
+                        color: 'primary.main',
+                      },
+                    }}
+                  >
+                    {t('more')}
+                  </Button>
+                </Box>
 
                 <Menu
                   anchorEl={moreAnchorEl}
                   open={Boolean(moreAnchorEl)}
                   onClose={handleMoreMenuClose}
-                  anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                  transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                  slotProps={{ paper: { sx: { mt: 1, minWidth: 210, borderRadius: 2 } } }}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+                  slotProps={{
+                    paper: {
+                      sx: {
+                        mt: 1.5,
+                        minWidth: 220,
+                        borderRadius: 3,
+                        p: 0.75,
+                        boxShadow: '0 14px 40px -4px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.05)',
+                        border: '1px solid rgba(226, 232, 240, 0.9)',
+                      },
+                    },
+                  }}
                 >
                   {moreNavItems.map((item) => (
                     <MenuItem
@@ -343,9 +516,17 @@ const Navbar: React.FC = () => {
                       to={item.path}
                       onClick={handleMoreMenuClose}
                       selected={isActive(item.path)}
-                      sx={{ py: 1.2, px: 2, fontWeight: isActive(item.path) ? 700 : 500 }}
+                      sx={{
+                        py: 1.1,
+                        px: 2,
+                        borderRadius: 2,
+                        fontWeight: isActive(item.path) ? 700 : 500,
+                        fontSize: '0.9rem',
+                        gap: 1.5,
+                        '&:hover': { bgcolor: 'rgba(12, 82, 131, 0.06)' },
+                      }}
                     >
-                      <Box sx={{ mr: 1.5, display: 'flex', color: 'primary.main' }}>{item.icon}</Box>
+                      <Box sx={{ display: 'flex', color: 'primary.main' }}>{item.icon}</Box>
                       {item.label}
                     </MenuItem>
                   ))}
@@ -353,83 +534,254 @@ const Navbar: React.FC = () => {
               </Box>
             )}
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 1 }, ml: 'auto', flexShrink: 0 }}>
+            {/* ZONE 3: RIGHT - OTHER CONTROLS & USER ACTIONS */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: { xs: 0.75, sm: 1.25 },
+                flexShrink: 0,
+                ml: isMobile ? 'auto' : 0,
+              }}
+            >
+              {/* Desktop view controls on right */}
               {!isMobile && (
                 <>
+                  {/* Language Selector */}
                   <Tooltip title={t('language')}>
                     <IconButton
                       onClick={handleLanguageMenuOpen}
                       size="small"
                       sx={{
-                        color: 'text.primary',
-                        transition: 'color 0.3s ease',
+                        color: 'text.secondary',
+                        border: '1px solid',
+                        borderColor: 'rgba(226, 232, 240, 0.9)',
+                        borderRadius: '12px',
+                        p: 0.8,
+                        transition: 'all 0.2s ease',
                         '&:hover': {
-                          bgcolor: 'rgba(0,0,0,0.05)'
-                        }
+                          bgcolor: 'action.hover',
+                          color: 'primary.main',
+                          borderColor: 'primary.main',
+                        },
                       }}
                     >
-                      <LanguageIcon />
+                      <LanguageIcon sx={{ fontSize: 20 }} />
                     </IconButton>
                   </Tooltip>
-                  <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleLanguageMenuClose}>
-                    <MenuItem onClick={() => changeLanguage('en')} selected={currentLang === 'en'}>English</MenuItem>
-                    <MenuItem onClick={() => changeLanguage('hi')} selected={currentLang === 'hi'}>हिन्दी (Hindi)</MenuItem>
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleLanguageMenuClose}
+                    slotProps={{
+                      paper: {
+                        sx: {
+                          mt: 1.5,
+                          minWidth: 160,
+                          borderRadius: 2.5,
+                          p: 0.5,
+                          boxShadow: '0 10px 30px -4px rgba(15, 23, 42, 0.12)',
+                          border: '1px solid rgba(226, 232, 240, 0.9)',
+                        },
+                      },
+                    }}
+                  >
+                    <MenuItem
+                      onClick={() => changeLanguage('en')}
+                      selected={currentLang === 'en'}
+                      sx={{ borderRadius: 1.5, fontWeight: currentLang === 'en' ? 700 : 500 }}
+                    >
+                      English
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => changeLanguage('hi')}
+                      selected={currentLang === 'hi'}
+                      sx={{ borderRadius: 1.5, fontWeight: currentLang === 'hi' ? 700 : 500 }}
+                    >
+                      हिन्दी (Hindi)
+                    </MenuItem>
                   </Menu>
 
                   {isLoggedIn ? (
                     <>
+                      {/* Notifications bell */}
                       <NotificationBell />
+
+                      {/* Live chat */}
                       <HeaderChatButton />
+
+                      {/* Employer Quick Action Button */}
                       {isEmployer && (
                         <Button
                           component={Link}
                           to="/employer/post-job"
                           variant="contained"
                           size="small"
-                          startIcon={<Work fontSize="small" />}
+                          startIcon={<Work sx={{ fontSize: '16px !important' }} />}
                           sx={{
-                            bgcolor: 'primary.main',
+                            background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
                             color: 'white',
                             fontWeight: 700,
-                            borderRadius: 2,
-                            ml: 1,
+                            fontSize: '0.84rem',
+                            borderRadius: '20px',
+                            px: 2,
+                            py: 0.65,
                             textTransform: 'none',
-                            '&:hover': { bgcolor: 'primary.dark' }
+                            boxShadow: '0 3px 10px rgba(12, 82, 131, 0.22)',
+                            transition: 'all 0.25s ease',
+                            whiteSpace: 'nowrap',
+                            '&:hover': {
+                              background: 'linear-gradient(135deg, #094066 0%, #089c8b 100%)',
+                              boxShadow: '0 5px 15px rgba(12, 82, 131, 0.32)',
+                              transform: 'translateY(-1px)',
+                            },
                           }}
                         >
                           {t('post_job_nav') || 'Post Job'}
                         </Button>
                       )}
+
+                      {/* Profile Avatar Button (R only) */}
                       <Tooltip title={userDisplayName}>
-                        <IconButton onClick={handleProfileMenuOpen} size="small" sx={{ ml: 1 }}>
-                          <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 14 }}>
-                            {userInitial || <AccountCircle fontSize="small" />}
+                        <IconButton
+                          onClick={handleProfileMenuOpen}
+                          size="small"
+                          sx={{
+                            p: 0.3,
+                            border: '2px solid',
+                            borderColor: profileAnchorEl ? 'primary.main' : 'rgba(226, 232, 240, 0.9)',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              transform: 'scale(1.05)',
+                              boxShadow: '0 2px 8px rgba(12, 82, 131, 0.2)',
+                            },
+                          }}
+                        >
+                          <Avatar
+                            sx={{
+                              width: 34,
+                              height: 34,
+                              bgcolor: 'primary.main',
+                              color: 'white',
+                              fontWeight: 700,
+                              fontSize: '0.9rem',
+                              boxShadow: '0 2px 6px rgba(12, 82, 131, 0.25)',
+                            }}
+                          >
+                            {userInitial || <AccountCircle sx={{ fontSize: 20 }} />}
                           </Avatar>
                         </IconButton>
                       </Tooltip>
-                      <Menu anchorEl={profileAnchorEl} open={Boolean(profileAnchorEl)} onClose={handleProfileMenuClose}>
-                        <MenuItem onClick={handleOpenProfile}>
-                          <Dashboard fontSize="small" sx={{ mr: 1 }} />
+
+                      {/* Profile Dropdown Menu */}
+                      <Menu
+                        anchorEl={profileAnchorEl}
+                        open={Boolean(profileAnchorEl)}
+                        onClose={handleProfileMenuClose}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        slotProps={{
+                          paper: {
+                            sx: {
+                              mt: 1.5,
+                              minWidth: 230,
+                              borderRadius: 3,
+                              p: 0.75,
+                              boxShadow: '0 14px 40px -4px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.05)',
+                              border: '1px solid rgba(226, 232, 240, 0.9)',
+                            },
+                          },
+                        }}
+                      >
+                        <Box sx={{ px: 1.5, py: 1, mb: 0.5 }}>
+                          <Typography sx={{ fontWeight: 700, fontSize: '0.92rem', color: 'text.primary', lineHeight: 1.2 }}>
+                            {userDisplayName}
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.6 }}>
+                            <Box
+                              component="span"
+                              sx={{
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.04em',
+                                px: 1,
+                                py: 0.25,
+                                borderRadius: '8px',
+                                bgcolor: isEmployer ? 'rgba(12, 82, 131, 0.1)' : 'rgba(10, 182, 162, 0.12)',
+                                color: isEmployer ? 'primary.main' : 'secondary.main',
+                              }}
+                            >
+                              {role ? (role === 'employer' ? t('role_employer') : t('role_candidate')) : 'User'}
+                            </Box>
+                          </Box>
+                        </Box>
+
+                        <Divider sx={{ my: 0.75 }} />
+
+                        <MenuItem
+                          onClick={handleOpenProfile}
+                          sx={{
+                            borderRadius: 2,
+                            py: 1,
+                            px: 1.5,
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            gap: 1.5,
+                            '&:hover': { bgcolor: 'rgba(12, 82, 131, 0.06)' },
+                          }}
+                        >
+                          <Dashboard fontSize="small" sx={{ color: 'primary.main' }} />
                           {t('dashboard')}
                         </MenuItem>
+
                         {role !== 'admin' && (
-                          <MenuItem onClick={handleSwitchProfile} disabled={Boolean(switchingRole)}>
+                          <MenuItem
+                            onClick={handleSwitchProfile}
+                            disabled={Boolean(switchingRole)}
+                            sx={{
+                              borderRadius: 2,
+                              py: 1,
+                              px: 1.5,
+                              fontWeight: 600,
+                              fontSize: '0.9rem',
+                              gap: 1.5,
+                              '&:hover': { bgcolor: 'rgba(12, 82, 131, 0.06)' },
+                            }}
+                          >
                             {switchingRole ? (
-                              <CircularProgress size={18} sx={{ mr: 1 }} />
+                              <CircularProgress size={18} sx={{ color: 'primary.main' }} />
                             ) : (
-                              <SwapHoriz fontSize="small" sx={{ mr: 1 }} />
+                              <SwapHoriz fontSize="small" sx={{ color: 'secondary.main' }} />
                             )}
                             {switchingRole ? t('switching') : switchTargetLabel}
                           </MenuItem>
                         )}
-                        <MenuItem onClick={handleLogout}>
-                          <Logout fontSize="small" sx={{ mr: 1 }} />
+
+                        <Divider sx={{ my: 0.75 }} />
+
+                        <MenuItem
+                          onClick={handleLogout}
+                          sx={{
+                            borderRadius: 2,
+                            py: 1,
+                            px: 1.5,
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            gap: 1.5,
+                            color: 'error.main',
+                            '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.08)', color: 'error.dark' },
+                          }}
+                        >
+                          <Logout fontSize="small" />
                           {t('logout')}
                         </MenuItem>
                       </Menu>
                     </>
                   ) : (
                     <>
+                      {/* Logged-out buttons */}
                       <Button
                         component={Link}
                         to="/login"
@@ -438,12 +790,18 @@ const Navbar: React.FC = () => {
                         sx={{
                           color: 'primary.main',
                           borderColor: 'primary.main',
-                          ml: 1,
-                          transition: 'all 0.3s ease',
+                          borderRadius: '20px',
+                          px: 2.2,
+                          py: 0.6,
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          textTransform: 'none',
+                          transition: 'all 0.2s ease',
                           '&:hover': {
-                            bgcolor: 'rgba(0,0,0,0.05)',
-                            borderColor: 'primary.main'
-                          }
+                            bgcolor: 'rgba(12, 82, 131, 0.05)',
+                            borderColor: 'primary.dark',
+                            transform: 'translateY(-1px)',
+                          },
                         }}
                       >
                         {t('login')}
@@ -454,12 +812,21 @@ const Navbar: React.FC = () => {
                         variant="contained"
                         size="small"
                         sx={{
-                          bgcolor: 'primary.main',
+                          background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
                           color: 'white',
-                          transition: 'all 0.3s ease',
+                          borderRadius: '20px',
+                          px: 2.4,
+                          py: 0.65,
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          textTransform: 'none',
+                          boxShadow: '0 3px 10px rgba(12, 82, 131, 0.2)',
+                          transition: 'all 0.2s ease',
                           '&:hover': {
-                            bgcolor: 'primary.dark'
-                          }
+                            background: 'linear-gradient(135deg, #094066 0%, #089c8b 100%)',
+                            boxShadow: '0 5px 14px rgba(12, 82, 131, 0.3)',
+                            transform: 'translateY(-1px)',
+                          },
                         }}
                       >
                         {t('signup')}
@@ -469,6 +836,7 @@ const Navbar: React.FC = () => {
                 </>
               )}
 
+              {/* Mobile view controls on the right */}
               {isMobile && (
                 <>
                   <Tooltip title={t('language')}>
@@ -478,15 +846,34 @@ const Navbar: React.FC = () => {
                       aria-label={t('language')}
                       sx={{ color: 'text.primary', p: 0.75 }}
                     >
-                      <LanguageIcon sx={{ fontSize: 22 }} />
+                      <LanguageIcon sx={{ fontSize: 21 }} />
                     </IconButton>
                   </Tooltip>
-                  <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleLanguageMenuClose}>
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleLanguageMenuClose}
+                    slotProps={{
+                      paper: {
+                        sx: {
+                          mt: 1.5,
+                          minWidth: 160,
+                          borderRadius: 2.5,
+                          p: 0.5,
+                        },
+                      },
+                    }}
+                  >
                     <MenuItem onClick={() => changeLanguage('en')} selected={currentLang === 'en'}>English</MenuItem>
                     <MenuItem onClick={() => changeLanguage('hi')} selected={currentLang === 'hi'}>हिन्दी (Hindi)</MenuItem>
                   </Menu>
 
-                  {isLoggedIn && <NotificationBell />}
+                  {isLoggedIn && (
+                    <>
+                      <NotificationBell />
+                      <HeaderChatButton />
+                    </>
+                  )}
 
                   {!isLoggedIn && (
                     <Button
@@ -499,9 +886,11 @@ const Navbar: React.FC = () => {
                         py: 0.4,
                         px: { xs: 1, sm: 1.5 },
                         fontSize: { xs: '0.75rem', sm: '0.8rem' },
+                        borderRadius: '16px',
                         minWidth: 'auto',
                         whiteSpace: 'nowrap',
                         textTransform: 'none',
+                        fontWeight: 600,
                         '& .MuiButton-startIcon': { mr: 0.5 },
                       }}
                     >
@@ -515,11 +904,14 @@ const Navbar: React.FC = () => {
                     aria-label={t('menu')}
                     sx={{
                       color: 'text.primary',
-                      p: 0.75,
-                      transition: 'color 0.3s ease'
+                      p: 0.8,
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: 'rgba(226, 232, 240, 0.9)',
+                      '&:hover': { bgcolor: 'action.hover' },
                     }}
                   >
-                    <MenuIcon sx={{ fontSize: 26 }} />
+                    <MenuIcon sx={{ fontSize: 24 }} />
                   </IconButton>
                 </>
               )}
@@ -534,17 +926,19 @@ const Navbar: React.FC = () => {
         onClose={() => setMobileOpen(false)}
         ModalProps={{ keepMounted: true }}
         sx={{
-          // Above the fixed AppBar, otherwise the drawer header hides behind it.
           zIndex: (muiTheme) => muiTheme.zIndex.drawer + 2,
           '& .MuiDrawer-paper': {
-            width: { xs: '82vw', sm: 280 },
-            maxWidth: 300,
-            bgcolor: 'background.paper'
-          }
+            width: { xs: '84vw', sm: 300 },
+            maxWidth: 320,
+            bgcolor: 'background.paper',
+            borderLeft: '1px solid',
+            borderColor: 'divider',
+          },
         }}
       >
         {drawer}
       </Drawer>
+
       <Snackbar
         open={Boolean(switchError)}
         autoHideDuration={5000}
