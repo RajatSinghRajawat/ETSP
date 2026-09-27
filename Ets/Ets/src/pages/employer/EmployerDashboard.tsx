@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -23,7 +23,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
-import EmployerJobsTable from '../../components/employer/EmployerJobsTable';
+import EmployerJobsTable, { type SortKey } from '../../components/employer/EmployerJobsTable';
 import { useEmployerPlan } from '../../hooks/useEmployerPlan';
 import { useGetMyEmployerProfileQuery } from '../../store/api/employerProfileApi';
 import { useGetMyJobsQuery } from '../../store/api/jobApi';
@@ -40,19 +40,30 @@ const ModernStatCard: React.FC<{
   icon: React.ReactNode;
   color: string;
   onClick?: () => void;
-}> = ({ label, value, caption, icon, color, onClick }) => {
+  active?: boolean;
+}> = ({ label, value, caption, icon, color, onClick, active = false }) => {
   return (
     <Paper
       elevation={0}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
+      aria-pressed={onClick ? active : undefined}
+      onKeyDown={(event) => {
+        if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onClick();
+        }
+      }}
       sx={{
         p: { xs: 2.25, md: 2.75 },
         borderRadius: '12px',
         bgcolor: '#ffffff',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(15, 23, 42, 0.02)',
+        border: '1.5px solid',
+        borderColor: active ? color : '#e2e8f0',
+        boxShadow: active
+          ? `0 8px 24px -6px ${alpha(color, 0.3)}`
+          : '0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(15, 23, 42, 0.02)',
         cursor: onClick ? 'pointer' : 'default',
         transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)',
         display: 'flex',
@@ -129,7 +140,7 @@ const ModernStatCard: React.FC<{
   );
 };
 
-import type { JobResponse } from '../../store/api/jobApi';
+import type { JobResponse, JobStatus } from '../../store/api/jobApi';
 import type { JobApplicationCounts } from '../../store/api/applicationApi';
 
 interface EmployerDashboardProps {
@@ -162,6 +173,52 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
   const newApplications = Object.values(countsByJob).reduce((sum, row) => sum + row.new, 0);
   const shortlisted = Object.values(countsByJob).reduce((sum, row) => sum + row.shortlisted, 0);
   const hired = Object.values(countsByJob).reduce((sum, row) => sum + row.hired, 0);
+
+  // The stat tiles drive the jobs list below: each one applies a filter or
+  // sort, scrolls the list into view and flashes it, so the change is visible.
+  const [jobStatusFilter, setJobStatusFilter] = useState<JobStatus | 'all'>('all');
+  const [jobSortKey, setJobSortKey] = useState<SortKey>('newest');
+  const [highlightJobs, setHighlightJobs] = useState(false);
+  const jobsSectionRef = useRef<HTMLDivElement>(null);
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    },
+    [],
+  );
+
+  type TileKey = 'jobs' | 'applications' | 'shortlisted' | 'hired';
+  const TILE_VIEW: Record<TileKey, { status: JobStatus | 'all'; sort: SortKey; color: string; summary: string }> = {
+    jobs: { status: 'active', sort: 'newest', color: '#2563eb', summary: 'Showing open jobs only' },
+    applications: { status: 'all', sort: 'applicants', color: '#7c3aed', summary: 'Sorted by most applicants' },
+    shortlisted: { status: 'all', sort: 'shortlisted', color: '#f59e0b', summary: 'Sorted by most shortlisted candidates' },
+    hired: { status: 'all', sort: 'hired', color: '#10b981', summary: 'Sorted by most hires' },
+  };
+  const activeTile = (Object.keys(TILE_VIEW) as TileKey[]).find(
+    (key) => TILE_VIEW[key].status === jobStatusFilter && TILE_VIEW[key].sort === jobSortKey,
+  );
+  const highlightColor = activeTile ? TILE_VIEW[activeTile].color : '#0c5283';
+
+  const selectTile = (key: TileKey) => {
+    // A second click on the active tile goes back to the default view.
+    const next = activeTile === key ? { status: 'all' as const, sort: 'newest' as const } : TILE_VIEW[key];
+    setJobStatusFilter(next.status);
+    setJobSortKey(next.sort);
+
+    setHighlightJobs(true);
+    if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    highlightTimer.current = setTimeout(() => setHighlightJobs(false), 1400);
+
+    const section = jobsSectionRef.current;
+    if (section) {
+      const { top } = section.getBoundingClientRect();
+      if (top < 80 || top > window.innerHeight * 0.55) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'var(--app-min-h)', bgcolor: '#f8fafc' }}>
@@ -336,6 +393,8 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
               caption={`${liveJobs} currently open & accepting candidates`}
               icon={<WorkOutlineOutlined />}
               color="#2563eb"
+              active={activeTile === 'jobs'}
+              onClick={() => selectTile('jobs')}
             />
           </Grid>
           <Grid size={{ xs: 6, lg: 3 }}>
@@ -345,7 +404,8 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
               caption={newApplications > 0 ? `${newApplications} new awaiting evaluation` : 'All candidates screened'}
               icon={<AssignmentTurnedInOutlined />}
               color="#7c3aed"
-              onClick={() => navigate('/employer/applications')}
+              active={activeTile === 'applications'}
+              onClick={() => selectTile('applications')}
             />
           </Grid>
           <Grid size={{ xs: 6, lg: 3 }}>
@@ -355,6 +415,8 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
               caption="Moved to interview & vetting stage"
               icon={<CheckCircleOutlined />}
               color="#f59e0b"
+              active={activeTile === 'shortlisted'}
+              onClick={() => selectTile('shortlisted')}
             />
           </Grid>
           <Grid size={{ xs: 6, lg: 3 }}>
@@ -364,20 +426,29 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
               caption="Successful offers accepted"
               icon={<EmojiEventsOutlined />}
               color="#10b981"
+              active={activeTile === 'hired'}
+              onClick={() => selectTile('hired')}
             />
           </Grid>
         </Grid>
 
         {/* Jobs Section Container (12px border radius, white paper) */}
         <Paper
+          ref={jobsSectionRef}
           elevation={0}
           sx={{
             p: { xs: 2.5, sm: 3, md: 3.5 },
             mb: 3,
             borderRadius: '12px',
             bgcolor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+            border: '1.5px solid',
+            borderColor: highlightJobs ? highlightColor : '#e2e8f0',
+            boxShadow: highlightJobs
+              ? `0 0 0 4px ${alpha(highlightColor, 0.14)}, 0 10px 28px -10px ${alpha(highlightColor, 0.35)}`
+              : '0 1px 3px rgba(15, 23, 42, 0.04)',
+            transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+            // Clears the fixed navbar (and the phone sidebar bar) when scrolled to.
+            scrollMarginTop: { xs: 'calc(var(--app-header-h) + 72px)', md: 'calc(var(--app-header-h) + 16px)' },
           }}
         >
           {/* Section Header */}
@@ -410,8 +481,34 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
                 <Typography sx={{ fontWeight: 900, fontSize: '1.2rem', color: '#0f172a' }}>
                   Posted Jobs
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#64748b' }}>
-                  Search, filter, or open a job to review candidate tallies and applications
+                <Typography variant="body2" sx={{ color: '#64748b' }} aria-live="polite">
+                  {activeTile ? (
+                    <>
+                      <Box component="span" sx={{ fontWeight: 700, color: TILE_VIEW[activeTile].color }}>
+                        {TILE_VIEW[activeTile].summary}
+                      </Box>
+                      <Box
+                        component="button"
+                        type="button"
+                        onClick={() => {
+                          setJobStatusFilter('all');
+                          setJobSortKey('newest');
+                        }}
+                        sx={{
+                          all: 'unset',
+                          cursor: 'pointer',
+                          ml: 1,
+                          color: '#0c5283',
+                          fontWeight: 600,
+                          '&:hover': { textDecoration: 'underline' },
+                        }}
+                      >
+                        Clear
+                      </Box>
+                    </>
+                  ) : (
+                    'Search, filter, or open a job to review candidate tallies and applications'
+                  )}
                 </Typography>
               </Box>
             </Stack>
@@ -494,6 +591,10 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
               jobs={jobs}
               countsByJob={countsByJob}
               showMatches={isPremium}
+              statusFilter={jobStatusFilter}
+              onStatusFilterChange={setJobStatusFilter}
+              sortKey={jobSortKey}
+              onSortKeyChange={setJobSortKey}
             />
           )}
         </Paper>

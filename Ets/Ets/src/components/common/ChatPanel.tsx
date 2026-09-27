@@ -126,7 +126,10 @@ const ChatPanel: React.FC = () => {
       anchor="right"
       open={open}
       onClose={closeChat}
-      slotProps={{ paper: { sx: { width: { xs: '100%', sm: 400 }, display: 'flex', flexDirection: 'column' } } }}
+      // Above the fixed navbar (drawer + 1) and its menu (drawer + 2); otherwise the
+      // header — and its close button — sits hidden under the navbar on phones.
+      sx={{ zIndex: (theme) => theme.zIndex.drawer + 3 }}
+      slotProps={{ paper: { sx: { width: { xs: '100%', sm: 400 }, height: '100dvh', display: 'flex', flexDirection: 'column' } } }}
     >
       {/* Header */}
       <Box
@@ -242,7 +245,7 @@ const ChatPanel: React.FC = () => {
 
       {/* Composer */}
       {showComposer && (
-        <Box sx={{ p: 1.5, borderTop: '1px solid rgba(12,82,131,0.08)', bgcolor: 'background.paper' }}>
+        <Box sx={{ p: 1.5, pb: 'calc(12px + env(safe-area-inset-bottom))', borderTop: '1px solid rgba(12,82,131,0.08)', bgcolor: 'background.paper' }}>
           <TextField
             fullWidth
             size="small"

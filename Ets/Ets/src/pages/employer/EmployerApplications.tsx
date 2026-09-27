@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Avatar,
@@ -234,6 +234,54 @@ const EmployerApplications: React.FC = () => {
 
   const isFiltered = Boolean(status || selectedJobId || activeSearch || sortOrder !== 'newest');
 
+  // The metric tiles filter the list further down the page, which the employer
+  // cannot see from the tiles — so bring the filter toolbar into view and flash it.
+  const [highlightToolbar, setHighlightToolbar] = useState(false);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const statusStripRef = useRef<HTMLDivElement>(null);
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeStatusTab = STATUS_TABS.find((tab) => tab.value === status) ?? STATUS_TABS[0];
+
+  useEffect(
+    () => () => {
+      if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    },
+    [],
+  );
+
+  // On phones the status strip scrolls sideways; keep the active chip on screen.
+  useEffect(() => {
+    const strip = statusStripRef.current;
+    const chip = strip?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!strip || !chip || strip.scrollWidth <= strip.clientWidth) return;
+    const left = chip.offsetLeft - (strip.clientWidth - chip.offsetWidth) / 2;
+    strip.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+  }, [status]);
+
+  const selectFromTile = (value: ApplicationStatus | '') => {
+    setStatus(value);
+    setPage(1);
+
+    setHighlightToolbar(true);
+    if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    highlightTimer.current = setTimeout(() => setHighlightToolbar(false), 1400);
+
+    const toolbar = toolbarRef.current;
+    if (toolbar) {
+      const { top } = toolbar.getBoundingClientRect();
+      if (top < 80 || top > window.innerHeight * 0.55) {
+        toolbar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
+  const onTileKeyDown = (event: React.KeyboardEvent, value: ApplicationStatus | '') => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      selectFromTile(value);
+    }
+  };
+
   const handleUnlock = async (candidateProfileId: string, jobId?: string) => {
     setUnlockingId(candidateProfileId);
     try {
@@ -395,10 +443,11 @@ const EmployerApplications: React.FC = () => {
           <Grid size={{ xs: 6, sm: 4, lg: 2.4 }}>
             <Paper
               elevation={0}
-              onClick={() => {
-                setStatus('');
-                setPage(1);
-              }}
+              role="button"
+              tabIndex={0}
+              aria-pressed={status === ''}
+              onClick={() => selectFromTile('')}
+              onKeyDown={(event) => onTileKeyDown(event, '')}
               sx={{
                 p: 2.2,
                 borderRadius: '14px',
@@ -429,10 +478,11 @@ const EmployerApplications: React.FC = () => {
           <Grid size={{ xs: 6, sm: 4, lg: 2.4 }}>
             <Paper
               elevation={0}
-              onClick={() => {
-                setStatus('new');
-                setPage(1);
-              }}
+              role="button"
+              tabIndex={0}
+              aria-pressed={status === 'new'}
+              onClick={() => selectFromTile('new')}
+              onKeyDown={(event) => onTileKeyDown(event, 'new')}
               sx={{
                 p: 2.2,
                 borderRadius: '14px',
@@ -463,10 +513,11 @@ const EmployerApplications: React.FC = () => {
           <Grid size={{ xs: 6, sm: 4, lg: 2.4 }}>
             <Paper
               elevation={0}
-              onClick={() => {
-                setStatus('reviewing');
-                setPage(1);
-              }}
+              role="button"
+              tabIndex={0}
+              aria-pressed={status === 'reviewing'}
+              onClick={() => selectFromTile('reviewing')}
+              onKeyDown={(event) => onTileKeyDown(event, 'reviewing')}
               sx={{
                 p: 2.2,
                 borderRadius: '14px',
@@ -497,10 +548,11 @@ const EmployerApplications: React.FC = () => {
           <Grid size={{ xs: 6, sm: 4, lg: 2.4 }}>
             <Paper
               elevation={0}
-              onClick={() => {
-                setStatus('shortlisted');
-                setPage(1);
-              }}
+              role="button"
+              tabIndex={0}
+              aria-pressed={status === 'shortlisted'}
+              onClick={() => selectFromTile('shortlisted')}
+              onKeyDown={(event) => onTileKeyDown(event, 'shortlisted')}
               sx={{
                 p: 2.2,
                 borderRadius: '14px',
@@ -531,10 +583,11 @@ const EmployerApplications: React.FC = () => {
           <Grid size={{ xs: 12, sm: 8, lg: 2.4 }}>
             <Paper
               elevation={0}
-              onClick={() => {
-                setStatus('hired');
-                setPage(1);
-              }}
+              role="button"
+              tabIndex={0}
+              aria-pressed={status === 'hired'}
+              onClick={() => selectFromTile('hired')}
+              onKeyDown={(event) => onTileKeyDown(event, 'hired')}
               sx={{
                 p: 2.2,
                 borderRadius: '14px',
@@ -577,17 +630,42 @@ const EmployerApplications: React.FC = () => {
 
         {/* Filter and Search Control Toolbar */}
         <Paper
+          ref={toolbarRef}
           elevation={0}
           sx={{
             p: { xs: 2, sm: 2.5 },
             mb: 3.5,
             borderRadius: '16px',
             bgcolor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 10px -2px rgba(15, 23, 42, 0.04)',
+            border: '1.5px solid',
+            borderColor: highlightToolbar ? activeStatusTab.color : '#e2e8f0',
+            boxShadow: highlightToolbar
+              ? `0 0 0 4px ${activeStatusTab.color}22, 0 10px 28px -10px ${activeStatusTab.color}55`
+              : '0 2px 10px -2px rgba(15, 23, 42, 0.04)',
+            transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+            // Clears the fixed navbar (and the phone sidebar bar) when scrolled to.
+            scrollMarginTop: { xs: 'calc(var(--app-header-h) + 72px)', md: 'calc(var(--app-header-h) + 16px)' },
           }}
         >
           <Stack spacing={2}>
+            {/* Live summary of what the list below is showing. */}
+            <Typography sx={{ color: '#0f172a', fontSize: { xs: '0.95rem', sm: '1rem' }, fontWeight: 700 }} aria-live="polite">
+              {status ? (
+                <>
+                  Filtered by{' '}
+                  <Box component="span" sx={{ color: activeStatusTab.color }}>
+                    {activeStatusTab.label}
+                  </Box>
+                  <Box component="span" sx={{ color: '#64748b', fontWeight: 500, fontSize: '0.85rem', ml: 1 }}>
+                    {statusCounts[status as keyof typeof statusCounts] ?? 0} candidate
+                    {(statusCounts[status as keyof typeof statusCounts] ?? 0) === 1 ? '' : 's'}
+                  </Box>
+                </>
+              ) : (
+                'Review every candidate who applied to your jobs in one place.'
+              )}
+            </Typography>
+
             {/* Top Toolbar Row: Search, Job Filter, Sort Order */}
             <Box
               component="form"
@@ -707,7 +785,9 @@ const EmployerApplications: React.FC = () => {
 
             {/* Bottom Toolbar Row: Status Pills Strip */}
             <Box
+              ref={statusStripRef}
               sx={{
+                position: 'relative', // offsetParent for the active-chip scroll math
                 display: 'flex',
                 gap: 1,
                 overflowX: 'auto',
@@ -732,19 +812,21 @@ const EmployerApplications: React.FC = () => {
                       setPage(1);
                     }}
                     clickable
+                    aria-pressed={isActive}
                     sx={{
                       fontWeight: 700,
                       fontSize: '0.82rem',
                       height: 34,
                       borderRadius: '8px',
                       px: 0.5,
-                      bgcolor: isActive ? '#0c5283' : '#f1f5f9',
+                      bgcolor: isActive ? tab.color : '#f1f5f9',
                       color: isActive ? '#ffffff' : '#475569',
                       border: '1px solid',
-                      borderColor: isActive ? '#0c5283' : '#e2e8f0',
+                      borderColor: isActive ? tab.color : '#e2e8f0',
+                      boxShadow: isActive ? `0 4px 12px -4px ${tab.color}80` : 'none',
                       transition: 'all 0.15s ease',
                       '&:hover': {
-                        bgcolor: isActive ? '#0a4570' : '#e2e8f0',
+                        bgcolor: isActive ? tab.color : '#e2e8f0',
                       },
                     }}
                   />

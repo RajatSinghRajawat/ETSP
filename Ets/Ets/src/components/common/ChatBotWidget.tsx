@@ -31,6 +31,7 @@ import {
   type RefinedCandidateProfile,
 } from '../../store/api/aiAssistantApi';
 import { useRefineMyResumeMutation } from '../../store/api/resumeApi';
+import { useChat } from '../../context/ChatContext';
 import { openUpgradePrompt, useAiEntitlement } from '../../hooks/useAiEntitlement';
 
 type Sender = 'bot' | 'user';
@@ -186,6 +187,7 @@ const ChatBotWidget: React.FC = () => {
   const quickReplies = isEmployer ? EMPLOYER_QUICK_REPLIES : CANDIDATE_QUICK_REPLIES;
 
   const [open, setOpen] = useState(false);
+  const { open: chatPanelOpen } = useChat();
   const [unread, setUnread] = useState(1);
   const [draft, setDraft] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -1058,7 +1060,9 @@ const ChatBotWidget: React.FC = () => {
         </Box>
       </Slide>
 
-      <Zoom in>
+      {/* Hidden while the messages drawer is open — it would sit on top of the
+          message composer and its send button. */}
+      <Zoom in={!chatPanelOpen}>
         <Tooltip title={open ? 'Close chat' : 'Chat with VetBot'} placement="left">
           <Badge
             badgeContent={unread}

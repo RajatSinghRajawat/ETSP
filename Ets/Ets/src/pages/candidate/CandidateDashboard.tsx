@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Avatar,
@@ -39,6 +39,7 @@ import {
   StarsRounded,
   BusinessRounded,
   TrendingUpRounded,
+  HighlightOffRounded,
 } from '@mui/icons-material';
 import { useNavigate, Link } from 'react-router-dom';
 import Sidebar from '../../components/common/Sidebar';
@@ -136,6 +137,17 @@ const CandidateDashboard: React.FC = () => {
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedTimelineId, setExpandedTimelineId] = useState<string | null>(null);
+  const [highlightFilters, setHighlightFilters] = useState(false);
+  const filterBarRef = useRef<HTMLDivElement>(null);
+  const tabListRef = useRef<HTMLDivElement>(null);
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    },
+    [],
+  );
 
   const profile = profileData?.data;
   const candidateName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Doctor';
@@ -180,6 +192,46 @@ const CandidateDashboard: React.FC = () => {
       return matchesStatus && matchesSearch;
     });
   }, [applications, filter, searchQuery]);
+
+  const filterTabs: Array<{ key: StatusFilter; label: string; color: string; icon: React.ReactNode }> = [
+    { key: 'all', label: 'All', color: '#0c5283', icon: <WorkOutlineRounded /> },
+    { key: 'under_review', label: 'Under Review', color: '#f59e0b', icon: <HourglassEmptyRounded /> },
+    { key: 'shortlisted', label: 'Shortlisted', color: '#0ab6a2', icon: <CheckCircleRounded /> },
+    { key: 'hired', label: 'Hired', color: '#10b981', icon: <EmojiEventsRounded /> },
+    { key: 'rejected', label: 'Not Selected', color: '#ef4444', icon: <HighlightOffRounded /> },
+  ];
+  const activeTab = filterTabs.find((tab) => tab.key === filter) ?? filterTabs[0];
+  const activeFilterColor = activeTab.color;
+  const activeFilterLabel = activeTab.label;
+
+  /**
+   * A tile click changes the list further down the page, which the candidate
+   * cannot see from the tiles — so bring the filter bar into view and flash it.
+   */
+  const selectFromTile = (key: StatusFilter) => {
+    setFilter(key);
+    setHighlightFilters(true);
+    if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    highlightTimer.current = setTimeout(() => setHighlightFilters(false), 1400);
+
+    const bar = filterBarRef.current;
+    if (bar) {
+      const { top } = bar.getBoundingClientRect();
+      if (top < 80 || top > window.innerHeight * 0.55) {
+        bar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
+  // On phones the tab row scrolls sideways; keep the active tab on screen so
+  // the current filter is always visible (it can be off-screen after a tile click).
+  useEffect(() => {
+    const list = tabListRef.current;
+    const tab = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!list || !tab || list.scrollWidth <= list.clientWidth) return;
+    const left = tab.offsetLeft - (list.clientWidth - tab.offsetWidth) / 2;
+    list.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+  }, [filter]);
 
   const toggleTimeline = (id: string) => {
     setExpandedTimelineId((prev) => (prev === id ? null : id));
@@ -302,13 +354,13 @@ const CandidateDashboard: React.FC = () => {
               <Grid size={{ xs: 6, md: 3 }} key={stat.key}>
                 <Paper
                   elevation={0}
-                  onClick={() => setFilter(stat.key)}
+                  onClick={() => selectFromTile(stat.key)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      setFilter(stat.key);
+                      selectFromTile(stat.key);
                     }
                   }}
                   sx={{
@@ -384,146 +436,240 @@ const CandidateDashboard: React.FC = () => {
           <MyResumeCard candidateName={candidateName} />
         </Box>
 
-        {/* My Applications Section Header & Filter Toolbar */}
+        {/* Status filter bar — the same filter the tiles above drive, so a tile
+            click scrolls here and flashes the bar to show what changed. */}
         <Paper
+          ref={filterBarRef}
           elevation={0}
           sx={{
             p: { xs: 2, sm: 2.5 },
-            mb: 2.5,
-            borderRadius: '16px',
+            mb: 2,
+            borderRadius: '18px',
             bgcolor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 10px -2px rgba(15, 23, 42, 0.04)',
+            border: '1px solid',
+            borderColor: highlightFilters ? activeFilterColor : '#e8edf3',
+            boxShadow: highlightFilters
+              ? `0 0 0 4px ${activeFilterColor}22, 0 10px 28px -10px ${activeFilterColor}55`
+              : '0 1px 2px rgba(15,23,42,0.04), 0 14px 34px -22px rgba(12,82,131,0.28)',
+            transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+            // Keeps the bar clear of the fixed navbar (and the phone sidebar bar)
+            // when it is scrolled into view.
+            scrollMarginTop: { xs: 'calc(var(--app-header-h) + 72px)', md: 'calc(var(--app-header-h) + 16px)' },
           }}
         >
-          <Stack spacing={2}>
-            {/* Toolbar Row 1: Heading & Actions */}
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                justifyContent: 'space-between',
-                alignItems: { xs: 'flex-start', sm: 'center' },
-                gap: 2,
-              }}
-            >
-              <Box>
-                <Typography variant="h5" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.01em' }}>
-                  My Applications
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {filter === 'all'
-                    ? 'Track all your submitted applications in one clean list.'
-                    : `Filtered by "${filter.replace('_', ' ')}".`}
-                </Typography>
-              </Box>
-
-              <Button
-                component={Link}
-                to="/find-job"
-                variant="outlined"
-                size="small"
-                startIcon={<WorkOutlineRounded />}
-                sx={{
-                  borderRadius: '10px',
-                  borderColor: '#0ab6a2',
-                  color: '#0ab6a2',
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  height: 38,
-                  '&:hover': { borderColor: '#0891b2', bgcolor: 'rgba(10, 182, 162, 0.05)' },
-                }}
-              >
-                Find More Jobs
-              </Button>
-            </Box>
-
-            {/* Toolbar Row 2: Search Input & Quick Filter Chips */}
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', md: 'row' },
-                gap: 2,
-                alignItems: { xs: 'stretch', md: 'center' },
-                pt: 1.5,
-                borderTop: '1px dashed #e2e8f0',
-              }}
-            >
-              <TextField
-                placeholder="Search by job title, clinic name, or location..."
-                size="small"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchRounded sx={{ color: '#64748b', fontSize: 20 }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: searchQuery ? (
-                      <InputAdornment position="end">
-                        <IconButton size="small" onClick={() => setSearchQuery('')}>
-                          <ClearRounded sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </InputAdornment>
-                    ) : null,
-                  },
-                }}
-                sx={{
-                  flex: 1,
-                  maxWidth: { xs: '100%', md: 440 },
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '10px',
-                    bgcolor: '#f8fafc',
-                  },
-                }}
-              />
-
-              {/* Status Filter Chips */}
+          {/* Summary row — status icon + live filter summary, search on the right. */}
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'stretch', sm: 'center' },
+              justifyContent: 'space-between',
+              gap: 2,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
               <Box
                 sx={{
-                  display: 'flex',
-                  gap: 1,
-                  overflowX: 'auto',
-                  py: 0.5,
-                  '&::-webkit-scrollbar': { height: 4 },
-                  '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e1', borderRadius: 4 },
+                  width: 42,
+                  height: 42,
+                  borderRadius: '12px',
+                  flexShrink: 0,
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: activeFilterColor,
+                  bgcolor: `${activeFilterColor}14`,
+                  border: `1px solid ${activeFilterColor}26`,
+                  transition: 'all 0.25s ease',
+                  '& svg': { fontSize: 22 },
                 }}
               >
-                {[
-                  { key: 'all', label: `All (${counts.all})` },
-                  { key: 'under_review', label: `Under Review (${counts.under_review})` },
-                  { key: 'shortlisted', label: `Shortlisted (${counts.shortlisted})` },
-                  { key: 'hired', label: `Hired (${counts.hired})` },
-                  { key: 'rejected', label: `Not Selected (${counts.rejected})` },
-                ].map((tab) => {
-                  const isActive = filter === tab.key;
-                  return (
-                    <Chip
-                      key={tab.key}
-                      label={tab.label}
-                      onClick={() => setFilter(tab.key as StatusFilter)}
-                      clickable
-                      sx={{
-                        fontWeight: 700,
-                        fontSize: '0.8rem',
-                        height: 32,
-                        borderRadius: '8px',
-                        bgcolor: isActive ? '#0c5283' : '#f1f5f9',
-                        color: isActive ? '#ffffff' : '#475569',
-                        border: '1px solid',
-                        borderColor: isActive ? '#0c5283' : '#e2e8f0',
-                        '&:hover': {
-                          bgcolor: isActive ? '#0a4570' : '#e2e8f0',
-                        },
+                {activeTab.icon}
+              </Box>
+              <Box sx={{ minWidth: 0 }} aria-live="polite">
+                <Typography sx={{ color: '#0f172a', fontSize: { xs: '0.95rem', sm: '1rem' }, fontWeight: 700, lineHeight: 1.35 }}>
+                  {filter === 'all' ? (
+                    'Track all your submitted applications in one clean list.'
+                  ) : (
+                    <>
+                      Filtered by{' '}
+                      <Box component="span" sx={{ color: activeFilterColor }}>
+                        {activeFilterLabel}
+                      </Box>
+                    </>
+                  )}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.35, flexWrap: 'wrap' }}>
+                  <Typography sx={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 500 }}>
+                    {isLoadingApplications
+                      ? 'Loading…'
+                      : `${visibleApplications.length} of ${counts.all} application${counts.all === 1 ? '' : 's'}`}
+                  </Typography>
+                  {(filter !== 'all' || searchQuery) && (
+                    <Box
+                      component="button"
+                      type="button"
+                      onClick={() => {
+                        setFilter('all');
+                        setSearchQuery('');
                       }}
-                    />
-                  );
-                })}
+                      sx={{
+                        all: 'unset',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.4,
+                        height: 22,
+                        px: 1,
+                        borderRadius: '999px',
+                        fontSize: '0.74rem',
+                        fontWeight: 600,
+                        color: '#475569',
+                        bgcolor: '#f1f5f9',
+                        transition: 'all 0.2s ease',
+                        '&:hover': { bgcolor: '#e2e8f0', color: '#0f172a' },
+                        '&:focus-visible': { outline: '2px solid #0c5283', outlineOffset: 2 },
+                      }}
+                    >
+                      <ClearRounded sx={{ fontSize: 13 }} />
+                      Clear
+                    </Box>
+                  )}
+                </Box>
               </Box>
             </Box>
-          </Stack>
+
+            <TextField
+              placeholder="Search title, clinic or location"
+              size="small"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchRounded sx={{ color: '#94a3b8', fontSize: 19 }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery ? (
+                    <InputAdornment position="end">
+                      <IconButton size="small" aria-label="Clear search" onClick={() => setSearchQuery('')}>
+                        <ClearRounded sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                },
+              }}
+              sx={{
+                width: { xs: '100%', sm: 300 },
+                flexShrink: 0,
+                '& .MuiOutlinedInput-root': {
+                  height: 42,
+                  fontSize: '0.875rem',
+                  borderRadius: '12px',
+                  bgcolor: '#f8fafc',
+                  transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
+                  '& fieldset': { borderColor: '#e8edf3' },
+                  '&:hover fieldset': { borderColor: '#cbd5e1' },
+                  '&.Mui-focused': { bgcolor: '#ffffff', boxShadow: '0 0 0 4px rgba(12,82,131,0.08)' },
+                  '&.Mui-focused fieldset': { borderColor: '#0c5283', borderWidth: 1 },
+                },
+              }}
+            />
+          </Box>
+
+          {/* Segmented status control — one soft track, the active segment lifts out of it. */}
+          <Box
+            ref={tabListRef}
+            sx={{
+              position: 'relative', // offsetParent for the active-tab scroll math
+              mt: 2,
+              overflowX: 'auto',
+              scrollbarWidth: 'none',
+              '&::-webkit-scrollbar': { display: 'none' },
+            }}
+          >
+            <Box
+              role="tablist"
+              aria-label="Filter applications by status"
+              sx={{
+                display: 'inline-flex',
+                gap: 0.5,
+                p: 0.5,
+                borderRadius: '14px',
+                bgcolor: '#f1f5f9',
+                border: '1px solid #e8edf3',
+              }}
+            >
+              {filterTabs.map((tab) => {
+                const isActive = filter === tab.key;
+                return (
+                  <Box
+                    key={tab.key}
+                    component="button"
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setFilter(tab.key)}
+                    sx={{
+                      all: 'unset',
+                      boxSizing: 'border-box',
+                      cursor: 'pointer',
+                      flex: '0 0 auto',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.85,
+                      height: 36,
+                      px: 1.75,
+                      borderRadius: '10px',
+                      whiteSpace: 'nowrap',
+                      fontFamily: 'inherit',
+                      fontWeight: isActive ? 700 : 600,
+                      fontSize: '0.82rem',
+                      color: isActive ? '#0f172a' : '#64748b',
+                      bgcolor: isActive ? '#ffffff' : 'transparent',
+                      boxShadow: isActive
+                        ? '0 1px 2px rgba(15,23,42,0.06), 0 4px 12px -4px rgba(15,23,42,0.14)'
+                        : 'none',
+                      transition: 'all 0.2s ease',
+                      '&:hover': isActive ? undefined : { color: '#0f172a', bgcolor: 'rgba(255,255,255,0.6)' },
+                      '&:focus-visible': { outline: `2px solid ${tab.color}`, outlineOffset: 1 },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: '50%',
+                        bgcolor: tab.color,
+                        flexShrink: 0,
+                        boxShadow: isActive ? `0 0 0 3px ${tab.color}26` : 'none',
+                        transition: 'box-shadow 0.2s ease',
+                      }}
+                    />
+                    <span>{tab.label}</span>
+                    <Box
+                      component="span"
+                      sx={{
+                        minWidth: 20,
+                        height: 20,
+                        px: 0.6,
+                        borderRadius: '999px',
+                        display: 'inline-grid',
+                        placeItems: 'center',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        bgcolor: isActive ? `${tab.color}1f` : 'rgba(15,23,42,0.06)',
+                        color: isActive ? tab.color : '#64748b',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {isLoadingApplications ? '–' : counts[tab.key]}
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
         </Paper>
 
         {/* Loading Spinner */}
@@ -659,7 +805,7 @@ const CandidateDashboard: React.FC = () => {
                     }}
                   >
                     {/* Left: Icon Plate & Job Identity */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, flex: { xs: '1 1 100%', md: '0 1 380px' } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, flex: { xs: '1 1 100%', md: '1 1 auto' } }}>
                       <Avatar
                         sx={{
                           width: 48,
@@ -721,7 +867,7 @@ const CandidateDashboard: React.FC = () => {
                             fontSize: '0.84rem',
                             display: 'flex',
                             alignItems: 'center',
-                            flexWrap: { xs: 'wrap', md: 'nowrap' },
+                            flexWrap: 'wrap',
                             rowGap: 0.4,
                             gap: 0.8,
                             fontWeight: 500,
@@ -734,7 +880,7 @@ const CandidateDashboard: React.FC = () => {
                             sx={{
                               fontWeight: 700,
                               color: '#334155',
-                              minWidth: 0,
+                              maxWidth: 220,
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
@@ -744,11 +890,11 @@ const CandidateDashboard: React.FC = () => {
                           </Box>
                           <span>•</span>
                           <LocationOnOutlined sx={{ fontSize: 14, color: '#94a3b8' }} />
-                          <span>{application.job.location}</span>
+                          <Box component="span" sx={{ whiteSpace: 'nowrap' }}>{application.job.location}</Box>
                           {application.job.type && (
                             <>
                               <span>•</span>
-                              <span>{translateJobType(application.job.type)}</span>
+                              <Box component="span" sx={{ whiteSpace: 'nowrap' }}>{translateJobType(application.job.type)}</Box>
                             </>
                           )}
                           {application.job.salary && (
@@ -760,6 +906,7 @@ const CandidateDashboard: React.FC = () => {
                                   color: '#047857',
                                   fontWeight: 700,
                                   bgcolor: '#ecfdf5',
+                                  whiteSpace: 'nowrap',
                                   px: 0.9,
                                   py: 0.2,
                                   borderRadius: '5px',

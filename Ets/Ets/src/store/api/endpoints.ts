@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
   siteContent: `${API_VERSION}/site-content`,
   billingStatus: `${API_VERSION}/billing-status`,
   banners: `${API_VERSION}/banners`,
+  translate: `${API_VERSION}/translate`,
   bannerClick: (id: string) => `${API_VERSION}/banners/${id}/click`,
   jobs: `${API_VERSION}/jobs`,
   myJobs: `${API_VERSION}/jobs/my`,

@@ -135,42 +135,67 @@ const MyResumeCard: React.FC<{ candidateName?: string }> = ({ candidateName = 'C
       <Card
         elevation={0}
         sx={{
-          borderRadius: 4,
+          borderRadius: '14px',
           border: '1px solid',
           borderColor: 'rgba(12,82,131,0.10)',
           boxShadow: '0 8px 30px -18px rgba(12,82,131,0.35)',
         }}
       >
-        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>My Resume</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Build one with AI from your profile, or upload your own file.
-              </Typography>
+        <CardContent sx={{ p: { xs: 1.75, md: 2 }, '&:last-child': { pb: { xs: 1.75, md: 2 } } }}>
+          {/* One compact row: the resume is a supporting action on the
+              dashboard, not the main event — the applications list is. */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '10px',
+                flexShrink: 0,
+                display: 'grid',
+                placeItems: 'center',
+                bgcolor: 'rgba(12,82,131,0.08)',
+                color: '#0c5283',
+              }}
+            >
+              <Description sx={{ fontSize: 22 }} />
             </Box>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ flexShrink: 0 }}>
+            <Box sx={{ flex: '1 1 200px', minWidth: 0 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.98rem', lineHeight: 1.3 }}>My Resume</Typography>
+              {!isLoading && !hasAiResume && !uploaded ? (
+                <Typography variant="caption" sx={{ color: '#b45309', fontWeight: 600 }}>
+                  No resume yet — employers see one on every application.
+                </Typography>
+              ) : (
+                <Typography variant="caption" color="text.secondary">
+                  Build one with AI from your profile, or upload your own file.
+                </Typography>
+              )}
+            </Box>
+            <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
               <Button
                 variant="contained"
-                startIcon={<AutoFixHigh />}
+                size="small"
+                startIcon={<AutoFixHigh sx={{ fontSize: 18 }} />}
                 onClick={() => setBuilderOpen(true)}
                 sx={{
-                  borderRadius: 2.5,
+                  borderRadius: 2,
                   fontWeight: 700,
                   textTransform: 'none',
                   background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
+                  boxShadow: 'none',
                 }}
               >
                 Build with AI
               </Button>
               <Button
                 variant="outlined"
-                startIcon={isUploading ? <CircularProgress size={16} color="inherit" /> : <UploadFile />}
+                size="small"
+                startIcon={isUploading ? <CircularProgress size={14} color="inherit" /> : <UploadFile sx={{ fontSize: 18 }} />}
                 disabled={isUploading}
                 onClick={handlePickFile}
-                sx={{ borderRadius: 2.5, fontWeight: 700, textTransform: 'none' }}
+                sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
               >
-                {isUploading ? 'Uploading…' : 'Upload Resume'}
+                {isUploading ? 'Uploading…' : 'Upload'}
               </Button>
             </Stack>
           </Box>
@@ -183,28 +208,21 @@ const MyResumeCard: React.FC<{ candidateName?: string }> = ({ candidateName = 'C
             hidden
           />
 
-          {error && <Alert severity="error" sx={{ borderRadius: 2.5, mb: 2 }}>{error}</Alert>}
+          {error && <Alert severity="error" sx={{ borderRadius: 2.5, mt: 1.5 }}>{error}</Alert>}
           {message && (
-            <Alert severity="success" sx={{ borderRadius: 2.5, mb: 2 }} onClose={() => setMessage('')}>
+            <Alert severity="success" sx={{ borderRadius: 2.5, mt: 1.5 }} onClose={() => setMessage('')}>
               {message}
             </Alert>
           )}
 
           {isLoading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5 }}>
               <CircularProgress size={24} />
             </Box>
           )}
 
-          {!isLoading && !hasAiResume && !uploaded && (
-            <Alert severity="info" sx={{ borderRadius: 2.5 }}>
-              You do not have a resume yet. Employers see a resume on every application, so add one
-              using either option above.
-            </Alert>
-          )}
-
           {!isLoading && (hasAiResume || uploaded) && (
-            <Stack spacing={1.5}>
+            <Stack spacing={1} sx={{ mt: 1.5 }}>
               {hasAiResume && (
                 <Box
                   sx={{
@@ -212,7 +230,7 @@ const MyResumeCard: React.FC<{ candidateName?: string }> = ({ candidateName = 'C
                     alignItems: 'center',
                     gap: 1.5,
                     flexWrap: 'wrap',
-                    p: 1.75,
+                    px: 1.5, py: 1,
                     borderRadius: 3,
                     border: '1px solid',
                     borderColor: activeSource === 'ai' ? '#0ab6a2' : 'rgba(12,82,131,0.12)',
@@ -262,7 +280,7 @@ const MyResumeCard: React.FC<{ candidateName?: string }> = ({ candidateName = 'C
                     alignItems: 'center',
                     gap: 1.5,
                     flexWrap: 'wrap',
-                    p: 1.75,
+                    px: 1.5, py: 1,
                     borderRadius: 3,
                     border: '1px solid',
                     borderColor: activeSource === 'upload' ? '#0ab6a2' : 'rgba(12,82,131,0.12)',

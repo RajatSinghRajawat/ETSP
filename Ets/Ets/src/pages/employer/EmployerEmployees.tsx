@@ -216,7 +216,9 @@ const EmployerEmployees: React.FC = () => {
                     ...(locked ? { bgcolor: 'action.hover' } : {}),
                   }}
                 >
-                  <CardActionArea onClick={() => navigate(`/employer/employees/${candidate._id}`)} sx={{ height: '100%' }}>
+                  {/* Rendered as a div: the card holds real <button>s, and a button
+                      inside a button is invalid HTML. */}
+                  <CardActionArea component="div" onClick={() => navigate(`/employer/employees/${candidate._id}`)} sx={{ height: '100%' }}>
                     <CardContent>
                       <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                         <Avatar

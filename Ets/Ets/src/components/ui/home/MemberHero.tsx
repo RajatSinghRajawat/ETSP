@@ -20,7 +20,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useCandidateHomeData, useEmployerHomeData } from '../../../hooks/useRoleHomeData';
 
 type Stat = { label: string; value: number; icon: ReactNode; to: string };
-type Action = { label: string; to: string; icon: ReactNode; primary?: boolean };
+type Action = { label: string; to: string; icon: ReactNode; primary?: boolean; desktopOnly?: boolean };
 
 /**
  * The signed-in replacement for the marketing hero: greets the user by name and
@@ -117,7 +117,7 @@ const MemberHero: React.FC = () => {
 
   const actions: Action[] = isEmployer
     ? [
-        { label: t('post_job'), to: '/employer/post-job', icon: <Work />, primary: true },
+        { label: t('post_job'), to: '/employer/post-job', icon: <Work />, primary: true, desktopOnly: true },
         { label: t('member_action_view_applications'), to: '/employer/applications', icon: <Description /> },
         { label: t('member_action_browse_candidates'), to: '/employer/employees', icon: <People /> },
         { label: t('dashboard'), to: '/employer/dashboard', icon: <DashboardIcon /> },
@@ -186,14 +186,46 @@ const MemberHero: React.FC = () => {
       />
 
       <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-        <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
-          <Chip
-            size="small"
-            label={roleBadge}
-            sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: 'white', fontWeight: 700, letterSpacing: 0.4 }}
-          />
-          {approvalChip}
-        </Stack>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 2 }}>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, minWidth: 0 }}>
+            <Chip
+              size="small"
+              label={roleBadge}
+              sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: 'white', fontWeight: 700, letterSpacing: 0.4 }}
+            />
+            {approvalChip}
+          </Stack>
+
+          {/* Phones: the employer's main action sits in the top-right corner
+              instead of a full-size button further down the hero. */}
+          {isEmployer && (
+            <Button
+              component={Link}
+              to="/employer/post-job"
+              size="small"
+              endIcon={<ArrowForward sx={{ fontSize: 15 }} />}
+              sx={{
+                display: { xs: 'inline-flex', md: 'none' },
+                flexShrink: 0,
+                color: '#2dd4bf',
+                fontWeight: 750,
+                fontSize: '0.86rem',
+                textTransform: 'none',
+                whiteSpace: 'nowrap',
+                minWidth: 'auto',
+                height: 32,
+                px: 1.5,
+                borderRadius: 999,
+                bgcolor: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                backdropFilter: 'blur(8px)',
+                '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.16)' },
+              }}
+            >
+              {t('post_job')}
+            </Button>
+          )}
+        </Box>
 
         <Typography
           variant="h3"
@@ -313,8 +345,9 @@ const MemberHero: React.FC = () => {
               variant={action.primary ? 'contained' : 'outlined'}
               startIcon={action.icon}
               endIcon={action.primary ? <ArrowForward /> : undefined}
-              sx={
-                action.primary
+              sx={{
+                ...(action.desktopOnly ? { display: { xs: 'none', md: 'inline-flex' } } : {}),
+                ...(action.primary
                   ? {
                       bgcolor: '#ffd700',
                       color: '#0a3f66',
@@ -333,8 +366,8 @@ const MemberHero: React.FC = () => {
                       py: 1.2,
                       borderRadius: 2.5,
                       '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.12)' },
-                    }
-              }
+                    }),
+              }}
             >
               {action.label}
             </Button>

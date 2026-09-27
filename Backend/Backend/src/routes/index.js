@@ -25,6 +25,7 @@ import { planRoutes } from './plan.routes.js';
 import { purchaseRoutes } from './purchase.routes.js';
 import { subscriptionRoutes } from './subscription.routes.js';
 import { webhookRoutes } from './webhook.routes.js';
+import { translateRoutes } from './translate.routes.js';
 
 export async function apiRoutes(app) {
   app.register(healthRoutes);
@@ -52,4 +53,5 @@ export async function apiRoutes(app) {
   app.register(siteContentRoutes, { prefix: '/site-content' });
   app.register(bannerRoutes, { prefix: '/banners' });
   app.register(billingStatusRoutes, { prefix: '/billing-status' });
+  app.register(translateRoutes, { prefix: '/translate' });
 }

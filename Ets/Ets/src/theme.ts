@@ -27,7 +27,8 @@ export const EASE = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
 
 const baseThemeOptions: ThemeOptions = {
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    // Noto Sans Devanagari picks up Hindi glyphs, which Inter does not have.
+    fontFamily: '"Inter", "Noto Sans Devanagari", "Roboto", "Helvetica", "Arial", sans-serif',
     // Display sizes get tighter tracking — large text set at default tracking
     // reads loose and dated.
     h1: { fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.15 },

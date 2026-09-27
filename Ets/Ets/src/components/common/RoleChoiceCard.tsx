@@ -323,7 +323,7 @@ export const RoleChoiceCard: React.FC<RoleChoiceCardProps> = ({
         flexDirection: 'column',
         height: '100%',
         p: { xs: 2.5, sm: 3 },
-        borderRadius: 4,
+        borderRadius: '18px',
         cursor: interactive ? 'pointer' : 'default',
         border: '1.5px solid',
         borderColor: selected ? accent : 'divider',
@@ -375,7 +375,7 @@ export const RoleChoiceCard: React.FC<RoleChoiceCardProps> = ({
           sx={{
             width: 56,
             height: 56,
-            borderRadius: 3,
+            borderRadius: '14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

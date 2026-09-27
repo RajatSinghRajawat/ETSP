@@ -388,12 +388,14 @@ const STATUS_TABS: Array<{ value: JobStatus | 'all'; label: string }> = [
   { value: 'expired', label: 'Expired' },
 ];
 
-type SortKey = 'newest' | 'oldest' | 'applicants' | 'title';
+export type SortKey = 'newest' | 'oldest' | 'applicants' | 'shortlisted' | 'hired' | 'title';
 
 const SORT_OPTIONS: Array<{ value: SortKey; label: string }> = [
   { value: 'newest', label: 'Newest first' },
   { value: 'oldest', label: 'Oldest first' },
   { value: 'applicants', label: 'Most applicants' },
+  { value: 'shortlisted', label: 'Most shortlisted' },
+  { value: 'hired', label: 'Most hired' },
   { value: 'title', label: 'Title (A–Z)' },
 ];
 
@@ -404,6 +406,11 @@ type Props = {
   showMatches?: boolean;
   /** Hides the search / status / sort toolbar above the list. */
   showToolbar?: boolean;
+  /** Optional control from the parent (the dashboard stat tiles drive these). */
+  statusFilter?: JobStatus | 'all';
+  onStatusFilterChange?: (value: JobStatus | 'all') => void;
+  sortKey?: SortKey;
+  onSortKeyChange?: (value: SortKey) => void;
 };
 
 /**
@@ -415,6 +422,10 @@ const EmployerJobsTable: React.FC<Props> = ({
   countsByJob,
   showMatches = true,
   showToolbar = true,
+  statusFilter: statusFilterProp,
+  onStatusFilterChange,
+  sortKey: sortKeyProp,
+  onSortKeyChange,
 }) => {
   const navigate = useNavigate();
   const [updateJobStatus] = useUpdateJobStatusMutation();
@@ -423,8 +434,19 @@ const EmployerJobsTable: React.FC<Props> = ({
   const [error, setError] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<JobStatus | 'all'>('all');
-  const [sortKey, setSortKey] = useState<SortKey>('newest');
+  const [innerStatusFilter, setInnerStatusFilter] = useState<JobStatus | 'all'>('all');
+  const [innerSortKey, setInnerSortKey] = useState<SortKey>('newest');
+  // Controlled when the parent passes a value, uncontrolled otherwise.
+  const statusFilter = statusFilterProp ?? innerStatusFilter;
+  const sortKey = sortKeyProp ?? innerSortKey;
+  const setStatusFilter = (value: JobStatus | 'all') => {
+    setInnerStatusFilter(value);
+    onStatusFilterChange?.(value);
+  };
+  const setSortKey = (value: SortKey) => {
+    setInnerSortKey(value);
+    onSortKeyChange?.(value);
+  };
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Persistent starred jobs in localStorage
@@ -499,6 +521,10 @@ const EmployerJobsTable: React.FC<Props> = ({
           return byDate(a) - byDate(b);
         case 'applicants':
           return (countsByJob[b._id]?.total ?? 0) - (countsByJob[a._id]?.total ?? 0);
+        case 'shortlisted':
+          return (countsByJob[b._id]?.shortlisted ?? 0) - (countsByJob[a._id]?.shortlisted ?? 0);
+        case 'hired':
+          return (countsByJob[b._id]?.hired ?? 0) - (countsByJob[a._id]?.hired ?? 0);
         case 'title':
           return a.title.localeCompare(b.title);
         default:
