@@ -153,12 +153,12 @@ const Employers: React.FC = () => {
   );
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f4f8fc' }}>
+    <Box sx={{ minHeight: 'var(--app-min-h)', bgcolor: '#f4f8fc' }}>
       {/* Sticky compact search bar — slides in below the navbar on scroll */}
       <Box
         sx={{
           position: 'fixed',
-          top: { xs: 64, md: 72 },
+          top: 'var(--app-header-h)',
           left: 0,
           right: 0,
           zIndex: 1099,

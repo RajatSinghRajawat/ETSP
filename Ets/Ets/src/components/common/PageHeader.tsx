@@ -22,12 +22,23 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, breadcr
                 to={crumb.path}
                 color="inherit"
                 underline="hover"
-                sx={{ fontSize: '0.875rem' }}
+                sx={{
+                  fontSize: '0.875rem',
+                  // A breadcrumb's text box alone is ~16px tall — too small to
+                  // hit reliably on a phone.
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  minHeight: 32,
+                }}
               >
                 {crumb.label}
               </MuiLink>
             ) : (
-              <Typography key={index} color="text.primary" sx={{ fontSize: '0.875rem' }}>
+              <Typography
+                key={index}
+                color="text.primary"
+                sx={{ fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', minHeight: 32 }}
+              >
                 {crumb.label}
               </Typography>
             )

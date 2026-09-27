@@ -175,7 +175,12 @@ export default function ShareButton({
             onClick={handleClick}
             size={size}
             aria-label={label}
-            sx={{ color: color ?? 'text.secondary', ...sx }}
+            sx={{
+              color: color ?? 'text.secondary',
+              // `size="small"` leaves a 30px button — under a thumb.
+              '@media (pointer: coarse)': { width: 40, height: 40 },
+              ...sx,
+            }}
           >
             <ShareIcon fontSize={size === 'large' ? 'medium' : 'small'} />
           </IconButton>

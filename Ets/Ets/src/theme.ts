@@ -148,8 +148,23 @@ const baseThemeOptions: ThemeOptions = {
     MuiChip: {
       styleOverrides: {
         root: { fontWeight: 600, borderRadius: 999 },
-        sizeSmall: { height: 26 },
+        sizeSmall: {
+          height: 26,
+          // A chip you can delete is a control too — its "x" is unhittable at
+          // 26px on a touch screen.
+          '@media (pointer: coarse)': {
+            '&:has(> .MuiChip-deleteIcon)': { height: 34 },
+          },
+        },
         outlined: { borderWidth: 1.5 },
+        // A 26px chip is a miss under a thumb. Anything you can actually tap
+        // grows to a usable target on touch devices — a coarse pointer is the
+        // real test here, not a width. Declared after `sizeSmall` so it wins
+        // the cascade.
+        clickable: {
+          '@media (pointer: coarse)': { height: 34 },
+        },
+        deleteIcon: { '@media (pointer: coarse)': { fontSize: 20 } },
       },
     },
     MuiMenu: {
@@ -159,7 +174,30 @@ const baseThemeOptions: ThemeOptions = {
       styleOverrides: { root: { borderRadius: 8, margin: '2px 6px', minHeight: 42 } },
     },
     MuiDialog: {
-      styleOverrides: { paper: { borderRadius: 18 } },
+      styleOverrides: {
+        paper: ({ theme }) => ({
+          borderRadius: 18,
+          // MUI's stock 32px margin eats a sixth of a 360px screen. Full-screen
+          // dialogs keep their own zero margin.
+          [theme.breakpoints.down('sm')]: {
+            '&:not(.MuiDialog-paperFullScreen)': {
+              margin: 16,
+              width: 'calc(100% - 32px)',
+              maxWidth: 'calc(100% - 32px)',
+              maxHeight: 'calc(100% - 32px)',
+            },
+          },
+        }),
+      },
+    },
+    MuiTabs: {
+      defaultProps: {
+        // Tab strips are almost always wider than a phone; let them swipe
+        // rather than squash or clip.
+        variant: 'scrollable',
+        scrollButtons: 'auto',
+        allowScrollButtonsMobile: true,
+      },
     },
     MuiAlert: {
       styleOverrides: { root: { borderRadius: 12, alignItems: 'center' } },
@@ -168,6 +206,14 @@ const baseThemeOptions: ThemeOptions = {
       defaultProps: { arrow: true },
       styleOverrides: {
         tooltip: { borderRadius: 8, fontSize: '0.75rem', fontWeight: 600, padding: '6px 10px' },
+      },
+    },
+    MuiAutocomplete: {
+      styleOverrides: {
+        // MUI ships these end-adornment buttons at 28px; that is under a thumb
+        // on the profile and job forms, which are full of Autocompletes.
+        popupIndicator: { '@media (pointer: coarse)': { width: 36, height: 36 } },
+        clearIndicator: { '@media (pointer: coarse)': { width: 36, height: 36 } },
       },
     },
     MuiTab: {

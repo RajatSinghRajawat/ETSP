@@ -171,6 +171,9 @@ const InfoRow: React.FC<InfoRowProps> = ({ icon, label, value, onCopy, isCopied 
           size="small"
           onClick={onCopy}
           sx={{
+            width: 36,
+            height: 36,
+            flexShrink: 0,
             color: isCopied ? 'success.main' : 'text.secondary',
             bgcolor: isCopied ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
             '&:hover': { bgcolor: 'rgba(12, 82, 131, 0.1)' },
@@ -204,7 +207,7 @@ const EmployerEmployeeView: React.FC = () => {
   const candidate = data?.data;
   const companyName = employerData?.data.companyName || 'Employer';
   const isLocked = Boolean(candidate?.locked);
-  const chatAllowed = Boolean(usageData?.data.effectiveFeatures?.chatEnabled);
+  const chatAllowed = Boolean(usageData?.data?.effectiveFeatures?.chatEnabled);
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -283,7 +286,7 @@ const EmployerEmployeeView: React.FC = () => {
     : -1;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh', bgcolor: '#f8fafc' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'var(--app-min-h)', bgcolor: '#f8fafc' }}>
       <Sidebar type="employer" userName={companyName} userRole="Employer" />
 
       <Box

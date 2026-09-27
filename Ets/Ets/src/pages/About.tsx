@@ -20,7 +20,7 @@ const About: React.FC = () => {
   const missionBody = about?.missionBody ?? [];
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: 'var(--app-min-h)', bgcolor: 'background.default' }}>
       <Box
         sx={{
           background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
@@ -109,7 +109,7 @@ const About: React.FC = () => {
       </Box>
 
       {(about?.missionTitle || missionBody.length > 0) && (
-        <Container maxWidth="lg" sx={{ py: 8 }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 5, md: 8 } }}>
           <Grid container spacing={6}>
             <Grid size={{ xs: 12, md: 6 }}>
               {about?.missionTitle ? (
@@ -150,16 +150,16 @@ const About: React.FC = () => {
         </Container>
       )}
 
-      <Box sx={{ bgcolor: 'background.paper', py: 8 }}>
+      <Box sx={{ bgcolor: 'background.paper', py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Typography variant="h3" sx={{ fontWeight: 800, textAlign: 'center', mb: 2, color: 'primary.main' }}>
             {about?.storyTitle}
           </Typography>
-          <Typography variant="body1" sx={{ textAlign: 'center', mb: 6, color: 'text.secondary', maxWidth: 600, mx: 'auto' }}>
+          <Typography variant="body1" sx={{ textAlign: 'center', mb: { xs: 3.5, md: 6 }, color: 'text.secondary', maxWidth: 600, mx: 'auto' }}>
             {about?.storyBody}
           </Typography>
 
-          <Grid container spacing={4}>
+          <Grid container spacing={{ xs: 2, md: 4 }}>
             {stats.map((stat, index) => (
               <Grid size={{ xs: 6, md: 3 }} key={index}>
                 <Card
@@ -178,7 +178,7 @@ const About: React.FC = () => {
                     },
                   }}
                 >
-                  <CardContent sx={{ p: 4 }}>
+                  <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
                     <Typography variant="h3" sx={{ fontWeight: 800, color: 'primary.main', mb: 1 }}>
                       {stat.value}
                     </Typography>
@@ -194,15 +194,15 @@ const About: React.FC = () => {
       </Box>
 
       {values.length > 0 && (
-        <Container maxWidth="lg" sx={{ py: 8 }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 5, md: 8 } }}>
           <Typography variant="h3" sx={{ fontWeight: 800, textAlign: 'center', mb: 2, color: 'primary.main' }}>
             {about?.valuesTitle}
           </Typography>
-          <Typography variant="body1" sx={{ textAlign: 'center', mb: 6, color: 'text.secondary', maxWidth: 600, mx: 'auto' }}>
+          <Typography variant="body1" sx={{ textAlign: 'center', mb: { xs: 3.5, md: 6 }, color: 'text.secondary', maxWidth: 600, mx: 'auto' }}>
             {about?.valuesSubtitle}
           </Typography>
 
-          <Grid container spacing={4}>
+          <Grid container spacing={{ xs: 2, md: 4 }}>
             {values.map((value) => (
               <Grid size={{ xs: 12, sm: 6, md: 3 }} key={value.id}>
                 <Card
@@ -221,7 +221,7 @@ const About: React.FC = () => {
                     },
                   }}
                 >
-                  <CardContent sx={{ p: 4 }}>
+                  <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
                     <Box
                       sx={{
                         display: 'inline-flex',
@@ -250,12 +250,12 @@ const About: React.FC = () => {
       )}
 
       {milestones.length > 0 && (
-        <Box sx={{ bgcolor: 'background.paper', py: 8 }}>
+        <Box sx={{ bgcolor: 'background.paper', py: { xs: 5, md: 8 } }}>
           <Container maxWidth="lg">
             <Typography variant="h3" sx={{ fontWeight: 800, textAlign: 'center', mb: 2, color: 'primary.main' }}>
               {about?.journeyTitle}
             </Typography>
-            <Typography variant="body1" sx={{ textAlign: 'center', mb: 6, color: 'text.secondary', maxWidth: 600, mx: 'auto' }}>
+            <Typography variant="body1" sx={{ textAlign: 'center', mb: { xs: 3.5, md: 6 }, color: 'text.secondary', maxWidth: 600, mx: 'auto' }}>
               {about?.journeySubtitle}
             </Typography>
 
@@ -311,15 +311,15 @@ const About: React.FC = () => {
       )}
 
       {team.length > 0 && (
-        <Container maxWidth="lg" sx={{ py: 8 }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 5, md: 8 } }}>
           <Typography variant="h3" sx={{ fontWeight: 800, textAlign: 'center', mb: 2, color: 'primary.main' }}>
             {about?.teamTitle}
           </Typography>
-          <Typography variant="body1" sx={{ textAlign: 'center', mb: 6, color: 'text.secondary', maxWidth: 600, mx: 'auto' }}>
+          <Typography variant="body1" sx={{ textAlign: 'center', mb: { xs: 3.5, md: 6 }, color: 'text.secondary', maxWidth: 600, mx: 'auto' }}>
             {about?.teamSubtitle}
           </Typography>
 
-          <Grid container spacing={4}>
+          <Grid container spacing={{ xs: 2, md: 4 }}>
             {team.map((member, index) => (
               <Grid size={{ xs: 12, sm: 6, md: 3 }} key={`${member.name}-${index}`}>
                 <Card
@@ -390,7 +390,7 @@ const About: React.FC = () => {
           sx={{
             background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',
             color: 'white',
-            py: 8,
+            py: { xs: 5, md: 8 },
             textAlign: 'center',
           }}
         >

@@ -5,6 +5,31 @@
   --bg-dark: #0f172a;
   --text-light: #1e293b;
   --text-dark: #f8fafc;
+
+  /* Height of the fixed navbar, mirrored from the Toolbar minHeight in
+     Navbar.tsx. Pages subtract it instead of hard-coding 100vh, which would
+     otherwise add a navbar's worth of dead scroll to every route. */
+  --app-header-h: 56px;
+  /* `dvh` is upgraded below where supported so mobile browsers do not leave a
+     gap the size of the collapsing URL bar. */
+  --app-min-h: calc(100vh - var(--app-header-h));
+}
+
+@media (min-width: 600px) {
+  :root { --app-header-h: 64px; }
+}
+
+@media (min-width: 900px) {
+  :root { --app-header-h: 72px; }
+}
+
+@supports (height: 100dvh) {
+  :root { --app-min-h: calc(100dvh - var(--app-header-h)); }
+}
+
+html {
+  /* Anchors and programmatic scrolls land below the fixed header. */
+  scroll-padding-top: calc(var(--app-header-h) + 12px);
 }
 
 body {
@@ -14,11 +39,37 @@ body {
   background-color: var(--bg-light);
   color: var(--text-light);
   transition: background-color 0.3s ease, color 0.3s ease;
+  /* Stops a stray wide element from letting the whole page pan sideways.
+     `clip`, not `hidden`: `hidden` would make the body a scroll container and
+     break every `position: sticky` header and sidebar inside it. */
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Media should never be the thing that forces a horizontal scrollbar. */
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
 }
 
 @media (prefers-color-scheme: dark) {
   body {
     background-color: var(--bg-dark);
     color: var(--text-dark);
+  }
+}
+
+/* iOS Safari zooms the whole page when a focused field's text is under 16px.
+   Every input here is a MUI `size="small"` control at ~13-14px, so the page
+   jumped on every tap into a search box. Phones only, and `!important` because
+   the sizes are set per-component through `sx`. */
+@media screen and (max-width: 599.95px) {
+  input,
+  select,
+  textarea,
+  .MuiInputBase-input {
+    font-size: 16px !important;
   }
 }

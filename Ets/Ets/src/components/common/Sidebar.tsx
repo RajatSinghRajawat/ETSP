@@ -37,8 +37,9 @@ interface SidebarProps {
 
 const SIDEBAR_WIDTH = 272;
 const PANEL_BG = 'linear-gradient(185deg, #0c5283 0%, #0a466e 55%, #083a5c 100%)';
-// Matches the fixed Navbar toolbar heights in App.tsx / Navbar.tsx.
-const HEADER_H = { xs: '56px', sm: '64px', md: '72px' };
+// The fixed Navbar's height, published as a CSS variable in index.css so the
+// breakpoints only ever live in one place.
+const HEADER_H = 'var(--app-header-h)';
 // The Navbar AppBar sits at `zIndex.drawer + 1`, so anything meant to cover it
 // (this drawer) has to clear that, not `zIndex.appBar`.
 const DRAWER_Z_OFFSET = 2;
@@ -303,7 +304,7 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
           sx={{
             position: 'sticky',
             // Parks right under the fixed navbar instead of scrolling beneath it.
-            top: { xs: HEADER_H.xs, sm: HEADER_H.sm },
+            top: HEADER_H,
             zIndex: theme.zIndex.appBar - 1,
             display: 'flex',
             alignItems: 'center',
@@ -386,8 +387,8 @@ const Sidebar: React.FC<SidebarProps> = ({ type, userName = 'User', userRole = '
         // The page content starts below the fixed navbar, so the column has to
         // stick below it too — at top: 0 its brand row hides under the header.
         position: 'sticky',
-        top: HEADER_H.md,
-        height: `calc(100vh - ${HEADER_H.md})`,
+        top: HEADER_H,
+        height: 'var(--app-min-h)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',

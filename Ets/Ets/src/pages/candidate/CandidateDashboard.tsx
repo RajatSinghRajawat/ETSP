@@ -186,7 +186,7 @@ const CandidateDashboard: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh', bgcolor: '#f8fafc' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'var(--app-min-h)', bgcolor: '#f8fafc' }}>
       <Sidebar type="candidate" userName={candidateName} userRole={candidateRole} />
 
       <Box sx={{ flex: 1, minWidth: 0, p: { xs: 2, sm: 3, md: 4.5 } }}>
@@ -454,19 +454,21 @@ const CandidateDashboard: React.FC = () => {
                 size="small"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchRounded sx={{ color: '#64748b', fontSize: 20 }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchQuery ? (
-                    <InputAdornment position="end">
-                      <IconButton size="small" onClick={() => setSearchQuery('')}>
-                        <ClearRounded sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </InputAdornment>
-                  ) : null,
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchRounded sx={{ color: '#64748b', fontSize: 20 }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchQuery ? (
+                      <InputAdornment position="end">
+                        <IconButton size="small" onClick={() => setSearchQuery('')}>
+                          <ClearRounded sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  },
                 }}
                 sx={{
                   flex: 1,
@@ -687,17 +689,28 @@ const CandidateDashboard: React.FC = () => {
                             fontSize: '1.05rem',
                             color: '#0f172a',
                             textDecoration: 'none',
-                            display: 'inline-flex',
+                            display: 'flex',
                             alignItems: 'center',
                             gap: 0.6,
+                            minWidth: 0,
+                            minHeight: 32,
                             lineHeight: 1.3,
                             mb: 0.4,
                             '&:hover': { color: '#0c5283', textDecoration: 'underline' },
                           }}
-                          noWrap
                         >
-                          <span>{application.job.title}</span>
-                          <OpenInNewRounded sx={{ fontSize: 14, color: '#64748b' }} />
+                          <Box
+                            component="span"
+                            sx={{
+                              minWidth: 0,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {application.job.title}
+                          </Box>
+                          <OpenInNewRounded sx={{ fontSize: 14, color: '#64748b', flexShrink: 0 }} />
                         </Typography>
 
                         {/* Subtitle: Company, Location, Type, Salary */}
@@ -708,14 +721,25 @@ const CandidateDashboard: React.FC = () => {
                             fontSize: '0.84rem',
                             display: 'flex',
                             alignItems: 'center',
+                            flexWrap: { xs: 'wrap', md: 'nowrap' },
+                            rowGap: 0.4,
                             gap: 0.8,
                             fontWeight: 500,
-                            whiteSpace: 'nowrap',
+                            minWidth: 0,
                             overflow: 'hidden',
-                            textOverflow: 'ellipsis',
                           }}
                         >
-                          <Box component="span" sx={{ fontWeight: 700, color: '#334155' }}>
+                          <Box
+                            component="span"
+                            sx={{
+                              fontWeight: 700,
+                              color: '#334155',
+                              minWidth: 0,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
                             {application.job.companyName}
                           </Box>
                           <span>•</span>
@@ -869,7 +893,20 @@ const CandidateDashboard: React.FC = () => {
                     </Box>
 
                     {/* Right: Date & Open Job Button & Expand Chevron */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.25, flexShrink: 0, ml: { xs: 0, md: 'auto' } }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: { xs: 1.25, md: 2.25 },
+                        rowGap: 1,
+                        // `flexShrink: 0` here kept the row wider than the card
+                        // on a 320px screen, so the chevron hung off the edge.
+                        flexShrink: { xs: 1, md: 0 },
+                        minWidth: 0,
+                        ml: { xs: 0, md: 'auto' },
+                      }}
+                    >
                       {/* Date */}
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, color: '#64748b' }}>
                         <AccessTimeRounded sx={{ fontSize: 16, color: '#94a3b8' }} />
@@ -1036,12 +1073,16 @@ const CandidateDashboard: React.FC = () => {
             <Box
               sx={{
                 display: 'flex',
-                alignItems: 'center',
+                // On a phone the CTA drops under the heading instead of being
+                // crushed into a three-line column beside it.
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'flex-start', sm: 'center' },
                 justifyContent: 'space-between',
+                gap: { xs: 1, sm: 2 },
                 mb: 2.5,
               }}
             >
-              <Box>
+              <Box sx={{ minWidth: 0 }}>
                 <Box
                   sx={{
                     display: 'inline-flex',
@@ -1073,6 +1114,8 @@ const CandidateDashboard: React.FC = () => {
                   fontWeight: 700,
                   textTransform: 'none',
                   color: '#0c5283',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 View All Jobs
@@ -1144,6 +1187,7 @@ const CandidateDashboard: React.FC = () => {
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
+                        minHeight: 32,
                         '&:hover': { color: '#0c5283' },
                       }}
                     >

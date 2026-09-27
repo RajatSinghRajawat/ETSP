@@ -47,7 +47,7 @@ const SavedJobs: React.FC = () => {
   const savedJobs = data?.data.items ?? [];
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'var(--app-min-h)' }}>
       <Sidebar type="candidate" userName={candidateName} userRole={candidateRole} />
 
       <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: '#f4f8fc' }}>

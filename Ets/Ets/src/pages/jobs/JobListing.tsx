@@ -229,6 +229,8 @@ const CityFilterBlock: React.FC<{
                         disabled={isDetecting}
                         sx={{
                           p: 0.4,
+                          width: 34,
+                          height: 34,
                           color: 'secondary.main',
                           bgcolor: (theme) => alpha(theme.palette.secondary.main, 0.1),
                           '&:hover': { bgcolor: (theme) => alpha(theme.palette.secondary.main, 0.2) },
@@ -512,6 +514,8 @@ const TopLocationSearchField: React.FC<TopLocationSearchFieldProps> = ({
                         disabled={isDetecting}
                         aria-label="Detect current location"
                         sx={{
+                          width: 36,
+                          height: 36,
                           color: 'secondary.main',
                           bgcolor: (theme: Theme) => alpha(theme.palette.secondary.main, 0.12),
                           mr: 0.5,
@@ -1021,12 +1025,14 @@ const JobListing: React.FC = () => {
   );
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: 'var(--app-min-h)', bgcolor: 'background.default' }}>
       {/* Compact search bar — slides in under the navbar once the hero leaves */}
       <Box
         sx={{
           position: 'fixed',
-          top: { xs: 64, md: 72 },
+          // Sits flush under the navbar at every breakpoint; a literal 64 left
+          // an 8px gap on phones, where the toolbar is 56px.
+          top: 'var(--app-header-h)',
           left: 0,
           right: 0,
           zIndex: 1099,
@@ -1056,6 +1062,7 @@ const JobListing: React.FC = () => {
               aria-label="Search jobs"
               value={topKeyword}
               onChange={(event) => setTopKeyword(event.target.value)}
+              sx={{ flex: 1, minWidth: 0 }}
               slotProps={{
                 input: {
                   startAdornment: <SearchRounded sx={{ color: 'text.disabled', mr: 1 }} />,
@@ -1072,10 +1079,18 @@ const JobListing: React.FC = () => {
               isDetecting={isDetectingLocation}
               onDetect={handleDetectLocation}
               inputSx={{ borderRadius: 999 }}
-              sx={{ width: { xs: '100%', sm: 220 }, display: { xs: 'none', sm: 'block' } }}
+              sx={{ width: { xs: '100%', sm: 220 }, flexShrink: 0, display: { xs: 'none', sm: 'block' } }}
             />
-            <Button type="submit" variant="contained" sx={{ borderRadius: 999, px: 3, flexShrink: 0 }}>
-              Search
+            <Button
+              type="submit"
+              variant="contained"
+              aria-label="Search jobs"
+              sx={{ borderRadius: 999, px: { xs: 2, sm: 3 }, minWidth: 0, flexShrink: 0 }}
+            >
+              {/* The word costs too much width next to the filter button on a
+                  phone, so the icon stands in for it below `sm`. */}
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Search</Box>
+              <SearchRounded sx={{ display: { xs: 'block', sm: 'none' }, fontSize: 20 }} />
             </Button>
             <IconButton
               onClick={() => setDrawerOpen(true)}
@@ -1291,7 +1306,7 @@ const JobListing: React.FC = () => {
               elevation={0}
               sx={{
                 position: 'sticky',
-                top: 96,
+                top: 'calc(var(--app-header-h) + 24px)',
                 borderRadius: 4,
                 border: '1px solid',
                 borderColor: 'divider',

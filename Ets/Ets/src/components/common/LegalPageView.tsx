@@ -23,14 +23,14 @@ type LegalPageViewProps = {
 export default function LegalPageView({ content, fallbackIcon }: LegalPageViewProps) {
   if (!content) {
     return (
-      <Box sx={{ py: 10, textAlign: 'center' }}>
+      <Box sx={{ py: { xs: 6, md: 10 }, textAlign: 'center' }}>
         <Typography color="text.secondary">Loading…</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: 'var(--app-min-h)', bgcolor: 'background.default' }}>
       <Box
         sx={{
           background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)',

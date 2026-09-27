@@ -540,6 +540,10 @@ export const JobCard: React.FC<JobCardProps> = ({
                     ? 'rgba(248, 250, 252, 0.9)'
                     : alpha(theme.palette.common.white, 0.04),
                 maxWidth: 130,
+                // Shrink rather than be sliced in half by the row's `overflow:
+                // hidden` — the Chip label already ellipsises on its own.
+                minWidth: 0,
+                flexShrink: 1,
               }}
             />
           ))}

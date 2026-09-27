@@ -172,7 +172,7 @@ const Pricing = () => {
 
   if (billingLoading) {
     return (
-      <Box sx={{ py: 10, displayAlign: 'center' }}>
+      <Box sx={{ py: { xs: 6, md: 10 }, display: 'flex', justifyContent: 'center' }}>
         <CircularProgress />
       </Box>
     );

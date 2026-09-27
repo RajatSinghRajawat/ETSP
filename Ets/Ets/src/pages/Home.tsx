@@ -29,7 +29,7 @@ const Home: React.FC = () => {
 
   if (isCandidate) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ minHeight: 'var(--app-min-h)', display: 'flex', flexDirection: 'column' }}>
         <MemberHero />
         <AdBanner placement="home_top" />
         <MemberActivity />
@@ -46,7 +46,7 @@ const Home: React.FC = () => {
 
   if (isEmployer) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ minHeight: 'var(--app-min-h)', display: 'flex', flexDirection: 'column' }}>
         <MemberHero />
         <AdBanner placement="home_top" />
         <MemberActivity />
@@ -64,7 +64,7 @@ const Home: React.FC = () => {
     // Admin — and any role the API adds later — gets the signed-in shell
     // without the member-only sections that would have no data to show.
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ minHeight: 'var(--app-min-h)', display: 'flex', flexDirection: 'column' }}>
         <MemberHero />
         <AdBanner placement="home_top" />
         <MemberQuickLinks />
@@ -79,7 +79,7 @@ const Home: React.FC = () => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ minHeight: 'var(--app-min-h)', display: 'flex', flexDirection: 'column' }}>
       <HomeSlider />
       <AdBanner placement="home_top" />
       <QuickActions />

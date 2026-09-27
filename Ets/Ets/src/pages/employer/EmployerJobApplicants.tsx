@@ -374,7 +374,7 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
   }, [searchInput]);
 
   const companyName = profileData?.data?.companyName || 'Employer';
-  const chatAllowed = Boolean(usageData?.data.effectiveFeatures?.chatEnabled);
+  const chatAllowed = Boolean(usageData?.data?.effectiveFeatures?.chatEnabled);
 
   const jobs = useMemo(() => jobsData?.data ?? [], [jobsData]);
   const job = jobs.find((item) => item._id === jobId) ?? null;
@@ -502,7 +502,7 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
     : '';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'var(--app-min-h)' }}>
       <Sidebar type="employer" userName={companyName} userRole="Employer" />
 
       <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: 'background.default' }}>
@@ -517,6 +517,7 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 0.75,
+                minHeight: 32,
                 fontWeight: 700,
                 fontSize: '0.875rem',
                 color: alpha('#ffffff', 0.85),
@@ -550,8 +551,9 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                   onChange={(event) => navigate(`/employer/jobs/${event.target.value}/applicants`)}
                   sx={{
                     borderRadius: 2.5,
-                    minWidth: 200,
-                    maxWidth: 300,
+                    width: { xs: '100%', sm: 'auto' },
+                    minWidth: { xs: 0, sm: 200 },
+                    maxWidth: { xs: '100%', sm: 300 },
                     bgcolor: 'background.paper',
                   }}
                 >
@@ -790,12 +792,19 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                       variant="outlined"
                       sx={{ borderRadius: 3, borderColor: 'divider' }}
                     >
-                      <Table sx={{ minWidth: 900 }}>
+                      <Table
+                        sx={{
+                          minWidth: { xs: 0, md: 900 },
+                          // Stock cell padding costs 64px of a 375px screen
+                          // once the two side columns are gone.
+                          '& .MuiTableCell-root': { px: { xs: 1.25, md: 2 } },
+                        }}
+                      >
                         <TableHead>
                           <TableRow sx={{ bgcolor: '#f8fafc', borderBottom: '1px solid #eef2f6' }}>
                             <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b', py: 1.25 }}>Candidates</TableCell>
-                            <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b', py: 1.25 }}>Matches to job post</TableCell>
-                            <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b', py: 1.25 }}>Activity</TableCell>
+                            <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b', py: 1.25, display: { xs: 'none', md: 'table-cell' } }}>Matches to job post</TableCell>
+                            <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b', py: 1.25, display: { xs: 'none', md: 'table-cell' } }}>Activity</TableCell>
                             <TableCell align="right" sx={{ fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b', py: 1.25 }}>Interest</TableCell>
                           </TableRow>
                         </TableHead>
@@ -851,6 +860,9 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                                               fontSize: '0.92rem',
                                               wordBreak: 'break-word',
                                               color: '#0f172a',
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              minHeight: 32,
                                               transition: 'color 150ms ease',
                                               '&:hover': { color: 'primary.main', textDecoration: 'underline' },
                                             }}
@@ -890,12 +902,12 @@ const JobApplicantsView: React.FC<{ jobId: string }> = ({ jobId }) => {
                                 </TableCell>
 
                                 {/* Requirement match */}
-                                <TableCell sx={{ verticalAlign: 'top', maxWidth: 260 }}>
+                                <TableCell sx={{ verticalAlign: 'top', maxWidth: 260, display: { xs: 'none', md: 'table-cell' } }}>
                                   <MatchChips jobSkills={job.skills} candidateSkills={candidate.skills} />
                                 </TableCell>
 
                                 {/* Activity */}
-                                <TableCell sx={{ verticalAlign: 'top' }}>
+                                <TableCell sx={{ verticalAlign: 'top', display: { xs: 'none', md: 'table-cell' } }}>
                                   <Typography variant="body2" color="text.secondary">
                                     {application.viewedByEmployer ? 'Reviewed' : 'Awaiting review'}
                                     {' · Applied '}

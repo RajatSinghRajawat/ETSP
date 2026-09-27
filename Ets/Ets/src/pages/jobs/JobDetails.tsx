@@ -128,7 +128,7 @@ const JobDetails: React.FC = () => {
   const { data: usageData, refetch: refetchUsage } = useGetMyUsageQuery(undefined, {
     skip: !isCandidate,
   });
-  const applicationMeter = usageData?.data.usage.applications;
+  const applicationMeter = usageData?.data?.usage?.applications;
   const applyQuotaExhausted = Boolean(
     applicationMeter && applicationMeter.limit !== null && applicationMeter.used >= applicationMeter.limit,
   );
@@ -219,7 +219,7 @@ const JobDetails: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: 'var(--app-min-h)', bgcolor: 'background.default' }}>
       {/* Hero */}
       <Box
         sx={{

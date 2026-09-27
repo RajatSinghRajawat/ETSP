@@ -52,8 +52,8 @@ export default function ResumeBuilderModal({ open, onClose, candidateName = 'Can
   const [purchaseCheckout, { isLoading: isBuyingCredit }] = usePurchaseCheckoutMutation();
 
   // Resume builder access: included with EXCEL, else paid per resume (₹25).
-  const resumeIncluded = Boolean(usageData?.data.effectiveFeatures?.resumeBuilderIncluded);
-  const resumeCredits = usageData?.data.usage.resumeCredits?.available ?? 0;
+  const resumeIncluded = Boolean(usageData?.data?.effectiveFeatures?.resumeBuilderIncluded);
+  const resumeCredits = usageData?.data?.usage?.resumeCredits?.available ?? 0;
   const needsPurchase = Boolean(usageData) && !resumeIncluded && resumeCredits === 0;
 
   const savedHtml = savedResume?.data?.htmlContent ?? '';

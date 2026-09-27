@@ -77,8 +77,8 @@ const ExcelMembershipCard = () => {
   const [toggleError, setToggleError] = useState('');
 
   const profile = profileData?.data;
-  const features = usageData?.data.effectiveFeatures;
-  const freeMode = !subscriptionsEnabled || usageData?.data.subscriptionsEnabled === false;
+  const features = usageData?.data?.effectiveFeatures;
+  const freeMode = !subscriptionsEnabled || usageData?.data?.subscriptionsEnabled === false;
 
   if (!profile || !features) {
     return null;

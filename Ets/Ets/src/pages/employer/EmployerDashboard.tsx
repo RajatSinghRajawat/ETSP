@@ -88,6 +88,9 @@ const ModernStatCard: React.FC<{
             color: '#64748b',
             textTransform: 'uppercase',
             letterSpacing: '0.03em',
+            textAlign: 'right',
+            minWidth: 0,
+            lineHeight: 1.3,
           }}
         >
           {label}
@@ -114,9 +117,10 @@ const ModernStatCard: React.FC<{
           fontWeight: 600,
           fontSize: '0.8rem',
           mt: 'auto',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.5,
+          // `flex` kept the caption on one line in a half-width card; as a block
+          // it wraps the way a caption should.
+          display: 'block',
+          lineHeight: 1.35,
         }}
       >
         {caption}
@@ -160,7 +164,7 @@ const EmployerDashboard: React.FC<EmployerDashboardProps> = ({
   const hired = Object.values(countsByJob).reduce((sum, row) => sum + row.hired, 0);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh', bgcolor: '#f8fafc' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'var(--app-min-h)', bgcolor: '#f8fafc' }}>
       <Sidebar type="employer" userName={companyName} userRole="Employer" />
 
       <Box sx={{ flex: 1, minWidth: 0, p: { xs: 2, sm: 3, md: 4.5 } }}>

@@ -44,7 +44,7 @@ const EmployerProfileView: React.FC = () => {
   const [followEmployer, { isLoading: isFollowingReq }] = useFollowEmployerMutation();
   const [unfollowEmployer, { isLoading: isUnfollowingReq }] = useUnfollowEmployerMutation();
 
-  const dmMeter = usageData?.data.usage.directMessages;
+  const dmMeter = usageData?.data?.usage?.directMessages;
   const isFollowing = (followsData?.data.items ?? []).some(
     (follow) => follow.employerProfile?._id === id,
   );
@@ -83,7 +83,7 @@ const EmployerProfileView: React.FC = () => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: 'var(--app-min-h)', bgcolor: 'background.default' }}>
       <Box sx={{ py: { xs: 6, md: 9 }, color: 'white', background: 'linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%)' }}>
         <Container maxWidth="lg">
           <Grid container spacing={4} sx={{ alignItems: 'center' }}>

@@ -37,8 +37,8 @@ const EmployerEmployees: React.FC = () => {
   const { data: employerData } = useGetMyEmployerProfileQuery();
   const { data: usageData, refetch: refetchUsage } = useGetMyUsageQuery();
 
-  const filtersAllowed = Boolean(usageData?.data.effectiveFeatures?.searchFiltersEnabled);
-  const unlockBalance = usageData?.data.usage.unlockCredits?.accountBalance ?? 0;
+  const filtersAllowed = Boolean(usageData?.data?.effectiveFeatures?.searchFiltersEnabled);
+  const unlockBalance = usageData?.data?.usage?.unlockCredits?.accountBalance ?? 0;
 
   const { data, isLoading, isFetching, isError, refetch } = useGetCandidateProfilesQuery({
     search: search || undefined,
@@ -85,7 +85,7 @@ const EmployerEmployees: React.FC = () => {
       };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'var(--app-min-h)' }}>
       <Sidebar type="employer" userName={companyName} userRole="Employer" />
       <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 }, bgcolor: 'background.default' }}>
         <PageHeader title="Employees" subtitle="Browse candidate profiles available for hiring and outreach." />

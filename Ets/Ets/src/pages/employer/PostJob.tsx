@@ -236,9 +236,9 @@ const PostJob: React.FC = () => {
   );
   const isLoading = isCreating || isUpdating;
 
-  const effectiveFeatures = usageData?.data.effectiveFeatures;
-  const activeJobsMeter = usageData?.data.usage.activeJobs;
-  const jobCreditsAvailable = usageData?.data.usage.jobCredits?.available ?? 0;
+  const effectiveFeatures = usageData?.data?.effectiveFeatures;
+  const activeJobsMeter = usageData?.data?.usage?.activeJobs;
+  const jobCreditsAvailable = usageData?.data?.usage?.jobCredits?.available ?? 0;
   const useJobCredit = Boolean(formData.useJobCredit);
   const quotaExhausted =
     !isEdit &&
@@ -433,7 +433,7 @@ const PostJob: React.FC = () => {
   const isSubmitBlocked = isLoading || isProfileApprovalLoading || isApprovalPending;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh', bgcolor: '#f8fafc' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'var(--app-min-h)', bgcolor: '#f8fafc' }}>
       <Sidebar type="employer" userName={companyName} />
 
       <Box sx={{ flex: 1, minWidth: 0, p: { xs: 2, sm: 3, md: 4.5 }, maxWidth: 1400, mx: 'auto', width: '100%' }}>

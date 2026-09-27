@@ -26,13 +26,13 @@ const Footer: React.FC = () => {
       sx={{ 
         bgcolor: '#0f172a', 
         color: 'white', 
-        pt: 8, 
+        pt: { xs: 5, md: 8 }, 
         pb: 4,
         mt: 'auto'
       }}
     >
       <Container maxWidth="lg">
-        <Grid container spacing={5}>
+        <Grid container spacing={{ xs: 3.5, md: 5 }}>
           <Grid size={{ xs: 12, md: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
               <Box
@@ -57,6 +57,10 @@ const Footer: React.FC = () => {
                   size="small"
                   sx={{
                     color: 'white',
+                    // `size="small"` leaves a 30px icon button; these are the
+                    // only way out to the social accounts, so give them room.
+                    width: 40,
+                    height: 40,
                     bgcolor: 'rgba(255,255,255,0.05)',
                     '&:hover': { bgcolor: 'primary.main', transform: 'translateY(-3px)' },
                     transition: 'all 0.3s'
@@ -84,7 +88,15 @@ const Footer: React.FC = () => {
                   href={item.link} 
                   color="inherit" 
                   underline="none"
-                  sx={{ opacity: 0.7, fontSize: '0.9rem', '&:hover': { opacity: 1, color: 'secondary.main' } }}
+                  sx={{
+                    opacity: 0.7,
+                    fontSize: '0.9rem',
+                    // Gives the link a real tap target rather than just its text box.
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    minHeight: 32,
+                    '&:hover': { opacity: 1, color: 'secondary.main' },
+                  }}
                 >
                   {item.name}
                 </MuiLink>
@@ -103,7 +115,15 @@ const Footer: React.FC = () => {
                   href="#" 
                   color="inherit" 
                   underline="none"
-                  sx={{ opacity: 0.7, fontSize: '0.9rem', '&:hover': { opacity: 1, color: 'secondary.main' } }}
+                  sx={{
+                    opacity: 0.7,
+                    fontSize: '0.9rem',
+                    // Gives the link a real tap target rather than just its text box.
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    minHeight: 32,
+                    '&:hover': { opacity: 1, color: 'secondary.main' },
+                  }}
                 >
                   {text}
                 </MuiLink>
@@ -123,7 +143,7 @@ const Footer: React.FC = () => {
                 <Typography variant="caption" sx={{ display: 'block', mb: 1, opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>
                   {t('mobile_app_coming_soon')}
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Button 
                     variant="contained" 
                     size="small" 
@@ -149,7 +169,7 @@ const Footer: React.FC = () => {
         <Box 
           sx={{ 
             borderTop: '1px solid rgba(255,255,255,0.08)', 
-            mt: 8, 
+            mt: { xs: 4, md: 8 }, 
             pt: 4,
             display: 'flex',
             flexDirection: { xs: 'column', sm: 'row' },
@@ -161,12 +181,20 @@ const Footer: React.FC = () => {
           <Typography variant="body2" sx={{ opacity: 0.5, fontSize: '0.8rem' }}>
             © {currentYear}. {t('all_rights')}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 3 }}>
+          <Box sx={{ display: 'flex', gap: { xs: 2, sm: 3 }, flexWrap: 'wrap', justifyContent: 'center', rowGap: 1 }}>
             <MuiLink
               component={RouterLink}
               to="/privacy-policy"
               color="inherit"
-              sx={{ opacity: 0.5, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { opacity: 1 } }}
+              sx={{
+                opacity: 0.5,
+                fontSize: '0.8rem',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                minHeight: 32,
+                '&:hover': { opacity: 1 },
+              }}
             >
               {t('privacy_policy')}
             </MuiLink>
@@ -174,7 +202,15 @@ const Footer: React.FC = () => {
               component={RouterLink}
               to="/terms"
               color="inherit"
-              sx={{ opacity: 0.5, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { opacity: 1 } }}
+              sx={{
+                opacity: 0.5,
+                fontSize: '0.8rem',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                minHeight: 32,
+                '&:hover': { opacity: 1 },
+              }}
             >
               {t('terms_of_service')}
             </MuiLink>
@@ -182,7 +218,15 @@ const Footer: React.FC = () => {
               component={RouterLink}
               to="/cookie-policy"
               color="inherit"
-              sx={{ opacity: 0.5, fontSize: '0.8rem', textDecoration: 'none', '&:hover': { opacity: 1 } }}
+              sx={{
+                opacity: 0.5,
+                fontSize: '0.8rem',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                minHeight: 32,
+                '&:hover': { opacity: 1 },
+              }}
             >
               {t('cookie_policy')}
             </MuiLink>

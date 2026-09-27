@@ -248,7 +248,7 @@ const EmployerApplications: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh', bgcolor: '#f8fafc' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'var(--app-min-h)', bgcolor: '#f8fafc' }}>
       <Sidebar type="employer" userName={companyName} userRole="Employer" />
 
       <Box sx={{ flex: 1, minWidth: 0, p: { xs: 2, sm: 3, md: 4.5 } }}>
@@ -604,26 +604,28 @@ const EmployerApplications: React.FC = () => {
                 size="small"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchRounded sx={{ color: '#64748b', fontSize: 20 }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchTerm ? (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          setSearchTerm('');
-                          setActiveSearch('');
-                          setPage(1);
-                        }}
-                      >
-                        <ClearRounded sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </InputAdornment>
-                  ) : null,
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchRounded sx={{ color: '#64748b', fontSize: 20 }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchTerm ? (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSearchTerm('');
+                            setActiveSearch('');
+                            setPage(1);
+                          }}
+                        >
+                          <ClearRounded sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  },
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
@@ -1034,10 +1036,13 @@ const EmployerApplications: React.FC = () => {
                         sx={{
                           display: 'flex',
                           flexDirection: { xs: 'row', md: 'column' },
+                          flexWrap: { xs: 'wrap', md: 'nowrap' },
                           alignItems: { xs: 'center', md: 'flex-end' },
                           justifyContent: 'space-between',
                           gap: 1.5,
+                          rowGap: 1.25,
                           width: { xs: '100%', md: 'auto' },
+                          minWidth: 0,
                           pt: { xs: 2, md: 0 },
                           borderTop: { xs: '1px dashed #e2e8f0', md: 'none' },
                         }}
@@ -1071,7 +1076,15 @@ const EmployerApplications: React.FC = () => {
                         </Box>
 
                         {/* Interactive Buttons Strip */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: 1,
+                            minWidth: 0,
+                          }}
+                        >
                           {locked ? (
                             <Button
                               variant="contained"

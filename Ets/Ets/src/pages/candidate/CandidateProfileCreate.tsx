@@ -682,7 +682,7 @@ const CandidateProfileCreate: React.FC<CandidateProfileCreateProps> = ({ showSid
   const profileImageUrl = profileImagePreviewUrl || formData.photoUrl;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'var(--app-min-h)', bgcolor: 'background.default' }}>
       {showSidebar && <Sidebar type="candidate" userName={candidateName} userRole={candidateRole} />}
 
       <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 4 } }}>

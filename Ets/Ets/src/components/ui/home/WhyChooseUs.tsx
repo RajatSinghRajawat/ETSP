@@ -37,7 +37,7 @@ const WhyChooseUs: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ py: 10, bgcolor: 'background.paper', position: 'relative', overflow: 'hidden' }}>
+    <Box sx={{ py: { xs: 5, sm: 7, md: 10 }, bgcolor: 'background.paper', position: 'relative', overflow: 'hidden' }}>
       <Box
         sx={{
           position: 'absolute',

@@ -713,7 +713,7 @@ const LoginPage: React.FC = () => {
   return (
     <Box
       sx={{
-        minHeight: 'calc(100vh - 64px)',
+        minHeight: 'var(--app-min-h)',
         position: 'relative',
         overflow: 'hidden',
         background:

@@ -470,7 +470,7 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
     setPrefillSuccess('');
 
     try {
-      const result: EmployerPrefillResponse = await fetchPrefill(query).unwrap();
+      const result = await fetchPrefill(query).unwrap();
 
       if (!result.data) {
         setPrefillError('No matching organization record found. You can fill the form manually.');
@@ -522,7 +522,7 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
         return;
       }
 
-      await createEmployerProfile(formData).unwrap();
+      await createEmployerProfile({ ...formData, status: 'submitted' }).unwrap();
       localStorage.removeItem(STORAGE_KEY);
       setSaveState('submitted');
       notify.success('Employer registered successfully! Please log in.');
@@ -544,7 +544,7 @@ const EmployerProfileCreate: React.FC<EmployerProfileCreateProps> = ({ showSideb
   const profileLoadMessage = getApiErrorMessage(profileLoadError);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh', bgcolor: '#f8fafc' }}>
+    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 'var(--app-min-h)', bgcolor: '#f8fafc' }}>
       {showSidebar && <Sidebar type="employer" userName={formData.companyName || 'Employer'} userRole="Employer" />}
 
       <Box sx={{ flex: 1, minWidth: 0, p: { xs: 2, sm: 3, md: 4.5 }, maxWidth: 1400, mx: 'auto', width: '100%' }}>

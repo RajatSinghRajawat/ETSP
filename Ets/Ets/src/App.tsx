@@ -55,8 +55,10 @@ function App() {
           <Box
             component="main"
             sx={{
-              minHeight: '100vh',
-              pt: { xs: '56px', sm: '64px', md: '72px' },
+              // `--app-min-h` is the viewport minus the fixed navbar, so the pad
+              // below plus this height comes to exactly one screen.
+              minHeight: 'var(--app-min-h)',
+              pt: 'var(--app-header-h)',
               bgcolor: 'background.default',
               // `clip`, not `hidden` — `hidden` would make this a scroll container
               // and break the sticky sidebar / mobile sidebar bar inside it.

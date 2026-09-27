@@ -156,8 +156,10 @@ const HomeSlider: React.FC = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        pt: { xs: 14, md: 15 },
-        pb: { xs: 16, md: 18 },
+        // The fixed navbar already reserves its own height above this section,
+        // so the phone breakpoints only need breathing room, not a second offset.
+        pt: { xs: 6, sm: 10, md: 15 },
+        pb: { xs: 7, sm: 11, md: 18 },
       }}
     >
       {/* Decorative Aurora Ambient Orbs */}
@@ -204,7 +206,7 @@ const HomeSlider: React.FC = () => {
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', md: '1.18fr 0.95fr' },
-            gap: { xs: 6, md: 7, lg: 9 },
+            gap: { xs: 4, sm: 5, md: 7, lg: 9 },
             alignItems: 'center',
             animation: 'fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
             '@keyframes fadeInUp': {
@@ -353,6 +355,9 @@ const HomeSlider: React.FC = () => {
                     fontSize: '0.96rem',
                     fontWeight: 500,
                     color: '#0f172a',
+                    // Without this the field itself is only ~24px tall, so most
+                    // of the search strip is dead space to a thumb.
+                    py: { xs: 0.75, sm: 1 },
                     '& input::placeholder': { color: '#64748b', opacity: 0.9 },
                   }}
                 />
@@ -407,6 +412,7 @@ const HomeSlider: React.FC = () => {
                       fontSize: '0.96rem',
                       fontWeight: 500,
                       color: '#0f172a',
+                      py: { xs: 0.75, sm: 1 },
                       '& input::placeholder': { color: '#64748b', opacity: 0.9 },
                     }}
                   />
@@ -433,6 +439,8 @@ const HomeSlider: React.FC = () => {
                           aria-label="Detect GPS location"
                           sx={{
                             p: 0.6,
+                            width: 36,
+                            height: 36,
                             color: '#0ab6a2',
                             bgcolor: 'rgba(10, 182, 162, 0.1)',
                             '&:hover': { bgcolor: 'rgba(10, 182, 162, 0.2)' },

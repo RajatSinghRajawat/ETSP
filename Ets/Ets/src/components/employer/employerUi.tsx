@@ -303,7 +303,16 @@ export const PageHero: React.FC<{
           <Stack
             direction="row"
             spacing={1}
-            sx={{ alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', rowGap: 1 }}
+            sx={{
+              alignItems: 'center',
+              // On a phone the controls take the full width under the title
+              // rather than being squeezed alongside it.
+              width: { xs: '100%', sm: 'auto' },
+              flexShrink: { xs: 1, sm: 0 },
+              flexWrap: 'wrap',
+              rowGap: 1,
+              '& > *': { minWidth: 0 },
+            }}
           >
             {actions}
           </Stack>

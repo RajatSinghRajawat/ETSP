@@ -157,7 +157,7 @@ const QuickActions: React.FC = () => {
                 component={Link}
                 to={action.link}
                 sx={{
-                  p: { xs: 3.5, sm: 4.5 },
+                  p: { xs: 2.5, sm: 3.5, md: 4.5 },
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'stretch',
@@ -171,7 +171,9 @@ const QuickActions: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    mb: 3,
+                    gap: 1.5,
+                    minWidth: 0,
+                    mb: { xs: 2.25, sm: 3 },
                   }}
                 >
                   <Chip
@@ -179,13 +181,14 @@ const QuickActions: React.FC = () => {
                     size="small"
                     sx={{
                       fontWeight: 800,
-                      fontSize: '0.72rem',
+                      fontSize: { xs: '0.66rem', sm: '0.72rem' },
                       letterSpacing: '0.04em',
                       bgcolor: `${action.themeColor}12`,
                       color: action.themeColor,
                       borderRadius: '8px',
                       px: 0.5,
                       height: 28,
+                      minWidth: 0,
                       border: `1px solid ${action.themeColor}24`,
                     }}
                   />
@@ -194,8 +197,9 @@ const QuickActions: React.FC = () => {
                     className="qa-icon-wrap"
                     sx={{
                       background: action.iconGradient,
-                      width: 54,
-                      height: 54,
+                      width: { xs: 46, sm: 54 },
+                      height: { xs: 46, sm: 54 },
+                      flexShrink: 0,
                       borderRadius: '16px',
                       boxShadow: `0 10px 20px -4px ${action.cardGlow}`,
                       transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -288,6 +292,8 @@ const QuickActions: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 1,
                   }}
                 >
                   <Box
@@ -303,6 +309,7 @@ const QuickActions: React.FC = () => {
                       color: action.themeColor,
                       fontWeight: 800,
                       fontSize: '0.9rem',
+                      whiteSpace: 'nowrap',
                       transition: 'all 0.2s ease',
                     }}
                   >

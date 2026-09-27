@@ -13,7 +13,7 @@ export type JobMetrics = {
   clicks: number;
 };
 
-export type ScreeningQuestion = { question: string };
+export type ScreeningQuestion = { question: string; required?: boolean };
 
 export type JobPayload = {
   title: string;

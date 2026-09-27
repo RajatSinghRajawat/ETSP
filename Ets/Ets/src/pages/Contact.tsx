@@ -17,8 +17,8 @@ const Contact: React.FC = () => {
   ].filter((info) => Boolean(info.value));
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 8 }}>
+    <Box sx={{ minHeight: 'var(--app-min-h)', bgcolor: 'background.default' }}>
+      <Box sx={{ bgcolor: 'primary.main', color: 'white', py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Typography variant="h3" sx={{ fontWeight: 700, mb: 2 }}>
             {contact?.heroTitle || 'Contact Us'}
@@ -29,7 +29,7 @@ const Contact: React.FC = () => {
         </Container>
       </Box>
 
-      <Container maxWidth="lg" sx={{ py: 6 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 6 }}>
             <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', height: '100%' }}>

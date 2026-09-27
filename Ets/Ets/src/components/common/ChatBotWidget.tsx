@@ -603,7 +603,7 @@ const ChatBotWidget: React.FC = () => {
     }
   };
 
-  const panelWidth = useMemo(() => ({ xs: 'calc(100vw - 32px)', sm: 380 }), []);
+  const panelWidth = useMemo(() => ({ xs: 'calc(100% - 24px)', sm: 380 }), []);
 
   const composerDisabled =
     botMode === 'refining' ||
@@ -636,11 +636,14 @@ const ChatBotWidget: React.FC = () => {
           aria-label="VetBot chat"
           sx={{
             position: 'fixed',
-            right: { xs: 16, md: 24 },
-            bottom: { xs: 92, md: 104 },
+            right: { xs: 12, md: 24 },
+            left: { xs: 12, sm: 'auto' },
+            bottom: { xs: 88, md: 104 },
             width: panelWidth,
-            maxHeight: { xs: 'calc(100vh - 120px)', md: 580 },
-            height: { xs: 'calc(100vh - 140px)', md: 580 },
+            // Leaves the fixed navbar and the launcher button clear instead of
+            // sliding under them, and tracks the visible viewport on phones.
+            maxHeight: { xs: 'calc(var(--app-min-h) - 100px)', md: 580 },
+            height: { xs: 'calc(var(--app-min-h) - 100px)', md: 580 },
             display: 'flex',
             flexDirection: 'column',
             borderRadius: 4,
@@ -1065,7 +1068,7 @@ const ChatBotWidget: React.FC = () => {
             sx={{
               position: 'fixed',
               right: { xs: 16, md: 24 },
-              bottom: { xs: 24, md: 28 },
+              bottom: { xs: 'calc(16px + env(safe-area-inset-bottom))', md: 28 },
               zIndex: (theme) => theme.zIndex.tooltip + 2,
             }}
           >

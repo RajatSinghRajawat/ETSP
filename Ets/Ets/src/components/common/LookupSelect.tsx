@@ -213,8 +213,10 @@ export function LookupChipPicker({
 }: {
   category: LookupCategory;
   label: string;
-  values?: string[];
-  value?: string[];
+  // The API hands these back as a comma-joined string on some endpoints and as
+  // an array on others, so both shapes are accepted and normalised below.
+  values?: string[] | string;
+  value?: string[] | string;
   onChange: (next: string[]) => void;
   allowPropose?: boolean;
   valueMode?: 'value' | 'name';
@@ -233,7 +235,7 @@ export function LookupChipPicker({
     const raw = valuesProp ?? valueProp;
     if (Array.isArray(raw)) return raw.filter(Boolean).map(String);
     if (typeof raw === 'string' && raw.trim().length > 0) {
-      return raw.split(',').map((s) => s.trim()).filter(Boolean);
+      return raw.split(',').map((s: string) => s.trim()).filter(Boolean);
     }
     return [];
   }, [valuesProp, valueProp]);

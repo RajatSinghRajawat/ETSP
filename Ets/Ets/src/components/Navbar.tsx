@@ -212,7 +212,7 @@ const Navbar: React.FC = () => {
               {userInitial || <AccountCircle />}
             </Avatar>
             <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.92rem', color: 'text.primary', noWrap: true }}>
+              <Typography noWrap sx={{ fontWeight: 700, fontSize: '0.92rem', color: 'text.primary' }}>
                 {userDisplayName}
               </Typography>
               <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'secondary.main', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -252,9 +252,10 @@ const Navbar: React.FC = () => {
                 </Box>
                 <ListItemText
                   primary={item.label}
-                  primaryTypographyProps={{
-                    fontWeight: active ? 700 : 500,
-                    fontSize: '0.95rem',
+                  slotProps={{
+                    primary: {
+                      sx: { fontWeight: active ? 700 : 500, fontSize: '0.95rem' },
+                    },
                   }}
                 />
               </ListItemButton>
@@ -306,6 +307,7 @@ const Navbar: React.FC = () => {
             <Button
               component={Link}
               to="/login"
+              onClick={() => setMobileOpen(false)}
               variant="outlined"
               fullWidth
               size="small"
@@ -316,6 +318,7 @@ const Navbar: React.FC = () => {
             <Button
               component={Link}
               to="/signup"
+              onClick={() => setMobileOpen(false)}
               variant="contained"
               fullWidth
               size="small"
@@ -844,7 +847,7 @@ const Navbar: React.FC = () => {
                       onClick={handleLanguageMenuOpen}
                       size="small"
                       aria-label={t('language')}
-                      sx={{ color: 'text.primary', p: 0.75 }}
+                      sx={{ color: 'text.primary', p: 0.75, width: 40, height: 40 }}
                     >
                       <LanguageIcon sx={{ fontSize: 21 }} />
                     </IconButton>
@@ -905,6 +908,8 @@ const Navbar: React.FC = () => {
                     sx={{
                       color: 'text.primary',
                       p: 0.8,
+                      width: 42,
+                      height: 42,
                       borderRadius: 2,
                       border: '1px solid',
                       borderColor: 'rgba(226, 232, 240, 0.9)',
@@ -928,11 +933,14 @@ const Navbar: React.FC = () => {
         sx={{
           zIndex: (muiTheme) => muiTheme.zIndex.drawer + 2,
           '& .MuiDrawer-paper': {
-            width: { xs: '84vw', sm: 300 },
+            width: { xs: '86vw', sm: 300 },
             maxWidth: 320,
             bgcolor: 'background.paper',
             borderLeft: '1px solid',
             borderColor: 'divider',
+            // Keeps the footer buttons clear of the notch / home indicator.
+            pt: 'env(safe-area-inset-top)',
+            pb: 'env(safe-area-inset-bottom)',
           },
         }}
       >

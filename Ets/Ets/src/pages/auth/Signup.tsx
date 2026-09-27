@@ -110,7 +110,7 @@ const Signup: React.FC = () => {
   return (
     <Box
       sx={{
-        minHeight: 'calc(100vh - 72px)',
+        minHeight: 'var(--app-min-h)',
         position: 'relative',
         overflow: 'hidden',
         display: 'flex',

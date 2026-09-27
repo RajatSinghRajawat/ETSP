@@ -38,7 +38,7 @@ export type PaginatedEmployers = {
   };
 };
 
-type ApiResponse<T> = {
+export type ApiResponse<T> = {
   success: boolean;
   message: string;
   data: T;
@@ -62,6 +62,7 @@ export type EmployerPrefillResponse = {
   headquarters: string;
   overview: string;
   hiringRegions: string[];
+  specialties?: string[];
   status: 'imported' | 'registered';
 };
 
