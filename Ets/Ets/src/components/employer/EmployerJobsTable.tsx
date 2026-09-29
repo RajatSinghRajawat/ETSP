@@ -93,12 +93,13 @@ const CandidateCapsule: React.FC<{
 }> = ({ counts, showMatches, onAllClick, onNewClick, onMatchesClick }) => {
   return (
     <Box
+      className="job-capsule"
       sx={{
-        // Stretches to the row width on phones so the three tallies stay
-        // readable instead of being squeezed against the left edge.
+        // Full row width in the stacked (phone) layout so the three tallies
+        // stay readable; the row's container queries shrink it to fit content.
         display: 'flex',
-        width: { xs: '100%', md: 'auto' },
-        justifyContent: { xs: 'space-around', md: 'flex-start' },
+        width: '100%',
+        justifyContent: 'space-around',
         alignItems: 'center',
         border: '1px solid #e2e8f0',
         borderRadius: '14px',
@@ -131,7 +132,8 @@ const CandidateCapsule: React.FC<{
           justifyContent: 'center',
           px: { xs: 1.1, sm: 1.8 },
           py: 0.75,
-          minWidth: 56,
+          flex: '1 1 0',
+          minWidth: 0,
           borderRadius: '10px',
           transition: 'all 0.18s ease',
           '&:hover': {
@@ -196,7 +198,8 @@ const CandidateCapsule: React.FC<{
           justifyContent: 'center',
           px: { xs: 1.1, sm: 1.8 },
           py: 0.75,
-          minWidth: 56,
+          flex: '1 1 0',
+          minWidth: 0,
           borderRadius: '10px',
           bgcolor: counts.new > 0 ? 'rgba(2, 132, 199, 0.08)' : 'transparent',
           transition: 'all 0.18s ease',
@@ -267,7 +270,8 @@ const CandidateCapsule: React.FC<{
             justifyContent: 'center',
             px: { xs: 1.1, sm: 1.8 },
             py: 0.75,
-            minWidth: 72,
+            flex: '1 1 0',
+            minWidth: 0,
             borderRadius: '10px',
             transition: 'all 0.18s ease',
             '&:hover': {
@@ -329,7 +333,8 @@ const CandidateCapsule: React.FC<{
               justifyContent: 'center',
               px: { xs: 1.1, sm: 1.8 },
               py: 0.75,
-              minWidth: 72,
+              flex: '1 1 0',
+            minWidth: 0,
               borderRadius: '10px',
               transition: 'all 0.18s ease',
               '&:hover': {
@@ -642,10 +647,16 @@ const EmployerJobsTable: React.FC<Props> = ({
 
       {showToolbar && jobs.length > 0 && (
         <Box sx={{ mb: 2.5 }}>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={1.75}
-            sx={{ alignItems: { md: 'center' }, justifyContent: 'space-between', mb: 1.5 }}
+          {/* Wraps onto more lines as space runs out, whatever the viewport or sidebar width. */}
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1.75,
+              mb: 1.5,
+            }}
           >
             {/* Left: Modern Segmented Status Pills */}
             <Box
@@ -719,10 +730,16 @@ const EmployerJobsTable: React.FC<Props> = ({
             </Box>
 
             {/* Right: Search & Sort Bar */}
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={1.25}
-              sx={{ alignItems: { sm: 'center' }, width: { xs: '100%', md: 'auto' } }}
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 1.25,
+                flex: '1 1 320px',
+                justifyContent: 'flex-end',
+                minWidth: 0,
+              }}
             >
               <TextField
                 size="small"
@@ -747,7 +764,8 @@ const EmployerJobsTable: React.FC<Props> = ({
                   },
                 }}
                 sx={{
-                  width: { xs: '100%', sm: 260 },
+                  flex: '1 1 220px',
+                  maxWidth: { sm: 320 },
                   '& .MuiOutlinedInput-root': {
                     height: 38,
                     borderRadius: '10px',
@@ -765,6 +783,7 @@ const EmployerJobsTable: React.FC<Props> = ({
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
+                  flex: { xs: '1 1 auto', sm: '0 0 auto' },
                   height: 38,
                   borderRadius: '10px',
                   bgcolor: '#ffffff',
@@ -798,8 +817,8 @@ const EmployerJobsTable: React.FC<Props> = ({
                   ))}
                 </Select>
               </Box>
-            </Stack>
-          </Stack>
+            </Box>
+          </Box>
         </Box>
       )}
 
@@ -830,17 +849,11 @@ const EmployerJobsTable: React.FC<Props> = ({
         </Box>
       )}
 
-      {/* Jobs list. Below `md` each row reflows into a stacked card; from `md`
-          up it is a single-line table row inside a horizontal scroll wrapper. */}
-      <Box
-        sx={{
-          width: '100%',
-          overflowX: { xs: 'visible', md: 'auto' },
-          WebkitOverflowScrolling: 'touch',
-          pb: 1,
-        }}
-      >
-        <Box sx={{ minWidth: { xs: 0, md: 960 }, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      {/* Jobs list. Rows lay out by the list's own width (container queries),
+          not the viewport, since the dashboard sidebar eats a varying share:
+          stacked card < 640px, two rows < 1040px, a single row above that. */}
+      <Box sx={{ width: '100%', containerType: 'inline-size', pb: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {visibleJobs.map((job) => {
             const counts = countsByJob[job._id] ?? EMPTY_COUNTS;
             const jobPath = `/employer/jobs/${job._id}`;
@@ -856,17 +869,37 @@ const EmployerJobsTable: React.FC<Props> = ({
                 onClick={() => navigate(jobPath)}
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: { xs: '1fr 1fr', md: 'minmax(280px, 1.8fr) 250px 125px 125px 180px' },
-                  gridTemplateAreas: {
-                    xs: '"identity identity" "counts counts" "plan date" "actions actions"',
-                    md: 'none',
-                  },
-                  alignItems: { xs: 'start', md: 'center' },
+                  gridTemplateColumns: '1fr 1fr',
+                  gridTemplateAreas: '"identity identity" "counts counts" "plan date" "actions actions"',
+                  alignItems: 'start',
                   columnGap: 2,
-                  rowGap: { xs: 1.5, md: 2 },
-                  px: { xs: 1.75, md: 2.5 },
+                  rowGap: 1.5,
+                  px: 1.75,
                   py: 2,
-                  minHeight: { xs: 0, md: 90 },
+                  '& .job-actions': { justifyContent: 'space-between' },
+                  '& .job-icon': { display: 'none' },
+                  '@container (min-width: 480px)': { '& .job-icon': { display: 'grid' } },
+                  '@container (min-width: 640px)': {
+                    gridTemplateColumns: 'minmax(0, 1fr) auto auto',
+                    gridTemplateAreas: '"identity identity actions" "counts plan date"',
+                    alignItems: 'center',
+                    columnGap: 2.5,
+                    px: 2.5,
+                    '& .job-capsule': { width: 'auto', justifyContent: 'flex-start' },
+                    '& .job-capsule > button': { flex: '0 0 auto', minWidth: 64 },
+                    '& .job-counts': { justifyContent: 'flex-start' },
+                    '& .job-actions': { justifyContent: 'flex-end' },
+                  },
+                  // Each column has a floor so rows line up, but may grow to its
+                  // content (big tallies, longer Hindi labels) instead of the
+                  // capsule spilling into the plan column like fixed widths did.
+                  '@container (min-width: 1040px)': {
+                    gridTemplateColumns:
+                      'minmax(200px, 1fr) minmax(250px, max-content) minmax(110px, max-content) minmax(120px, max-content) max-content',
+                    gridTemplateAreas: '"identity counts plan date actions"',
+                    columnGap: 3,
+                    minHeight: 90,
+                  },
                   borderRadius: '12px',
                   border: '1px solid',
                   borderColor: isSelected ? 'primary.main' : '#e2e8f0',
@@ -883,7 +916,7 @@ const EmployerJobsTable: React.FC<Props> = ({
                 }}
               >
                 {/* Column 1: Select, Icon & Job Identity */}
-                <Box sx={{ gridArea: { xs: 'identity', md: 'auto' }, display: 'flex', alignItems: 'center', minWidth: 0 }}>
+                <Box sx={{ gridArea: 'identity', display: 'flex', alignItems: 'center', minWidth: 0 }}>
                   <Checkbox
                     size="small"
                     checked={isSelected}
@@ -914,8 +947,9 @@ const EmployerJobsTable: React.FC<Props> = ({
                     )}
                   </IconButton>
 
-                  {/* Modern Job Icon Plate */}
+                  {/* Modern Job Icon Plate (hidden on the narrowest cards) */}
                   <Box
+                    className="job-icon"
                     sx={{
                       width: 40,
                       height: 40,
@@ -990,12 +1024,8 @@ const EmployerJobsTable: React.FC<Props> = ({
 
                 {/* Column 2: Candidate Tallies Capsule */}
                 <Box
-                  sx={{
-                    gridArea: { xs: 'counts', md: 'auto' },
-                    display: 'flex',
-                    justifyContent: { xs: 'stretch', md: 'center' },
-                    minWidth: 0,
-                  }}
+                  className="job-counts"
+                  sx={{ gridArea: 'counts', display: 'flex', justifyContent: 'stretch', minWidth: 0 }}
                 >
                   <CandidateCapsule
                     counts={counts}
@@ -1013,7 +1043,7 @@ const EmployerJobsTable: React.FC<Props> = ({
                 </Box>
 
                 {/* Column 3: Plan & Sponsorship */}
-                <Box sx={{ gridArea: { xs: 'plan', md: 'auto' }, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.35, minWidth: 0 }}>
+                <Box sx={{ gridArea: 'plan', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.35, minWidth: 0 }}>
                   <Box
                     sx={{
                       display: 'inline-flex',
@@ -1052,7 +1082,7 @@ const EmployerJobsTable: React.FC<Props> = ({
                 </Box>
 
                 {/* Column 4: Date Stack */}
-                <Box sx={{ gridArea: { xs: 'date', md: 'auto' }, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.3, minWidth: 0 }}>
+                <Box sx={{ gridArea: 'date', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.3, minWidth: 0 }}>
                   <Stack direction="row" spacing={0.4} sx={{ alignItems: 'center' }}>
                     <AccessTimeOutlined sx={{ fontSize: 13, color: '#94a3b8' }} />
                     <Typography
@@ -1084,11 +1114,8 @@ const EmployerJobsTable: React.FC<Props> = ({
                 <Stack
                   direction="row"
                   spacing={1.25}
-                  sx={{
-                    gridArea: { xs: 'actions', md: 'auto' },
-                    alignItems: 'center',
-                    justifyContent: { xs: 'space-between', md: 'flex-end' },
-                  }}
+                  className="job-actions"
+                  sx={{ gridArea: 'actions', alignItems: 'center' }}
                 >
                   {/* Status Selector Dropdown */}
                   <Box
