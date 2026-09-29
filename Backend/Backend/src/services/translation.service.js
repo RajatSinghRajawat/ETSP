@@ -13,6 +13,28 @@ const GOOGLE_BATCH = 100;
 const MEMORY_LIMIT = 20000;
 const memory = new Map();
 
+// Keep each Google request well under its size limit when long texts
+// (job descriptions) are in the batch.
+const GOOGLE_MAX_CHARS = 25000;
+
+/** Splits texts into Google-sized requests by segment count and total length. */
+function chunkForGoogle(texts) {
+  const chunks = [];
+  let current = [];
+  let chars = 0;
+  for (const text of texts) {
+    if (current.length && (current.length >= GOOGLE_BATCH || chars + text.length > GOOGLE_MAX_CHARS)) {
+      chunks.push(current);
+      current = [];
+      chars = 0;
+    }
+    current.push(text);
+    chars += text.length;
+  }
+  if (current.length) chunks.push(current);
+  return chunks;
+}
+
 const cacheKey = (target, text) =>
   crypto.createHash('sha256').update(`${target}:${text}`).digest('hex');
 
@@ -74,8 +96,7 @@ export async function translateTexts(texts, target) {
 
   // Same string repeated inside one request is only sent once.
   const uniqueMissing = [...new Set(missing.map((i) => texts[i]))];
-  for (let start = 0; start < uniqueMissing.length; start += GOOGLE_BATCH) {
-    const chunk = uniqueMissing.slice(start, start + GOOGLE_BATCH);
+  for (const chunk of chunkForGoogle(uniqueMissing)) {
     const translated = await callGoogle(chunk, target);
     const docs = chunk.map((text, i) => ({
       key: cacheKey(target, text),

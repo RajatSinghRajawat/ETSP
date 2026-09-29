@@ -94,7 +94,8 @@ function saveCache() {
 /** The translatable core of a string, or null when it should be left alone. */
 function core(value: string): string | null {
   const text = value.trim();
-  if (!text || text.length > 2000) return null;
+  // 5000 matches the backend limit (and the longest job description).
+  if (!text || text.length > 5000) return null;
   if (!LATIN.test(text) || DEVANAGARI.test(text)) return null;
   if (EMAIL_OR_URL.test(text) || KEEP.has(text)) return null;
   return text;

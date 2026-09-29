@@ -3,7 +3,8 @@ import { SUPPORTED_TARGETS, translateTexts } from '../services/translation.servi
 
 const translateBodySchema = z.object({
   target: z.enum(SUPPORTED_TARGETS),
-  texts: z.array(z.string().min(1).max(2000)).min(1).max(200),
+  // 5000 matches the job description limit, so long descriptions translate too.
+  texts: z.array(z.string().min(1).max(5000)).min(1).max(200),
 });
 
 /**
