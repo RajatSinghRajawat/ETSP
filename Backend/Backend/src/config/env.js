@@ -19,8 +19,12 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().default(''),
 
   // Google Cloud Translation v2 key for /api/v1/translate (site-wide Hindi).
-  // Server-side only — never expose it to the frontend bundle.
-  GOOGLE_TRANSLATE_API_KEY: z.string().default(''),
+  // Server-side only — never expose it to the frontend bundle. Falls back to
+  // the built-in key when unset or left empty (`GOOGLE_TRANSLATE_API_KEY=`).
+  GOOGLE_TRANSLATE_API_KEY: z
+    .string()
+    .optional()
+    .transform((value) => value || 'AIzaSyDjjdiLU8FR83tBrPJssUNYxgSNn2owCn0'),
 
   // Dev/test-only payment bypass: checkout endpoints skip Stripe and mint a
   // `test_<purchaseId>` session id that confirm endpoints fulfill directly.
