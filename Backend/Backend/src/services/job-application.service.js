@@ -257,6 +257,13 @@ export async function createJobApplication(user, input) {
       },
     });
 
+    emailService
+      .sendNewApplicationEmail(job.employerEmail, {
+        jobTitle: job.title,
+        applicationId: application._id,
+      })
+      .catch((err) => logger.error('Failed to send new application email to employer', err));
+
     return application.toObject();
   } catch (error) {
     if (error?.code === 11000) {

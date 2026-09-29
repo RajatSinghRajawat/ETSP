@@ -1,6 +1,10 @@
 import nodemailer from 'nodemailer';
+import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { getEmailSettings, onSettingsChange } from './settings.service.js';
+
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
 
 /**
  * SMTP mailer driven by admin-managed settings (with .env fallback). The
@@ -187,6 +191,41 @@ class EmailService {
 
     const text = `Hi ${candidateName},\n\nCongratulations! You have been hired for ${jobTitle}${companyName ? ` at ${companyName}` : ''}.\n\n${employerMessage ? `Message from employer: "${employerMessage}"\n\n` : ''}Log in to your VetJobs candidate portal to review your status.\n\nBest regards,\nThe VetJobs Team`;
 
+    return this.sendEmail({ to: email, subject, html, text });
+  }
+
+  /**
+   * Tells the employer a candidate applied to their job. Carries no candidate
+   * name or contact details: those may be masked for this employer's plan, so
+   * the email links to the dashboard, which applies the masking rules.
+   */
+  async sendNewApplicationEmail(
+    email,
+    { jobTitle = 'your job', jobId, applicationId, count = 1, isAutoApplied = false } = {},
+  ) {
+    const title = escapeHtml(jobTitle);
+    // Several applications at once (a new job's auto-apply sweep) link to the
+    // job's applicant list instead of a single application.
+    const link = count > 1
+      ? `${env.FRONTEND_BASE_URL}/employer/jobs/${jobId}/applicants`
+      : `${env.FRONTEND_BASE_URL}/employer/applications/${applicationId}`;
+    const who = count > 1 ? `${count} candidates have` : 'A candidate has';
+    const subject = count > 1 ? `${count} new applications for ${jobTitle}` : `New application for ${jobTitle}`;
+    const via = isAutoApplied ? ' through auto-apply' : '';
+    const html = this.#ticketLayout({
+      heading: count > 1 ? 'New job applications' : 'New job application',
+      bodyHtml: `
+        <p>Hi,</p>
+        <p>${who} applied${via} for your job <strong>${title}</strong> on VetJobs.</p>
+        <p style="text-align:center;margin:28px 0;">
+          <a href="${link}" style="background:#0c5283;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:bold;display:inline-block;">
+            ${count > 1 ? 'View applicants' : 'View application'}
+          </a>
+        </p>
+        <p style="font-size:13px;color:#888;">You can also find ${count > 1 ? 'them' : 'it'} under Applications in your employer dashboard.</p>
+      `,
+    });
+    const text = `${who} applied${via} for your job "${jobTitle}" on VetJobs.\n\nView: ${link}`;
     return this.sendEmail({ to: email, subject, html, text });
   }
 

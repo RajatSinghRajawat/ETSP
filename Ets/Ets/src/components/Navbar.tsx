@@ -590,6 +590,7 @@ const Navbar: React.FC = () => {
                     }}
                   >
                     <MenuItem
+                      data-no-translate
                       onClick={() => changeLanguage('en')}
                       selected={currentLang === 'en'}
                       sx={{ borderRadius: 1.5, fontWeight: currentLang === 'en' ? 700 : 500 }}
@@ -867,7 +868,7 @@ const Navbar: React.FC = () => {
                       },
                     }}
                   >
-                    <MenuItem onClick={() => changeLanguage('en')} selected={currentLang === 'en'}>English</MenuItem>
+                    <MenuItem data-no-translate onClick={() => changeLanguage('en')} selected={currentLang === 'en'}>English</MenuItem>
                     <MenuItem onClick={() => changeLanguage('hi')} selected={currentLang === 'hi'}>हिन्दी (Hindi)</MenuItem>
                   </Menu>
 

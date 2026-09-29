@@ -6,6 +6,7 @@ import { JobApplication } from '../models/job-application.model.js';
 import { AppError } from '../utils/app-error.js';
 import { logger } from '../utils/logger.js';
 import { sendEmployerApplicationAck } from './auto-reply.service.js';
+import { emailService } from './email.service.js';
 import {
   countApplicationsInPeriod,
   getEntitlements,
@@ -124,11 +125,27 @@ async function getRemainingQuota(entitlements, candidateProfileId) {
   return Math.max(0, limit - used);
 }
 
+/** Emails the employer about auto-applied applications; never throws. */
+function emailEmployer(job, { applicationId, count = 1 }) {
+  if (!job.employerEmail) return;
+  emailService
+    .sendNewApplicationEmail(job.employerEmail, {
+      jobTitle: job.title,
+      jobId: job._id,
+      applicationId,
+      count,
+      isAutoApplied: true,
+    })
+    .catch((error) => logger.warn('Auto-apply employer email failed', { message: error.message }));
+}
+
+/** Returns the new application, or null when the candidate already applied. */
 async function applyToJob(candidate, job) {
   const coverLetter = await generateCoverLetter(candidate, job);
+  let application;
 
   try {
-    await JobApplication.create({
+    application = await JobApplication.create({
       job: job._id,
       employerProfile: job.employerProfile,
       candidateProfile: candidate._id,
@@ -138,13 +155,13 @@ async function applyToJob(candidate, job) {
     });
   } catch (error) {
     if (error?.code === 11000) {
-      return false; // already applied — not an error
+      return null; // already applied — not an error
     }
     throw error;
   }
 
   sendEmployerApplicationAck({ job, candidateProfileId: candidate._id });
-  return true;
+  return application;
 }
 
 /**
@@ -184,6 +201,7 @@ export async function runAutoApplyForCandidate(candidate, entitlements) {
     try {
       const created = await applyToJob(candidate, job);
       if (created) {
+        emailEmployer(job, { applicationId: created._id });
         appliedJobs.push({ _id: String(job._id), title: job.title, companyName: job.companyName, location: job.location });
       }
     } catch (error) {
@@ -217,6 +235,10 @@ export function autoApplyNewJobInBackground(job) {
         .limit(MAX_CANDIDATES_PER_NEW_JOB)
         .lean();
 
+      // One summary email for the whole sweep, not one per candidate.
+      let applied = 0;
+      let lastApplicationId = null;
+
       for (const candidate of candidates) {
         try {
           if (!jobMatchesCandidate(candidate, job)) continue;
@@ -227,7 +249,11 @@ export function autoApplyNewJobInBackground(job) {
           const remaining = await getRemainingQuota(entitlements, candidate._id);
           if (remaining <= 0) continue;
 
-          await applyToJob(candidate, job);
+          const created = await applyToJob(candidate, job);
+          if (created) {
+            applied += 1;
+            lastApplicationId = created._id;
+          }
         } catch (error) {
           logger.warn('Auto-apply for candidate failed on new job', {
             candidate: candidate.email,
@@ -235,6 +261,8 @@ export function autoApplyNewJobInBackground(job) {
           });
         }
       }
+
+      if (applied > 0) emailEmployer(job, { applicationId: lastApplicationId, count: applied });
     } catch (error) {
       logger.warn('New-job auto-apply sweep failed', { message: error.message });
     }

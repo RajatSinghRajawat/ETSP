@@ -14,7 +14,9 @@ const translateBodySchema = z.object({
 export async function translateRoutes(app) {
   app.post(
     '/',
-    { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } },
+    // A page load can fire several batches as sections render; 60/min was
+    // hit by normal browsing (and by users sharing one office/mobile IP).
+    { config: { rateLimit: { max: 300, timeWindow: '1 minute' } } },
     async (request) => {
       const { target, texts } = translateBodySchema.parse(request.body);
       const translations = await translateTexts(texts, target);

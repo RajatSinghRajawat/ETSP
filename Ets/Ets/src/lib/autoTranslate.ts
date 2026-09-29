@@ -115,10 +115,16 @@ function isSkipped(element: Element | null): boolean {
   return false;
 }
 
+// After a failed request (rate limit, network) the next flush waits this long,
+// doubling up to the cap, so waiting nodes retry without hammering the API.
+const RETRY_MIN = 2000;
+const RETRY_MAX = 30000;
+let retryDelay = 0;
+
 function request(text: string) {
   if (cache.has(text) || inFlight.has(text)) return;
   pending.add(text);
-  if (!flushTimer) flushTimer = setTimeout(flush, FLUSH_DELAY);
+  if (!flushTimer) flushTimer = setTimeout(flush, retryDelay || FLUSH_DELAY);
 }
 
 async function flush() {
@@ -137,8 +143,12 @@ async function flush() {
       );
       batch.forEach((text, index) => cache.set(text, data.data.translations[index] ?? text));
       saveCache();
+      retryDelay = 0;
     } catch {
-      // Leave the English in place; a later render will retry these strings.
+      // Leave the English in place; the waiting nodes below re-request these
+      // strings, and the backoff spaces that retry out.
+      retryDelay = Math.min(retryDelay ? retryDelay * 2 : RETRY_MIN, RETRY_MAX);
+      break;
     } finally {
       batch.forEach((text) => inFlight.delete(text));
     }
