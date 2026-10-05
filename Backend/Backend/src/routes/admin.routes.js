@@ -49,10 +49,12 @@ import {
   removePlan,
 } from '../controllers/plan.controller.js';
 import {
+  deleteSiteLogoHandler,
   getEmailSettingsHandler,
   getMsg91SettingsHandler,
   getSiteContentHandler,
   getStripeSettingsHandler,
+  postSiteLogoHandler,
   putEmailSettingsHandler,
   putMsg91SettingsHandler,
   putSiteContentHandler,
@@ -193,6 +195,8 @@ export async function adminRoutes(app) {
   app.put('/settings/msg91', { preHandler: validateBody(msg91SettingsSchema) }, putMsg91SettingsHandler);
   app.get('/settings/site-content', getSiteContentHandler);
   app.put('/settings/site-content', { preHandler: validateBody(siteContentSchema) }, putSiteContentHandler);
+  app.post('/settings/site-content/logo', postSiteLogoHandler);
+  app.delete('/settings/site-content/logo', deleteSiteLogoHandler);
   app.post(
     '/settings/site-content/translate',
     { preHandler: validateBody(siteContentTranslateSchema) },

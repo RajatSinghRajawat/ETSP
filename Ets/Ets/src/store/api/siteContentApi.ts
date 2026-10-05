@@ -20,6 +20,11 @@ export type SiteSocial = {
   instagram: string;
 };
 
+/** Shared across languages. An empty logoUrl means "use the bundled logo". */
+export type SiteBranding = {
+  logoUrl: string;
+};
+
 export type SiteAboutStat = {
   value: string;
   label: string;
@@ -141,6 +146,7 @@ export type SiteLocaleContent = {
 /** Bilingual CMS payload from `/site-content`. */
 export type SiteContent = {
   social: SiteSocial;
+  branding?: SiteBranding;
   en: SiteLocaleContent;
   hi: SiteLocaleContent;
 };

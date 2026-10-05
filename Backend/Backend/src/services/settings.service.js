@@ -4,6 +4,7 @@ import { decryptSecret, encryptSecret, isEncryptedSecret, maskSecret } from '../
 import { logger } from '../utils/logger.js';
 import { resetStripeClient } from './stripe.service.js';
 import {
+  DEFAULT_BRANDING,
   DEFAULT_LOCALE_EN,
   DEFAULT_LOCALE_HI,
   DEFAULT_SOCIAL,
@@ -347,21 +348,23 @@ function mergeLocaleContent(defaults, stored) {
 /** Older saves stored sections at the root; migrate them into `en`. */
 function normalizeStoredSiteContent(stored) {
   if (!stored || typeof stored !== 'object') {
-    return { social: {}, en: {}, hi: {} };
+    return { social: {}, branding: {}, en: {}, hi: {} };
   }
 
   const hasLocales = stored.en != null || stored.hi != null;
   if (hasLocales) {
     return {
       social: stored.social ?? {},
+      branding: stored.branding ?? {},
       en: stored.en ?? {},
       hi: stored.hi ?? {},
     };
   }
 
-  const { social, ...legacySections } = stored;
+  const { social, branding, ...legacySections } = stored;
   return {
     social: social ?? {},
+    branding: branding ?? {},
     en: legacySections,
     hi: {},
   };
@@ -372,6 +375,7 @@ function mergeSiteContent(stored) {
 
   return {
     social: { ...DEFAULT_SOCIAL, ...(normalized.social ?? {}) },
+    branding: { ...DEFAULT_BRANDING, ...(normalized.branding ?? {}) },
     en: mergeLocaleContent(DEFAULT_LOCALE_EN, normalized.en),
     hi: mergeLocaleContent(DEFAULT_LOCALE_HI, normalized.hi),
   };
@@ -469,6 +473,8 @@ export async function updateSiteContent(input) {
 
   const value = {
     social: { ...current.social, ...(social ?? {}) },
+    // Only the logo upload endpoint changes branding; text saves carry it over.
+    branding: current.branding,
     en: patchLocale(current.en, enPatch),
     hi: patchLocale(current.hi, hiPatch),
   };
@@ -476,6 +482,25 @@ export async function updateSiteContent(input) {
   await upsertSettingValue(SITE_CONTENT_KEY, value);
 
   return mergeSiteContent(value);
+}
+
+/**
+ * Points the website at a newly uploaded logo ('' restores the bundled one).
+ * Returns the previous URL too, so the caller can delete the file it replaced.
+ */
+export async function updateSiteLogo(logoUrl) {
+  const current = await getSiteContent();
+  const value = {
+    ...current,
+    branding: { ...current.branding, logoUrl },
+  };
+
+  await upsertSettingValue(SITE_CONTENT_KEY, value);
+
+  return {
+    content: mergeSiteContent(value),
+    previousLogoUrl: current.branding.logoUrl,
+  };
 }
 
 export { LOCALE_SECTION_KEYS };

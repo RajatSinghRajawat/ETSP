@@ -3,11 +3,13 @@ import { Box, Container, Typography, Button, Grid, Link as MuiLink, IconButton }
 import { Facebook, Twitter, LinkedIn, Instagram, Smartphone } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useLocalizedSiteContent } from '../../../hooks/useLocalizedSiteContent';
+import { useSiteLogo } from '../../../hooks/useSiteLogo';
 
 const Footer: React.FC = () => {
   const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
   const { content } = useLocalizedSiteContent();
+  const { logoSrc, isCustom, onLogoError } = useSiteLogo();
   const social = content?.social;
   const contactPhone = content?.contact?.phone;
 
@@ -35,11 +37,28 @@ const Footer: React.FC = () => {
         <Grid container spacing={{ xs: 3.5, md: 5 }}>
           <Grid size={{ xs: 12, md: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+              {/* The bundled logo is recoloured white for the dark footer. An
+                  uploaded one may have its own colours or a solid background,
+                  so it sits on a light plate instead of being recoloured. */}
               <Box
                 component="img"
-                src="/Logo.png"
+                src={logoSrc}
                 alt="Logo"
-                sx={{ height: 45, width: 'auto', filter: 'brightness(0) invert(1)' }}
+                onError={onLogoError}
+                sx={
+                  isCustom
+                    ? {
+                        height: 56,
+                        width: 'auto',
+                        maxWidth: '100%',
+                        objectFit: 'contain',
+                        bgcolor: 'white',
+                        borderRadius: 1.5,
+                        px: 1.25,
+                        py: 0.75,
+                      }
+                    : { height: 45, width: 'auto', filter: 'brightness(0) invert(1)' }
+                }
               />
             </Box>
             <Typography variant="body2" sx={{ opacity: 0.7, mb: 3, lineHeight: 1.8, maxWidth: 320 }}>

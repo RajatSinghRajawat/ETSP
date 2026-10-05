@@ -25,7 +25,6 @@ import {
   Divider,
 } from '@mui/material';
 import {
-  Language as LanguageIcon,
   Menu as MenuIcon,
   Close,
   Work,
@@ -48,6 +47,7 @@ import React from 'react';
 import { axiosInstance } from '../store/api/axiosInstance';
 import { API_ENDPOINTS } from '../store/api/endpoints';
 import { clearAuthSession, setAuthSession, useAuth } from '../hooks/useAuth';
+import { useSiteLogo } from '../hooks/useSiteLogo';
 
 const getApiErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === 'object' && error !== null && 'data' in error) {
@@ -66,8 +66,13 @@ const getApiErrorMessage = (error: unknown, fallback: string) => {
 const Navbar: React.FC = () => {
   const { t, i18n } = useTranslation();
   const currentLang = (i18n.resolvedLanguage ?? i18n.language ?? 'en').toLowerCase().startsWith('hi') ? 'hi' : 'en';
+  // The switch names the language it changes *to*, in that language's own
+  // script, so a reader who can't follow the current one still recognises it.
+  const nextLang = currentLang === 'hi' ? 'en' : 'hi';
+  const nextLangLabel = nextLang === 'hi' ? 'हिन्दी' : 'English';
+  const nextLangAriaLabel = nextLang === 'hi' ? 'हिन्दी में बदलें' : 'Switch to English';
+  const { logoSrc, onLogoError } = useSiteLogo();
   const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState<null | HTMLElement>(null);
   const [moreAnchorEl, setMoreAnchorEl] = useState<null | HTMLElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -80,17 +85,8 @@ const Navbar: React.FC = () => {
   const switchTargetRole = role === 'employer' ? 'candidate' : 'employer';
   const switchTargetLabel = switchTargetRole === 'employer' ? t('switch_to_employer') : t('switch_to_candidate');
 
-  const handleLanguageMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleLanguageMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng);
-    handleLanguageMenuClose();
+  const toggleLanguage = () => {
+    i18n.changeLanguage(nextLang);
   };
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -197,7 +193,13 @@ const Navbar: React.FC = () => {
     <Box sx={{ width: '100%', height: '100%', bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
       <Box sx={{ p: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box component="img" src="/Logo.png" alt="Logo" sx={{ height: 36, width: 'auto' }} />
+<Box
+            component="img"
+            src={logoSrc}
+            alt="Logo"
+            onError={onLogoError}
+            sx={{ height: 36, width: 'auto', maxWidth: 180, objectFit: 'contain' }}
+          />
         </Box>
         <IconButton onClick={() => setMobileOpen(false)} sx={{ color: 'text.secondary', '&:hover': { bgcolor: 'action.hover' } }}>
           <Close />
@@ -335,16 +337,18 @@ const Navbar: React.FC = () => {
         )}
 
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Tooltip title={t('language')}>
-            <Button
-              onClick={handleLanguageMenuOpen}
-              size="small"
-              startIcon={<LanguageIcon />}
-              sx={{ textTransform: 'none', color: 'text.secondary', fontWeight: 600 }}
-            >
-              {currentLang === 'hi' ? 'हिन्दी (Hindi)' : 'English'}
-            </Button>
-          </Tooltip>
+          {/* data-no-translate: the label must stay in the target language's
+              own script, not be machine-translated along with the page. */}
+          <Button
+            data-no-translate
+            onClick={toggleLanguage}
+            size="small"
+            lang={nextLang}
+            aria-label={nextLangAriaLabel}
+            sx={{ textTransform: 'none', color: 'text.secondary', fontWeight: 700, fontSize: '0.9rem' }}
+          >
+            {nextLangLabel}
+          </Button>
         </Box>
       </Box>
     </Box>
@@ -397,11 +401,16 @@ const Navbar: React.FC = () => {
             >
               <Box
                 component="img"
-                src="/Logo.png"
+                src={logoSrc}
                 alt="Vets Linked"
+                onError={onLogoError}
                 sx={{
                   height: { xs: 34, sm: 40, md: 46 },
                   width: 'auto',
+                  // An uploaded logo can be any shape; never let a wide one
+                  // push the navigation off the bar.
+                  maxWidth: { xs: 130, sm: 180, md: 220 },
+                  objectFit: 'contain',
                   display: 'block',
                 }}
               />
@@ -550,61 +559,36 @@ const Navbar: React.FC = () => {
               {/* Desktop view controls on right */}
               {!isMobile && (
                 <>
-                  {/* Language Selector */}
-                  <Tooltip title={t('language')}>
-                    <IconButton
-                      onClick={handleLanguageMenuOpen}
-                      size="small"
-                      sx={{
-                        color: 'text.secondary',
-                        border: '1px solid',
-                        borderColor: 'rgba(226, 232, 240, 0.9)',
-                        borderRadius: '12px',
-                        p: 0.8,
-                        transition: 'all 0.2s ease',
-                        '&:hover': {
-                          bgcolor: 'action.hover',
-                          color: 'primary.main',
-                          borderColor: 'primary.main',
-                        },
-                      }}
-                    >
-                      <LanguageIcon sx={{ fontSize: 20 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Menu
-                    anchorEl={anchorEl}
-                    open={Boolean(anchorEl)}
-                    onClose={handleLanguageMenuClose}
-                    slotProps={{
-                      paper: {
-                        sx: {
-                          mt: 1.5,
-                          minWidth: 160,
-                          borderRadius: 2.5,
-                          p: 0.5,
-                          boxShadow: '0 10px 30px -4px rgba(15, 23, 42, 0.12)',
-                          border: '1px solid rgba(226, 232, 240, 0.9)',
-                        },
+                  {/* Language switch: one click flips English <-> Hindi */}
+                  <Button
+                    data-no-translate
+                    onClick={toggleLanguage}
+                    size="small"
+                    lang={nextLang}
+                    aria-label={nextLangAriaLabel}
+                    sx={{
+                      color: 'text.secondary',
+                      border: '1px solid',
+                      borderColor: 'rgba(226, 232, 240, 0.9)',
+                      borderRadius: '12px',
+                      minWidth: 0,
+                      px: 1.5,
+                      py: 0.55,
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      lineHeight: 1.4,
+                      textTransform: 'none',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: 'action.hover',
+                        color: 'primary.main',
+                        borderColor: 'primary.main',
                       },
                     }}
                   >
-                    <MenuItem
-                      data-no-translate
-                      onClick={() => changeLanguage('en')}
-                      selected={currentLang === 'en'}
-                      sx={{ borderRadius: 1.5, fontWeight: currentLang === 'en' ? 700 : 500 }}
-                    >
-                      English
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => changeLanguage('hi')}
-                      selected={currentLang === 'hi'}
-                      sx={{ borderRadius: 1.5, fontWeight: currentLang === 'hi' ? 700 : 500 }}
-                    >
-                      हिन्दी (Hindi)
-                    </MenuItem>
-                  </Menu>
+                    {nextLangLabel}
+                  </Button>
 
                   {isLoggedIn ? (
                     <>
@@ -843,34 +827,25 @@ const Navbar: React.FC = () => {
               {/* Mobile view controls on the right */}
               {isMobile && (
                 <>
-                  <Tooltip title={t('language')}>
-                    <IconButton
-                      onClick={handleLanguageMenuOpen}
-                      size="small"
-                      aria-label={t('language')}
-                      sx={{ color: 'text.primary', p: 0.75, width: 40, height: 40 }}
-                    >
-                      <LanguageIcon sx={{ fontSize: 21 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Menu
-                    anchorEl={anchorEl}
-                    open={Boolean(anchorEl)}
-                    onClose={handleLanguageMenuClose}
-                    slotProps={{
-                      paper: {
-                        sx: {
-                          mt: 1.5,
-                          minWidth: 160,
-                          borderRadius: 2.5,
-                          p: 0.5,
-                        },
-                      },
+                  <Button
+                    data-no-translate
+                    onClick={toggleLanguage}
+                    size="small"
+                    lang={nextLang}
+                    aria-label={nextLangAriaLabel}
+                    sx={{
+                      color: 'text.primary',
+                      minWidth: 0,
+                      height: 40,
+                      px: 1,
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      textTransform: 'none',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    <MenuItem data-no-translate onClick={() => changeLanguage('en')} selected={currentLang === 'en'}>English</MenuItem>
-                    <MenuItem onClick={() => changeLanguage('hi')} selected={currentLang === 'hi'}>हिन्दी (Hindi)</MenuItem>
-                  </Menu>
+                    {nextLangLabel}
+                  </Button>
 
                   {isLoggedIn && (
                     <>

@@ -44,6 +44,7 @@ import { axiosInstance } from '../../../store/api/axiosInstance';
 import { API_ENDPOINTS } from '../../../store/api/endpoints';
 import { isValidPhone, phoneHtmlInputProps, sanitizePhone } from '../../../utils/phone';
 import { setAuthSession } from '../../../hooks/useAuth';
+import { useSiteLogo } from '../../../hooks/useSiteLogo';
 import { safeRedirectPath } from '../../../utils/loginRedirect';
 
 type LoginStep = 'method' | 'otp';
@@ -119,6 +120,7 @@ const getApiErrorMessage = (error: unknown, fallback: string) => {
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
+  const { logoSrc, onLogoError } = useSiteLogo();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const theme = useTheme();
@@ -904,9 +906,10 @@ const LoginPage: React.FC = () => {
               <Box sx={{ display: { xs: 'flex', md: 'none' }, justifyContent: 'center', mb: 3 }}>
                 <Box
                   component="img"
-                  src="/Logo.png"
+                  src={logoSrc}
                   alt="VetsLinked"
-                  sx={{ height: 64, width: 'auto' }}
+                  onError={onLogoError}
+                  sx={{ height: 64, width: 'auto', maxWidth: '100%', objectFit: 'contain' }}
                 />
               </Box>
 

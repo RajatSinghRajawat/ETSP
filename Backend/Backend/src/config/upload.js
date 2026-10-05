@@ -10,6 +10,7 @@ export const uploadRoot = path.resolve(projectRoot, env.UPLOAD_DIR);
 export const candidateProfileUploadDir = path.join(uploadRoot, 'candidate-profiles');
 export const employerProfileUploadDir = path.join(uploadRoot, 'employer-profiles');
 export const bannerUploadDir = path.join(uploadRoot, 'banners');
+export const brandingUploadDir = path.join(uploadRoot, 'branding');
 export const candidateResumeUploadDir = path.join(uploadRoot, 'candidate-resumes');
 
 // Multipart ceiling for every upload route; each service then enforces its own,

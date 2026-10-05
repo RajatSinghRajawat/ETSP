@@ -1,6 +1,6 @@
 /**
  * English + Hindi defaults for CMS site content.
- * Shared (non-translated) fields live under `social` at the root.
+ * Shared (non-translated) fields live under `social` and `branding` at the root.
  */
 
 export const DEFAULT_SOCIAL = {
@@ -8,6 +8,11 @@ export const DEFAULT_SOCIAL = {
   twitter: '',
   linkedin: '',
   instagram: '',
+};
+
+// An empty logoUrl means the website falls back to its bundled logo.
+export const DEFAULT_BRANDING = {
+  logoUrl: '',
 };
 
 export const DEFAULT_LOCALE_EN = {

@@ -10,8 +10,10 @@ import {
   updateEmailSettings,
   updateMsg91Settings,
   updateSiteContent,
+  updateSiteLogo,
   updateStripeSettings,
 } from '../services/settings.service.js';
+import { deleteSiteLogo, uploadSiteLogo } from '../services/site-logo-upload.service.js';
 import { translateSiteContentToHindi } from '../services/site-content-translate.service.js';
 import { AppError } from '../utils/app-error.js';
 
@@ -149,6 +151,39 @@ export async function putSiteContentHandler(request) {
     success: true,
     message: 'Site content updated successfully',
     data,
+  };
+}
+
+export async function postSiteLogoHandler(request) {
+  const file = await request.file();
+  const upload = await uploadSiteLogo(file);
+
+  let result;
+  try {
+    result = await updateSiteLogo(upload.url);
+  } catch (error) {
+    // The setting never pointed at the new file, so don't leave it orphaned.
+    await deleteSiteLogo(upload.url);
+    throw error;
+  }
+
+  await deleteSiteLogo(result.previousLogoUrl);
+
+  return {
+    success: true,
+    message: 'Website logo updated successfully',
+    data: result.content,
+  };
+}
+
+export async function deleteSiteLogoHandler() {
+  const { content, previousLogoUrl } = await updateSiteLogo('');
+  await deleteSiteLogo(previousLogoUrl);
+
+  return {
+    success: true,
+    message: 'Website logo reset to the default',
+    data: content,
   };
 }
 

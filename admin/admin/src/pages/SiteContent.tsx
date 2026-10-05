@@ -5,6 +5,7 @@ import {
   Flex,
   HStack,
   IconButton,
+  Image,
   Input,
   Spinner,
   Stack,
@@ -12,14 +13,16 @@ import {
   Text,
   Textarea,
 } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
-import { FiPlus, FiTrash2 } from 'react-icons/fi';
+import { useEffect, useRef, useState } from 'react';
+import { FiPlus, FiTrash2, FiUpload } from 'react-icons/fi';
 import { PageHeader } from '../components/PageHeader';
 import { toaster } from '../components/Toaster';
 import {
+  useRemoveSiteLogo,
   useSiteContent,
   useTranslateSiteContent,
   useUpdateSiteContent,
+  useUploadSiteLogo,
   type SiteContentLang,
   type SiteJobProfileItem,
   type SiteLegalPage,
@@ -29,6 +32,10 @@ import {
 import { extractErrorMessage } from '../lib/api';
 
 type Stat = { value: string; label: string };
+
+// Mirrors the server's limits so a bad file is caught before it is uploaded.
+const LOGO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const LOGO_MAX_BYTES = 2 * 1024 * 1024;
 
 function SectionCard({
   title,
@@ -221,7 +228,12 @@ export default function SiteContentPage() {
   const { data, isLoading, error } = useSiteContent();
   const updateContent = useUpdateSiteContent();
   const translateContent = useTranslateSiteContent();
+  const uploadLogo = useUploadSiteLogo();
+  const removeLogo = useRemoveSiteLogo();
   const [lang, setLang] = useState<SiteContentLang>('en');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [contact, setContact] = useState<SiteLocaleContent['contact']>({
     email: '',
@@ -324,6 +336,72 @@ export default function SiteContentPage() {
     });
   }
 
+  // Free the preview blob whenever it is replaced or the page unmounts.
+  useEffect(() => {
+    if (!logoPreview) return;
+    return () => URL.revokeObjectURL(logoPreview);
+  }, [logoPreview]);
+
+  function clearLogoSelection() {
+    setLogoFile(null);
+    setLogoPreview(null);
+  }
+
+  /** Held locally until saved — the live website only changes on "Save logo". */
+  function handleLogoSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    if (!LOGO_MIME_TYPES.includes(file.type)) {
+      toaster.create({ title: 'Use a JPG, PNG or WEBP image', type: 'error' });
+      return;
+    }
+    if (file.size > LOGO_MAX_BYTES) {
+      toaster.create({ title: 'Logo must be 2MB or smaller', type: 'error' });
+      return;
+    }
+
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  }
+
+  function saveLogo() {
+    if (!logoFile) return;
+
+    uploadLogo.mutate(logoFile, {
+      onSuccess: () => {
+        clearLogoSelection();
+        toaster.create({
+          title: 'Logo updated',
+          description: 'The website now shows the new logo.',
+          type: 'success',
+        });
+      },
+      onError: (err) =>
+        toaster.create({
+          title: 'Logo upload failed',
+          description: extractErrorMessage(err),
+          type: 'error',
+        }),
+    });
+  }
+
+  function resetLogo() {
+    removeLogo.mutate(undefined, {
+      onSuccess: () => {
+        clearLogoSelection();
+        toaster.create({
+          title: 'Logo removed',
+          description: 'The website is back to its default logo.',
+          type: 'success',
+        });
+      },
+      onError: (err) =>
+        toaster.create({ title: 'Failed', description: extractErrorMessage(err), type: 'error' }),
+    });
+  }
+
   function translateToHindi() {
     translateContent.mutate(
       {},
@@ -376,11 +454,14 @@ export default function SiteContentPage() {
     );
   }
 
+  const savedLogoUrl = data?.branding?.logoUrl ?? '';
+  const logoBusy = uploadLogo.isPending || removeLogo.isPending;
+
   return (
     <Box maxW="960px">
       <PageHeader
         title="Site Content"
-        description="Edit English and Hindi copy for homepage, contact, about and legal pages. Use Translate to fill Hindi from English via OpenAI."
+        description="Edit the website logo and the English and Hindi copy for homepage, contact, about and legal pages. Use Translate to fill Hindi from English via OpenAI."
       />
 
       <Flex
@@ -398,7 +479,7 @@ export default function SiteContentPage() {
         <Box>
           <Text fontWeight="semibold">Editing language</Text>
           <Text fontSize="sm" color="gray.500">
-            Social links are shared. All other tabs save to the selected language.
+Logo and social links are shared. All other tabs save to the selected language.
           </Text>
         </Box>
         <HStack gap={2} flexWrap="wrap">
@@ -435,6 +516,7 @@ export default function SiteContentPage() {
           <Tabs.Trigger value="jobProfiles">Job Profiles</Tabs.Trigger>
           <Tabs.Trigger value="contact">Contact</Tabs.Trigger>
           <Tabs.Trigger value="social">Social</Tabs.Trigger>
+          <Tabs.Trigger value="logo">Logo</Tabs.Trigger>
           <Tabs.Trigger value="about">About</Tabs.Trigger>
           <Tabs.Trigger value="privacy">Privacy</Tabs.Trigger>
           <Tabs.Trigger value="terms">Terms</Tabs.Trigger>
@@ -750,6 +832,91 @@ export default function SiteContentPage() {
                   Save Social Links
                 </Button>
               </Box>
+            </Stack>
+          </SectionCard>
+        </Tabs.Content>
+
+        <Tabs.Content value="logo">
+          <SectionCard
+            title="Website Logo"
+            description="Shown in the website header, footer and login page. The same logo is used for English and Hindi."
+          >
+            <Stack gap={4}>
+              <Box>
+                <Text fontSize="sm" fontWeight="medium" mb={2}>
+                  {logoPreview ? 'New logo (not saved yet)' : 'Current logo'}
+                </Text>
+                <Flex
+                  align="center"
+                  justify="center"
+                  minH="120px"
+                  p={5}
+                  borderWidth="1px"
+                  borderColor={logoPreview ? 'teal.400' : 'gray.200'}
+                  borderStyle={logoPreview ? 'dashed' : 'solid'}
+                  borderRadius="lg"
+                  bg="gray.50"
+                >
+                  {logoPreview || savedLogoUrl ? (
+                    <Image
+                      src={logoPreview ?? savedLogoUrl}
+                      alt="Website logo preview"
+                      maxH="80px"
+                      maxW="100%"
+                      objectFit="contain"
+                    />
+                  ) : (
+                    <Text fontSize="sm" color="gray.500" textAlign="center">
+                      No custom logo uploaded — the website is using its default logo.
+                    </Text>
+                  )}
+                </Flex>
+              </Box>
+
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept={LOGO_MIME_TYPES.join(',')}
+                hidden
+                onChange={handleLogoSelected}
+              />
+
+              <HStack gap={3} flexWrap="wrap">
+                <Button
+                  variant="outline"
+                  disabled={logoBusy}
+                  onClick={() => logoInputRef.current?.click()}
+                >
+                  <FiUpload style={{ marginRight: 8 }} />
+                  {logoFile ? 'Choose a different image' : savedLogoUrl ? 'Replace logo' : 'Upload logo'}
+                </Button>
+                {logoFile && (
+                  <>
+                    <Button colorPalette="teal" loading={uploadLogo.isPending} onClick={saveLogo}>
+                      Save logo
+                    </Button>
+                    <Button variant="ghost" disabled={logoBusy} onClick={clearLogoSelection}>
+                      Cancel
+                    </Button>
+                  </>
+                )}
+                {!logoFile && savedLogoUrl && (
+                  <Button
+                    variant="outline"
+                    colorPalette="red"
+                    loading={removeLogo.isPending}
+                    onClick={resetLogo}
+                  >
+                    <FiTrash2 style={{ marginRight: 8 }} />
+                    Remove (use default logo)
+                  </Button>
+                )}
+              </HStack>
+
+              <Text fontSize="sm" color="gray.500">
+                JPG, PNG or WEBP, up to 2MB. A wide PNG with a transparent background looks best —
+                it is shown about 46px tall in the header.
+              </Text>
             </Stack>
           </SectionCard>
         </Tabs.Content>

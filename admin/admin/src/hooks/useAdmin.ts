@@ -774,6 +774,8 @@ export interface SiteLocaleContent {
 
 export interface SiteContent {
   social: { facebook: string; twitter: string; linkedin: string; instagram: string };
+  /** An empty logoUrl means the website shows its bundled default logo. */
+  branding: { logoUrl: string };
   en: SiteLocaleContent;
   hi: SiteLocaleContent;
 }
@@ -802,6 +804,39 @@ export function useUpdateSiteContent() {
   return useMutation({
     mutationFn: async (body: SiteContentUpdateInput | Record<string, unknown>) => {
       const res = await api.put<ApiResponse<SiteContent>>('/admin/settings/site-content', body);
+      return unwrap(res.data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'settings', 'site-content'] }),
+  });
+}
+
+/**
+ * Uploads a new website logo. The server stores the file and points the public
+ * site at it in one step, so the returned content already carries the new URL.
+ */
+export function useUploadSiteLogo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post<ApiResponse<SiteContent>>(
+        '/admin/settings/site-content/logo',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 },
+      );
+      return unwrap(res.data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'settings', 'site-content'] }),
+  });
+}
+
+/** Drops the uploaded logo so the website goes back to its default one. */
+export function useRemoveSiteLogo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await api.delete<ApiResponse<SiteContent>>('/admin/settings/site-content/logo');
       return unwrap(res.data);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'settings', 'site-content'] }),
