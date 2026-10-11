@@ -226,7 +226,7 @@ export default function Login() {
                   </Field.Label>
                   <Input
                     type="email"
-                    placeholder="admin@example.com"
+                    placeholder="Enter your admin email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     size="lg"

@@ -17,19 +17,6 @@ import { AppError } from '../utils/app-error.js';
 import { logger } from '../utils/logger.js';
 import { mobileLookupVariants, normalizeIndianMobile } from '../utils/phone.js';
 
-// Static test accounts (non-production only) for repeatable login testing.
-const STATIC_TEST_OTP = '123456';
-const TEST_ACCOUNTS = {
-  'admin@test.com': 'admin',
-  'admin@ets.local': 'admin',
-  'admin@admin.com': 'admin',
-  'admin@example.com': 'admin',
-  'admin@ets.com': 'admin',
-  'admin@gmail.com': 'admin',
-  'employer@test.com': 'employer',
-  'candidate@test.com': 'candidate',
-};
-
 const inMemoryOtpStore = new Map();
 
 function setMemoryOtp(key, otp, ttlSeconds = 600) {
@@ -53,10 +40,6 @@ function delMemoryOtp(key) {
 class AuthService {
   generateOtp() {
     return String(randomInt(100000, 999999));
-  }
-
-  isTestAccount(email) {
-    return Object.prototype.hasOwnProperty.call(TEST_ACCOUNTS, email);
   }
 
   createAccessToken(user) {
@@ -221,10 +204,6 @@ class AuthService {
       throw new AppError('Choose where to receive the OTP: email, SMS or WhatsApp', 400);
     }
 
-    if (this.isTestAccount(formattedEmail)) {
-      return { message: `Test account: use static OTP ${STATIC_TEST_OTP}`, channel };
-    }
-
     const registeredAccount = await this.getRegisteredAccount(formattedEmail);
     const label = OTP_CHANNEL_LABELS[channel];
 
@@ -351,24 +330,6 @@ class AuthService {
 
   async verifyOtp(identifier, otp) {
     const formattedEmail = await this.resolveLoginEmail(identifier);
-
-    if (this.isTestAccount(formattedEmail)) {
-      if (otp !== STATIC_TEST_OTP) {
-        throw new AppError('Invalid OTP', 400);
-      }
-
-      const role = TEST_ACCOUNTS[formattedEmail];
-      let user = await User.findOne({ email: formattedEmail });
-      if (!user) {
-        user = await User.create({ email: formattedEmail, role, isActive: true });
-      } else if (user.role !== role) {
-        // The map is the source of truth for these fixed accounts, so reset a
-        // role that drifted (e.g. an earlier profile created it as candidate).
-        user.role = role;
-      }
-
-      return this.issueTokenForUser(user);
-    }
 
     const registeredAccount = await this.getRegisteredAccount(formattedEmail);
     const otpKey = `auth:otp:${formattedEmail}`;

@@ -19,12 +19,9 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().default(''),
 
   // Google Cloud Translation v2 key for /api/v1/translate (site-wide Hindi).
-  // Server-side only — never expose it to the frontend bundle. Falls back to
-  // the built-in key when unset or left empty (`GOOGLE_TRANSLATE_API_KEY=`).
-  GOOGLE_TRANSLATE_API_KEY: z
-    .string()
-    .optional()
-    .transform((value) => value || 'AIzaSyDjjdiLU8FR83tBrPJssUNYxgSNn2owCn0'),
+  // Server-side only — never expose it to the frontend bundle. Translation is
+  // disabled (503) until the key is set.
+  GOOGLE_TRANSLATE_API_KEY: z.string().default(''),
 
   // Dev/test-only payment bypass: checkout endpoints skip Stripe and mint a
   // `test_<purchaseId>` session id that confirm endpoints fulfill directly.
@@ -39,9 +36,9 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('7d'),
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().default(587),
-  SMTP_USER: z.string().default('santoshkumarsharma6367@gmail.com'),
-  SMTP_PASS: z.string().default('icqxhfjzfwresfis'),
-  SMTP_FROM: z.string().default('Santosh <santoshkumarsharma6367@gmail.com>'),
+  SMTP_USER: z.string().default(''),
+  SMTP_PASS: z.string().default(''),
+  SMTP_FROM: z.string().default(''),
 
   // SMS OTP via MSG91 (DLT: Jio TrueConnect). TEMPLATE_ID is the template id from
   // the MSG91 panel — not the DLT template id. The template text must match the
@@ -65,6 +62,16 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
+
+// Refuse to boot in production with a guessable JWT secret: anyone could forge
+// an admin token with the public default.
+if (
+  env.NODE_ENV === 'production' &&
+  (env.JWT_SECRET === 'super-secret-jwt-key' || env.JWT_SECRET.length < 32)
+) {
+  console.error('JWT_SECRET must be set to a random string of at least 32 characters in production.');
+  process.exit(1);
+}
 
 if (
   env.NODE_ENV === 'production' &&
