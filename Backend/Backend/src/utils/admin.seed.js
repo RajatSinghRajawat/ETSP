@@ -3,27 +3,27 @@ import { User } from '../models/user.model.js';
 import { logger } from './logger.js';
 
 /**
- * Makes sure the ADMIN_EMAIL account exists as an active admin, so a fresh
- * deploy can log into the admin panel via the normal email OTP flow without
- * running a seed script inside the container.
+ * Makes sure every ADMIN_EMAIL account (comma-separated) exists as an active
+ * admin, so a fresh deploy can log into the admin panel via the normal email
+ * OTP flow without running a seed script inside the container.
  */
 export async function ensureAdminUser() {
-  const email = env.ADMIN_EMAIL.toLowerCase().trim();
+  const emails = env.ADMIN_EMAIL.split(',')
+    .map((email) => email.toLowerCase().trim())
+    .filter(Boolean);
 
-  if (!email) {
-    return;
-  }
+  for (const email of emails) {
+    const existing = await User.findOne({ email }).select('role isActive').lean();
 
-  const existing = await User.findOne({ email }).select('role isActive').lean();
+    if (!existing) {
+      await User.create({ email, role: 'admin', isActive: true });
+      logger.info(`Created admin user: ${email}`);
+      continue;
+    }
 
-  if (!existing) {
-    await User.create({ email, role: 'admin', isActive: true });
-    logger.info(`Created admin user: ${email}`);
-    return;
-  }
-
-  if (existing.role !== 'admin' || !existing.isActive) {
-    await User.updateOne({ email }, { $set: { role: 'admin', isActive: true } });
-    logger.info(`Promoted user to admin: ${email}`);
+    if (existing.role !== 'admin' || !existing.isActive) {
+      await User.updateOne({ email }, { $set: { role: 'admin', isActive: true } });
+      logger.info(`Promoted user to admin: ${email}`);
+    }
   }
 }

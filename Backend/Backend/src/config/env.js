@@ -34,7 +34,7 @@ const envSchema = z.object({
   // Auth & Email settings
   JWT_SECRET: z.string().default('super-secret-jwt-key'),
   JWT_EXPIRES_IN: z.string().default('7d'),
-  // Created/promoted to admin on startup; logs in with the normal email OTP.
+  // Comma-separated; each is created/promoted to admin on startup (email OTP login).
   ADMIN_EMAIL: z.string().default(''),
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().default(587),
