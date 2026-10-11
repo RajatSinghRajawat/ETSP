@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { env } from '../config/env.js';
+import { isCorsOriginAllowed } from '../config/cors.js';
 import { logger } from '../utils/logger.js';
 import { assertConversationAccess } from '../services/chat.service.js';
 
@@ -18,7 +19,8 @@ export function initSocket(httpServer) {
   io = new Server(httpServer, {
     path: '/socket.io',
     cors: {
-      origin: env.CORS_ORIGIN,
+      // Same allowlist as the REST API; CORS_ORIGIN may be a comma-separated list.
+      origin: (origin, callback) => callback(null, isCorsOriginAllowed(origin)),
       credentials: true,
     },
   });
