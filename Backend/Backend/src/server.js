@@ -5,6 +5,7 @@ import { connectRedis, disconnectRedis } from './config/redis.js';
 import { startSweeps, stopSweeps } from './jobs/sweeps.js';
 import { logger } from './utils/logger.js';
 import { seedLookups } from './utils/lookup.seed.js';
+import { ensureAdminUser } from './utils/admin.seed.js';
 import { initSocket } from './socket/socket.js';
 
 const app = await buildApp();
@@ -13,6 +14,7 @@ async function start() {
   try {
     await connectDatabase();
     await seedLookups();
+    await ensureAdminUser();
     await connectRedis();
 
     await app.listen({
