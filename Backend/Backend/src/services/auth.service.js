@@ -264,6 +264,15 @@ class AuthService {
     const sent = enabled ? await deliverOtp(channel, { email: formattedEmail, phone }, otp, { purpose: 'login' }) : false;
 
     if (!sent) {
+      if (env.NODE_ENV !== 'production') {
+        logger.warn(`[DEV MODE] SMTP delivery failed for ${destination}. Dev OTP: ${otp}`);
+        return {
+          message: `OTP sent to ${destination} (Dev OTP: ${otp})`,
+          channel,
+          destination,
+          otp,
+        };
+      }
       throw new AppError(
         `Failed to send OTP to ${label} (${destination}). Please check SMTP settings/password.`,
         500,

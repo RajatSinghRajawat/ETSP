@@ -39,6 +39,8 @@ class EmailService {
 
     if (!this.transporter || this.fingerprint !== fingerprint) {
       this.transporter = nodemailer.createTransport({
+        pool: true,
+        maxConnections: 3,
         host: settings.host,
         port: Number(settings.port),
         secure: Number(settings.port) === 465, // true for 465 (SSL/TLS), false for other ports
@@ -60,37 +62,48 @@ class EmailService {
   }
 
   async sendEmail({ to, subject, html, text }) {
-    try {
-      const [transporter, settings] = await Promise.all([
-        this.getTransporter(),
-        getEmailSettings(),
-      ]);
-
-      if (!transporter) {
-        logger.warn('Email service is disabled or credentials missing — skipping send', { to, subject });
-        return false;
-      }
-
-      const info = await transporter.sendMail({
-        from: settings.from || `"VetsLinked" <${settings.user}>`,
-        to,
-        subject,
-        text,
-        html,
-      });
-      logger.info(`Email sent successfully: ${info.messageId}`, { to, subject });
-      return true;
-    } catch (error) {
-      logger.error('Error sending email via SMTP', {
-        to,
-        subject,
-        message: error.message,
-        code: error.code,
-        command: error.command,
-        response: error.response,
-      });
+    const settings = await getEmailSettings();
+    if (!settings.enabled || !settings.host || !settings.user || !settings.pass) {
+      logger.warn('Email service is disabled or credentials missing — skipping send', { to, subject });
       return false;
     }
+
+    const maxAttempts = 2;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const transporter = await this.getTransporter();
+        if (!transporter) return false;
+
+        const info = await transporter.sendMail({
+          from: settings.from || `"VetsLinked" <${settings.user}>`,
+          to,
+          subject,
+          text,
+          html,
+        });
+        logger.info(`Email sent successfully: ${info.messageId}`, { to, subject, attempt });
+        return true;
+      } catch (error) {
+        logger.warn(`SMTP send attempt ${attempt} failed: ${error.message}`, {
+          code: error.code,
+          command: error.command,
+        });
+        this.reset();
+        if (attempt < maxAttempts) {
+          await new Promise((r) => setTimeout(r, 1000));
+        } else {
+          logger.error('All SMTP send attempts failed', {
+            to,
+            subject,
+            message: error.message,
+            code: error.code,
+            response: error.response,
+          });
+          return false;
+        }
+      }
+    }
+    return false;
   }
 
   async sendOtpEmail(email, otp, { purpose = 'verification', role = '' } = {}) {

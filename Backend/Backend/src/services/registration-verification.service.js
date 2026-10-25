@@ -199,7 +199,11 @@ export async function sendRegistrationEmailOtp(input) {
   const sent = await deliverOtp('email', { email }, otp);
 
   if (!sent) {
-    throw new AppError('Could not send the verification code by email. Please try again.', 502);
+    if (env.NODE_ENV !== 'production') {
+      logger.warn(`[DEV MODE] Email OTP delivery failed. Dev OTP for ${email}: ${otp}`);
+    } else {
+      throw new AppError('Could not send the verification code by email. Please try again.', 502);
+    }
   }
 
   await redisSet(cooldownKey('email', email), '1', RESEND_COOLDOWN_SECONDS);
