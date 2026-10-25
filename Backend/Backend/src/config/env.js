@@ -1,4 +1,4 @@
-// Configuration loader with Zod validation - GoDaddy SMTP
+// Configuration loader with Zod validation - Active GoDaddy SMTP
 import 'dotenv/config';
 import { z } from 'zod';
 
