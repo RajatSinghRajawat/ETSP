@@ -26,4 +26,12 @@ export async function ensureAdminUser() {
       logger.info(`Promoted user to admin: ${email}`);
     }
   }
+
+  // Strictly enforce: remove admin role from any accounts not listed in ADMIN_EMAIL
+  if (emails.length > 0) {
+    await User.updateMany(
+      { role: 'admin', email: { $nin: emails } },
+      { $set: { role: 'candidate' } },
+    );
+  }
 }

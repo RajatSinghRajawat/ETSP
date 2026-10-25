@@ -1,3 +1,4 @@
+// Configuration loader with Zod validation
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -15,7 +16,7 @@ const envSchema = z.object({
   UPLOAD_DIR: z.string().default('uploads'),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   RATE_LIMIT_WINDOW: z.string().default('1 minute'),
-  
+
   OPENAI_API_KEY: z.string().default(''),
 
   // Google Cloud Translation v2 key for /api/v1/translate (site-wide Hindi).
@@ -35,7 +36,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().default('super-secret-jwt-key'),
   JWT_EXPIRES_IN: z.string().default('7d'),
   // Comma-separated; each is created/promoted to admin on startup (email OTP login).
-  ADMIN_EMAIL: z.string().default(''),
+  ADMIN_EMAIL: z.string().default('info@vetslinked.in,nextskool.tech@gmail.com'),
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_USER: z.string().default(''),

@@ -197,8 +197,20 @@ class AuthService {
    * by email and an email login can ask for it on WhatsApp — the code always
    * goes to the contact details registered on the account.
    */
-  async sendOtp(identifier, channel = 'email') {
+  async sendOtp(identifier, channel = 'email', options = {}) {
     const formattedEmail = await this.resolveLoginEmail(identifier);
+
+    // If logging into Admin console, restrict OTP strictly to ADMIN_EMAIL list
+    if (options.forAdmin) {
+      const allowedAdmins = (env.ADMIN_EMAIL || '')
+        .split(',')
+        .map((e) => e.toLowerCase().trim())
+        .filter(Boolean);
+
+      if (!allowedAdmins.includes(formattedEmail)) {
+        throw new AppError('Access denied. Only authorized administrator emails can sign in.', 403);
+      }
+    }
 
     if (!isOtpChannel(channel)) {
       throw new AppError('Choose where to receive the OTP: email, SMS or WhatsApp', 400);
@@ -249,15 +261,11 @@ class AuthService {
     setMemoryOtp(otpKey, otp, ttlInSeconds);
 
     const destination = maskOtpDestination(channel, { email: formattedEmail, phone });
-    const sent = enabled ? await deliverOtp(channel, { email: formattedEmail, phone }, otp) : false;
+    const sent = enabled ? await deliverOtp(channel, { email: formattedEmail, phone }, otp, { purpose: 'login' }) : false;
 
     if (!sent) {
-      if (env.NODE_ENV !== 'production') {
-        return { message: `OTP sent successfully: ${otp}`, channel, destination };
-      }
-
       throw new AppError(
-        `Failed to send OTP via ${label}. Please try again or choose another option.`,
+        `Failed to send OTP to ${label} (${destination}). Please check SMTP settings/password.`,
         500,
       );
     }
@@ -356,7 +364,7 @@ class AuthService {
     // Remove OTP after verification
     try {
       await redis.del(otpKey);
-    } catch {}
+    } catch { }
     delMemoryOtp(otpKey);
 
     let user = await User.findOne({ email: formattedEmail });
@@ -373,7 +381,7 @@ class AuthService {
     CandidateProfile.updateOne(
       { email: formattedEmail },
       { $set: { emailVerified: true } },
-    ).catch(() => {});
+    ).catch(() => { });
 
     return this.issueTokenForUser(user, this.listAvailableRoles(registeredAccount));
   }

@@ -61,11 +61,24 @@ export default function Login() {
 
   async function handleSendOtp(event: FormEvent) {
     event.preventDefault();
-    if (!email.trim()) return;
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) return;
+
+    const allowedAdmins = ['info@vetslinked.in', 'nextskool.tech@gmail.com'];
+    if (!allowedAdmins.includes(cleanEmail)) {
+      toaster.create({
+        title: 'Access denied',
+        description: 'Only authorized administrator emails (info@vetslinked.in, nextskool.tech@gmail.com) can sign in.',
+        type: 'error',
+      });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await api.post<ApiResponse<SendOtpResponse> & SendOtpResponse>('/auth/send-otp', {
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
+        forAdmin: true,
       });
       toaster.create({
         title: 'OTP sent',

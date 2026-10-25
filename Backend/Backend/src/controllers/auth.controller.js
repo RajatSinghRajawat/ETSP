@@ -17,8 +17,8 @@ class AuthController {
 
   async sendOtp(request, reply) {
     try {
-      const { email, phone, channel } = request.body;
-      const response = await authService.sendOtp({ email, phone }, channel);
+      const { email, phone, channel, forAdmin } = request.body;
+      const response = await authService.sendOtp({ email, phone }, channel, { forAdmin });
       reply.send({ success: true, ...response });
     } catch (err) {
       logger.error('Error sending OTP', err);

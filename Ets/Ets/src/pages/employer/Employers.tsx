@@ -266,49 +266,93 @@ const Employers: React.FC = () => {
             </Box>
           </Box>
 
-          <Paper elevation={0} sx={{ borderRadius: 999, p: 0.75, maxWidth: 820, mx: 'auto', bgcolor: 'white', boxShadow: '0 20px 50px rgba(0,0,0,0.18)', mt: 4 }}>
-            <Box sx={{ display: 'flex', gap: 1, flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center' }}>
-              <TextField
-                fullWidth
-                variant="standard"
-                placeholder="Search employers, clinics..."
-                value={searchTerm}
-                onChange={(event) => {
-                  setPage(1);
-                  setSearchTerm(event.target.value);
+          {/* Search card — rounded card on mobile, single pill from sm up */}
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: { xs: 3.5, sm: 999 },
+              p: { xs: 1.25, sm: 0.75 },
+              maxWidth: 820,
+              mx: 'auto',
+              bgcolor: 'white',
+              boxShadow: { xs: '0 12px 30px rgba(0,0,0,0.16)', md: '0 20px 50px rgba(0,0,0,0.18)' },
+              mt: 4,
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'stretch', sm: 'center' },
+                gap: { xs: 1.25, sm: 1 },
+              }}
+            >
+              {/* Input + filter trigger share one row so mobile stays compact */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flex: 1,
+                  minWidth: 0,
+                  gap: 0.5,
+                  pl: { xs: 1, sm: 0.5 },
+                  pr: { xs: 0.5, sm: 0 },
+                  py: { xs: 0.25, sm: 0 },
+                  borderRadius: { xs: 2.5, sm: 0 },
+                  bgcolor: { xs: 'rgba(12,82,131,0.04)', sm: 'transparent' },
+                  border: { xs: '1px solid rgba(12,82,131,0.10)', sm: 'none' },
                 }}
-                slotProps={{
-                  input: {
-                    disableUnderline: true,
-                    startAdornment: <SearchIcon sx={{ color: 'action.active', mx: 1.5 }} />,
-                  },
-                }}
-                sx={{ flex: 1, '& input': { py: 1.2 } }}
-              />
+              >
+                <SearchIcon sx={{ color: 'action.active', mx: { xs: 0.5, sm: 1 }, fontSize: { xs: 20, sm: 24 }, flexShrink: 0 }} />
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  placeholder="Search employers, clinics..."
+                  value={searchTerm}
+                  onChange={(event) => {
+                    setPage(1);
+                    setSearchTerm(event.target.value);
+                  }}
+                  slotProps={{ input: { disableUnderline: true } }}
+                  sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    '& input': { py: { xs: 1.1, sm: 1.2 }, fontSize: { xs: '0.9rem', sm: '1rem' } },
+                  }}
+                />
+                <IconButton
+                  onClick={() => setDrawerOpen(true)}
+                  aria-label="Open filters"
+                  sx={{
+                    flexShrink: 0,
+                    width: { xs: 38, sm: 46 },
+                    height: { xs: 38, sm: 46 },
+                    border: '1px solid',
+                    borderColor: 'rgba(12,82,131,0.14)',
+                    color: '#0c5283',
+                    '&:hover': { bgcolor: 'rgba(10,182,162,0.08)', borderColor: '#0ab6a2' },
+                  }}
+                >
+                  <Tune sx={{ fontSize: { xs: 19, sm: 22 } }} />
+                </IconButton>
+              </Box>
+
               <Button
                 variant="contained"
                 color="primary"
-                sx={{ px: 4, py: 1.5, borderRadius: 999, fontWeight: 700, flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
                 startIcon={<SearchIcon />}
                 onClick={() => setPage(1)}
+                sx={{
+                  px: { xs: 3, sm: 4 },
+                  py: { xs: 1.25, sm: 1.5 },
+                  borderRadius: 999,
+                  fontWeight: 700,
+                  flexShrink: 0,
+                  width: { xs: '100%', sm: 'auto' },
+                }}
               >
                 Search
               </Button>
-              <IconButton
-                onClick={() => setDrawerOpen(true)}
-                aria-label="Open filters"
-                sx={{
-                  flexShrink: 0,
-                  width: 48,
-                  height: 48,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  color: '#0c5283',
-                  '&:hover': { bgcolor: 'rgba(10,182,162,0.08)', borderColor: '#0ab6a2' },
-                }}
-              >
-                <Tune />
-              </IconButton>
             </Box>
           </Paper>
         </Container>

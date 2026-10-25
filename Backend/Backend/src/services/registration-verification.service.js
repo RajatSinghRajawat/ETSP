@@ -59,22 +59,56 @@ function generateOtp() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-/** Redis is optional elsewhere in the app, but verification cannot work without it. */
+// In-memory fallback cache when Redis is offline
+const memoryStore = new Map();
+
+function memSet(key, value, ttlSeconds) {
+  const expiresAt = Date.now() + (ttlSeconds || 600) * 1000;
+  memoryStore.set(key, { value: String(value), expiresAt });
+}
+
+function memGet(key) {
+  const entry = memoryStore.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    memoryStore.delete(key);
+    return null;
+  }
+  return entry.value;
+}
+
+function memDel(...keys) {
+  for (const key of keys) {
+    memoryStore.delete(key);
+  }
+}
+
+/** Store in Redis when available, gracefully fall back to in-memory store if Redis is offline */
 async function redisSet(key, value, ttlSeconds) {
+  memSet(key, value, ttlSeconds);
   try {
     await redis.set(key, value, 'EX', ttlSeconds);
   } catch (error) {
-    logger.error('Redis error during registration verification', { message: error.message, key });
-    throw new AppError('Verification is temporarily unavailable. Try again later.', 503);
+    logger.warn('Redis offline during registration verification, saved to memory store:', { message: error.message, key });
   }
 }
 
 async function redisGet(key) {
   try {
-    return await redis.get(key);
+    const val = await redis.get(key);
+    if (val !== null && val !== undefined) return val;
   } catch (error) {
-    logger.error('Redis error during registration verification', { message: error.message, key });
-    throw new AppError('Verification is temporarily unavailable. Try again later.', 503);
+    logger.warn('Redis offline during registration verification, checking memory store:', { message: error.message, key });
+  }
+  return memGet(key);
+}
+
+async function redisDel(...keys) {
+  memDel(...keys);
+  try {
+    await redis.del(...keys);
+  } catch {
+    // Non-fatal
   }
 }
 
@@ -157,18 +191,7 @@ export async function sendRegistrationEmailOtp(input) {
   const enabled = await emailService.isEnabled();
 
   if (!enabled) {
-    if (env.NODE_ENV === 'production') {
-      throw new AppError('Email service is not configured yet. Please contact support.', 503);
-    }
-
-    await redisSet(otpKey('email', email), STATIC_DEV_OTP, OTP_TTL_SECONDS);
-    await redisSet(cooldownKey('email', email), '1', RESEND_COOLDOWN_SECONDS);
-
-    return {
-      alreadyVerified: false,
-      destination: email,
-      message: `Email is not configured — dev mode accepts OTP ${STATIC_DEV_OTP}`,
-    };
+    throw new AppError('Email service is not configured yet. Please configure SMTP_PASS in .env or Admin Settings.', 503);
   }
 
   await redisSet(otpKey('email', email), otp, OTP_TTL_SECONDS);
@@ -286,12 +309,7 @@ async function confirmOtp(kind, value, otp) {
     throw new AppError('Invalid OTP', 400);
   }
 
-  try {
-    await redis.del(otpKey(kind, value));
-  } catch {
-    // The key expires on its own; a failed delete must not fail the verification.
-  }
-
+  await redisDel(otpKey(kind, value));
   await redisSet(verifiedKey(kind, value), '1', VERIFIED_TTL_SECONDS);
 
   return true;
@@ -348,11 +366,7 @@ export async function consumeRegistrationVerification({ email, phone }) {
     throw new AppError('Please verify your phone number before registering.', 403);
   }
 
-  try {
-    await redis.del(verifiedKey('email', normalizedEmail), verifiedKey('phone', normalizedPhone));
-  } catch {
-    // Both keys expire on their own — a failed cleanup must not fail the signup.
-  }
+  await redisDel(verifiedKey('email', normalizedEmail), verifiedKey('phone', normalizedPhone));
 
   return { emailVerified: true, phoneVerified: true };
 }

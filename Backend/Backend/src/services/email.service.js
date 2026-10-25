@@ -25,13 +25,13 @@ class EmailService {
 
   async isEnabled() {
     const settings = await getEmailSettings();
-    return settings.enabled && Boolean(settings.host && settings.user);
+    return settings.enabled && Boolean(settings.host && settings.user && settings.pass);
   }
 
   async getTransporter() {
     const settings = await getEmailSettings();
 
-    if (!settings.enabled) {
+    if (!settings.enabled || !settings.host || !settings.user || !settings.pass) {
       return null;
     }
 
@@ -40,12 +40,18 @@ class EmailService {
     if (!this.transporter || this.fingerprint !== fingerprint) {
       this.transporter = nodemailer.createTransport({
         host: settings.host,
-        port: settings.port,
-        secure: settings.port === 465, // true for 465, false for other ports
+        port: Number(settings.port),
+        secure: Number(settings.port) === 465, // true for 465 (SSL/TLS), false for other ports
         auth: {
           user: settings.user,
-          pass: settings.pass,
+          pass: String(settings.pass).replace(/\s+/g, ''),
         },
+        tls: {
+          rejectUnauthorized: false,
+        },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
       });
       this.fingerprint = fingerprint;
     }
@@ -61,43 +67,131 @@ class EmailService {
       ]);
 
       if (!transporter) {
-        logger.warn('Email service is disabled — skipping send', { to, subject });
+        logger.warn('Email service is disabled or credentials missing — skipping send', { to, subject });
         return false;
       }
 
       const info = await transporter.sendMail({
-        from: settings.from,
+        from: settings.from || `"VetsLinked" <${settings.user}>`,
         to,
         subject,
         text,
         html,
       });
-      logger.info(`Email sent: ${info.messageId}`);
+      logger.info(`Email sent successfully: ${info.messageId}`, { to, subject });
       return true;
     } catch (error) {
-      logger.error('Error sending email', error);
+      logger.error('Error sending email via SMTP', {
+        to,
+        subject,
+        message: error.message,
+        code: error.code,
+        command: error.command,
+        response: error.response,
+      });
       return false;
     }
   }
 
-  async sendOtpEmail(email, otp) {
-    const subject = 'Your Login Verification Code';
+  async sendOtpEmail(email, otp, { purpose = 'verification', role = '' } = {}) {
+    const isRegistration = purpose === 'registration';
+    const isLogin = purpose === 'login';
+
+    const subject = isRegistration
+      ? 'Your VetsLinked Email Verification Code'
+      : isLogin
+        ? 'Your VetsLinked Login Verification Code'
+        : 'Your VetsLinked Verification Code';
+
+    const title = isRegistration
+      ? 'Verify Your Email Address'
+      : isLogin
+        ? 'Login Verification Code'
+        : 'Email Verification Code';
+
+    const description = isRegistration
+      ? 'Thank you for joining <strong>VetsLinked</strong>. Use the one-time verification code below to verify your email address and complete your registration.'
+      : isLogin
+        ? 'You requested a one-time verification code to sign in to your <strong>VetsLinked</strong> account.'
+        : 'Use the one-time verification code below to verify your email address on <strong>VetsLinked</strong>.';
+
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-        <div style="background-color: #f4f4f4; padding: 20px; text-align: center;">
-          <h2 style="margin: 0; color: #333;">Login OTP</h2>
-        </div>
-        <div style="padding: 20px; text-align: center;">
-          <p style="font-size: 16px; color: #555;">Hello,</p>
-          <p style="font-size: 16px; color: #555;">Your verification code for logging into VetJobs is:</p>
-          <div style="font-size: 32px; font-weight: bold; background: #e3f2fd; color: #1565c0; padding: 15px; border-radius: 8px; margin: 20px auto; display: inline-block; letter-spacing: 5px;">
-            ${otp}
-          </div>
-          <p style="font-size: 14px; color: #888;">This code will expire in 10 minutes. Do not share this OTP with anyone.</p>
-        </div>
-      </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(subject)}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f1f5f9; padding: 40px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 580px; background-color: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
+          <tr>
+            <td style="background: linear-gradient(135deg, #0c5283 0%, #0ab6a2 100%); padding: 36px 30px; text-align: center; color: #ffffff;">
+              <div style="font-size: 26px; font-weight: 800; letter-spacing: 0.5px; margin: 0 0 6px 0; text-transform: uppercase;">
+                VetsLinked
+              </div>
+              <p style="margin: 0; font-size: 13px; opacity: 0.9; font-weight: 500; letter-spacing: 0.3px;">
+                Veterinary Opportunities & Talent Network
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 36px 32px 28px 32px; color: #334155; font-size: 15px; line-height: 1.65;">
+              <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #0f172a; text-align: center;">
+                ${title}
+              </h2>
+              <p style="margin: 0 0 18px 0; font-size: 15px; color: #475569; text-align: center;">
+                ${description}
+              </p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 28px 0 24px 0;">
+                <tr>
+                  <td align="center">
+                    <div style="background-color: #f0fdfa; border: 2px dashed #0ab6a2; border-radius: 12px; padding: 18px 24px; display: inline-block;">
+                      <span style="font-family: 'Courier New', Courier, Consolas, monospace; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #0c5283; display: inline-block;">
+                        ${otp}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <div style="text-align: center; margin-bottom: 24px;">
+                <span style="display: inline-block; background-color: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 20px;">
+                  ⏱ Valid for 10 minutes &nbsp;•&nbsp; Single-use only
+                </span>
+              </div>
+              <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 6px; padding: 14px 16px; margin: 24px 0;">
+                <p style="margin: 0; font-size: 13px; color: #92400e; line-height: 1.5;">
+                  <strong>🔒 Security Notice:</strong> Never share this code with anyone. VetsLinked staff will never ask you for your verification code. If you did not request this OTP, please disregard this email.
+                </p>
+              </div>
+              <p style="margin: 20px 0 0 0; font-size: 14px; color: #64748b; text-align: center;">
+                Need help? Contact our support team at <a href="mailto:info@vetslinked.in" style="color: #0c5283; font-weight: 600; text-decoration: none;">info@vetslinked.in</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 22px 30px; text-align: center; font-size: 12px; color: #94a3b8; line-height: 1.6;">
+              <p style="margin: 0 0 4px 0;">
+                © 2026 VetsLinked (<a href="https://vetslinked.in" style="color: #94a3b8; text-decoration: underline;">vetslinked.in</a>). All rights reserved.
+              </p>
+              <p style="margin: 0;">
+                This is an automated system email. Please do not reply directly to this message.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
     `;
-    const text = `Your VetJobs Login OTP is: ${otp}`;
+
+    const text = `${title}\n\nYour VetsLinked verification code is: ${otp}\n\nThis code will expire in 10 minutes. Do not share this OTP with anyone.\n\nNeed help? Email info@vetslinked.in`;
+
     return this.sendEmail({ to: email, subject, html, text });
   }
 
